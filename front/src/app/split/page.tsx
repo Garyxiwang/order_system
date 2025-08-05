@@ -297,6 +297,7 @@ const DesignPage: React.FC = () => {
     {
       title: "操作",
       key: "action",
+      fixed: "right",
       render: (_: unknown, record: SplitOrder) => (
         <Space>
           <Button

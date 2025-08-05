@@ -67,30 +67,45 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {isLoginPage ? (
         <>{children}</>
       ) : (
-        <Layout className="min-h-screen">
-          <Layout>
-            <Sider
-              width={250}
-              theme="light"
-              className="min-h-screen shadow-md z-10 bg-gradient-to-b from-blue-50 to-white"
-              breakpoint="lg"
-              collapsible
+        <Layout style={{ height: '100vh', overflow: 'hidden' }}>
+          <Sider
+            width={250}
+            theme="light"
+            style={{
+              position: 'fixed',
+              left: 0,
+              top: 0,
+              height: '100vh',
+              zIndex: 1000,
+              overflowY: 'auto'
+            }}
+            className="shadow-md bg-gradient-to-b from-blue-50 to-white"
+            breakpoint="lg"
+            collapsible
+          >
+            <div className="flex items-center justify-center py-6 px-4 border-b border-gray-100">
+              <div className="text-xl font-bold text-blue-700 flex items-center">
+                <img src="/globe.svg" alt="Logo" className="w-8 h-8 mr-2" />
+                <span>订单系统</span>
+              </div>
+            </div>
+            <div className="py-2">
+              <SideMenu />
+            </div>
+          </Sider>
+          <Layout style={{ marginLeft: 250 }}>
+            <Header
+              style={{
+                backgroundColor: "white",
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                left: 250,
+                zIndex: 999,
+                height: 64
+              }}
+              className="px-6 flex justify-between items-center shadow-sm"
             >
-              <div className="flex items-center justify-center py-6 px-4 border-b border-gray-100">
-                <div className="text-xl font-bold text-blue-700 flex items-center">
-                  <img src="/globe.svg" alt="Logo" className="w-8 h-8 mr-2" />
-                  <span>订单系统</span>
-                </div>
-              </div>
-              <div className="py-2">
-                <SideMenu />
-              </div>
-            </Sider>
-            <Layout>
-              <Header
-                style={{ backgroundColor: "white" }}
-                className="px-6 flex justify-between items-center shadow-sm h-16 sticky top-0 z-10"
-              >
                 <div className="flex-1">
                   <Menu
                     mode="horizontal"
@@ -151,15 +166,24 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                   </Dropdown>
                 </div>
               </Header>
-              <Content className="m-4 rounded-lg">
-                {children}
+              <Content 
+                style={{
+                  marginTop: 64,
+                  maxHeight: 'calc(100vh - 64px)',
+                  overflow: 'auto',
+                  padding: '16px'
+                }}
+                className="rounded-lg"
+              >
+                <div>
+                  {children}
+                </div>
+                <Footer className="text-center text-gray-500 bg-transparent mt-4">
+                  订单系统 ©{new Date().getFullYear()} -
+                  基于Next.js、TypeScript和Ant Design构建
+                </Footer>
               </Content>
-              <Footer className="text-center text-gray-500 bg-transparent">
-                订单系统 ©{new Date().getFullYear()} -
-                基于Next.js、TypeScript和Ant Design构建
-              </Footer>
             </Layout>
-          </Layout>
         </Layout>
       )}
     </AntdRegistry>

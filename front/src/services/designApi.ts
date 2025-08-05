@@ -75,12 +75,14 @@ export interface ApiResponse<T> {
 }
 
 // 模拟网络延迟
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // 获取设计订单列表
-export const getDesignOrders = async (): Promise<ApiResponse<DesignOrder[]>> => {
+export const getDesignOrders = async (): Promise<
+  ApiResponse<DesignOrder[]>
+> => {
   await delay(300); // 模拟网络延迟
-  
+
   return {
     code: 200,
     message: "获取成功",
@@ -89,11 +91,13 @@ export const getDesignOrders = async (): Promise<ApiResponse<DesignOrder[]>> => 
 };
 
 // 根据订单号获取单个设计订单
-export const getDesignOrderById = async (orderNumber: string): Promise<ApiResponse<DesignOrder | null>> => {
+export const getDesignOrderById = async (
+  orderNumber: string
+): Promise<ApiResponse<DesignOrder | null>> => {
   await delay(200);
-  
-  const order = mockDesignData.find(item => item.orderNumber === orderNumber);
-  
+
+  const order = mockDesignData.find((item) => item.orderNumber === orderNumber);
+
   return {
     code: 200,
     message: order ? "获取成功" : "订单不存在",
@@ -102,16 +106,18 @@ export const getDesignOrderById = async (orderNumber: string): Promise<ApiRespon
 };
 
 // 创建设计订单
-export const createDesignOrder = async (order: Omit<DesignOrder, 'orderNumber'>): Promise<ApiResponse<DesignOrder>> => {
+export const createDesignOrder = async (
+  order: Omit<DesignOrder, "orderNumber">
+): Promise<ApiResponse<DesignOrder>> => {
   await delay(500);
-  
+
   const newOrder: DesignOrder = {
     ...order,
-    orderNumber: `D2024-${String(mockDesignData.length + 1).padStart(3, '0')}`,
+    orderNumber: `D2024-${String(mockDesignData.length + 1).padStart(3, "0")}`,
   };
-  
+
   mockDesignData.push(newOrder);
-  
+
   return {
     code: 200,
     message: "创建成功",
@@ -120,11 +126,16 @@ export const createDesignOrder = async (order: Omit<DesignOrder, 'orderNumber'>)
 };
 
 // 更新设计订单
-export const updateDesignOrder = async (orderNumber: string, updates: Partial<DesignOrder>): Promise<ApiResponse<DesignOrder | null>> => {
+export const updateDesignOrder = async (
+  orderNumber: string,
+  updates: Partial<DesignOrder>
+): Promise<ApiResponse<DesignOrder | null>> => {
   await delay(400);
-  
-  const index = mockDesignData.findIndex(item => item.orderNumber === orderNumber);
-  
+
+  const index = mockDesignData.findIndex(
+    (item) => item.orderNumber === orderNumber
+  );
+
   if (index === -1) {
     return {
       code: 404,
@@ -132,9 +143,9 @@ export const updateDesignOrder = async (orderNumber: string, updates: Partial<De
       data: null,
     };
   }
-  
+
   mockDesignData[index] = { ...mockDesignData[index], ...updates };
-  
+
   return {
     code: 200,
     message: "更新成功",
@@ -143,11 +154,15 @@ export const updateDesignOrder = async (orderNumber: string, updates: Partial<De
 };
 
 // 删除设计订单
-export const deleteDesignOrder = async (orderNumber: string): Promise<ApiResponse<boolean>> => {
+export const deleteDesignOrder = async (
+  orderNumber: string
+): Promise<ApiResponse<boolean>> => {
   await delay(300);
-  
-  const index = mockDesignData.findIndex(item => item.orderNumber === orderNumber);
-  
+
+  const index = mockDesignData.findIndex(
+    (item) => item.orderNumber === orderNumber
+  );
+
   if (index === -1) {
     return {
       code: 404,
@@ -155,9 +170,9 @@ export const deleteDesignOrder = async (orderNumber: string): Promise<ApiRespons
       data: false,
     };
   }
-  
+
   mockDesignData.splice(index, 1);
-  
+
   return {
     code: 200,
     message: "删除成功",
