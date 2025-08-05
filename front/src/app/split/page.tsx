@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Typography,
   Card,
   Table,
   Button,
@@ -12,73 +11,93 @@ import {
   Row,
   Col,
   Tag,
+  message,
 } from "antd";
-import { SearchOutlined, PlusOutlined, CheckOutlined } from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+import { SearchOutlined, CheckOutlined } from "@ant-design/icons";
+import { getSplitOrders, type SplitOrder } from "../../services/splitApi";
+import EditOrderModal from "./editOrderModal";
+import type { EditFormValues } from "./editOrderModal";
+import SplitOrderModal from "./SplitOrderModal";
+import type { SplitFormValues } from "./SplitOrderModal";
 
-const { Title } = Typography;
 const { Option } = Select;
 
 const DesignPage: React.FC = () => {
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [activeTab, setActiveTab] = useState("1");
-  const [selectedDesign, setSelectedDesign] = useState<string | null>(null);
+  const [splitData, setSplitData] = useState<SplitOrder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isSplitModalVisible, setIsSplitModalVisible] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<SplitOrder | null>(null);
 
-  // 模拟设计页数据
-  const designData = [
-    {
-      designNumber: "D2024-022",
-      customerName: "西安钻石店-济人名仕苑2-1-2101",
-      address: "西安",
-      createTime: "2024-07-20",
-      designer: "张三",
-      salesPerson: "李四",
-      splitPerson: "王五",
-      doorBody: "木门:2025/07/01:3,柜体",
-      external: "石材:2025/07/01:3,板材:2025/07/01:2",
-      priceState: "报价已发未打款",
-      fixedTime: "2024-07-20",
-      finishTime: "2024-07-30",
-      orderType: "设计单",
-      states: "拆单中",
-      remark: "这个是一个备注",
-    },
-    {
-      designNumber: "D2024-023",
-      customerName: "潘朝龙-白桦林悦8-2-1501",
-      address: "西安",
-      createTime: "2024-07-20",
-      designer: "张三",
-      salesPerson: "李四",
-      splitPerson: "王五",
-      doorBody: "木门:2025/07/01:3,柜体:2025/07/03:10",
-      external: "石材:2025/07/01:3,板材:2025/07/01:2",
-      priceState: "已报价",
-      fixedTime: "2024-07-20",
-      finishTime: "2024-07-30",
-      orderType: "设计单",
-      states: "已完成",
-      remark: "这个是一个备注",
-    },
-    {
-      designNumber: "D2024-023",
-      customerName: "计翠艳-甘肃庆阳长兴苑张先生",
-      address: "西安",
-      createTime: "2024-07-20",
-      designer: "张三",
-      salesPerson: "李四",
-      splitPerson: "",
-      doorBody: "木门:,柜体:",
-      external: "石材:,板材:",
-      priceState: "",
-      fixedTime: "",
-      finishTime: "",
-      orderType: "设计单",
-      states: "未开始",
-      remark: "",
-    },
-  ];
+  // 加载拆单数据
+  const loadSplitData = async () => {
+    setLoading(true);
+    try {
+      const response = await getSplitOrders();
+      if (response.code === 200) {
+        setSplitData(response.data);
+      } else {
+        message.error(response.message || "获取数据失败");
+      }
+    } catch (error) {
+      message.error("获取数据失败，请稍后重试");
+      console.error("获取拆单数据失败:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const columns = [
+  // 组件挂载时加载数据
+  useEffect(() => {
+    loadSplitData();
+  }, []);
+
+  // 显示编辑模态框
+  const showEditModal = (record: SplitOrder) => {
+    setSelectedOrder(record);
+    setIsEditModalVisible(true);
+  };
+
+  // 处理编辑模态框取消
+  const handleEditModalCancel = () => {
+    setIsEditModalVisible(false);
+    setSelectedOrder(null);
+  };
+
+  // 处理编辑模态框确认
+  const handleEditModalOk = (values: EditFormValues) => {
+    console.log("编辑表单数据:", values);
+    // 这里可以调用API更新数据
+    setIsEditModalVisible(false);
+    setSelectedOrder(null);
+    // 重新加载数据
+    loadSplitData();
+  };
+
+  // 显示拆单模态框
+  const showSplitModal = (record: SplitOrder) => {
+    setSelectedOrder(record);
+    setIsSplitModalVisible(true);
+  };
+
+  // 处理拆单模态框取消
+  const handleSplitModalCancel = () => {
+    setIsSplitModalVisible(false);
+    setSelectedOrder(null);
+  };
+
+  // 处理拆单模态框确认
+  const handleSplitModalOk = (values: SplitFormValues) => {
+    console.log("拆单表单数据:", values);
+    // 这里可以调用API更新数据
+    setIsSplitModalVisible(false);
+    setSelectedOrder(null);
+    // 重新加载数据
+    loadSplitData();
+  };
+
+  const columns: ColumnsType<SplitOrder> = [
     {
       title: "订单编号",
       dataIndex: "designNumber",
@@ -278,12 +297,20 @@ const DesignPage: React.FC = () => {
     {
       title: "操作",
       key: "action",
-      render: (_: unknown, record: Record<string, string | number>) => (
+      render: (_: unknown, record: SplitOrder) => (
         <Space>
-          <Button type="link" size="small">
+          <Button
+            type="link"
+            size="small"
+            onClick={() => showEditModal(record)}
+          >
             编辑
           </Button>
-          <Button type="link" size="small">
+          <Button
+            type="link"
+            size="small"
+            onClick={() => showSplitModal(record)}
+          >
             拆单
           </Button>
         </Space>
@@ -298,8 +325,8 @@ const DesignPage: React.FC = () => {
         <Row gutter={24}>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                订单编号：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                订单编号
               </label>
               <Input
                 placeholder="请输入"
@@ -311,8 +338,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                订单名称：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                订单名称
               </label>
               <Input
                 placeholder="请输入"
@@ -324,8 +351,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                拆单状态：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                拆单状态
               </label>
               <Select
                 placeholder="全部状态"
@@ -341,8 +368,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-12">
-                设计师：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                设计师
               </label>
               <Select
                 placeholder="请选择"
@@ -357,8 +384,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-12">
-                销售员：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                销售员
               </label>
               <Select
                 placeholder="请选择"
@@ -374,8 +401,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-12">
-                拆单员：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                拆单员
               </label>
               <Select
                 placeholder="请选择"
@@ -391,8 +418,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                类目：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                类目
               </label>
               <Select
                 placeholder="全部"
@@ -410,8 +437,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                报价状态：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                报价状态
               </label>
               <Select
                 placeholder="全部"
@@ -426,8 +453,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                订单类型：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                订单类型
               </label>
               <Select
                 placeholder="请选择"
@@ -442,8 +469,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                是否下单：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                是否下单
               </label>
               <Select
                 placeholder="请选择"
@@ -476,9 +503,10 @@ const DesignPage: React.FC = () => {
       {/* 内容Card */}
       <Card variant="outlined">
         {/* 表格区域 */}
-        <Table
+        <Table<SplitOrder>
           columns={columns}
-          dataSource={designData}
+          dataSource={splitData}
+          loading={loading}
           bordered={false}
           pagination={{ pageSize: 10 }}
           rowClassName="hover:bg-blue-50"
@@ -486,6 +514,22 @@ const DesignPage: React.FC = () => {
           scroll={{ x: "max-content" }}
         />
       </Card>
+
+      {/* 编辑订单模态框 */}
+      <EditOrderModal
+        visible={isEditModalVisible}
+        onCancel={handleEditModalCancel}
+        onOk={handleEditModalOk}
+        orderData={selectedOrder}
+      />
+
+      {/* 拆单操作模态框 */}
+      <SplitOrderModal
+        visible={isSplitModalVisible}
+        onCancel={handleSplitModalCancel}
+        onOk={handleSplitModalOk}
+        orderData={selectedOrder}
+      />
     </div>
   );
 };

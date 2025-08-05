@@ -1,12 +1,29 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, Table, Button, Space, Input, Select, Row, Col, Tag, message, Modal } from "antd";
+import {
+  Card,
+  Table,
+  Button,
+  Space,
+  Input,
+  Select,
+  Row,
+  Col,
+  Tag,
+  message,
+  Modal,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
-import CreateOrderModal from "../../components/CreateOrderModal";
-import UpdateProgressModal from "../../components/UpdateProgressModal";
-import { getDesignOrders, createDesignOrder, updateDesignOrder, type DesignOrder } from "../../services/designApi";
+import CreateOrderModal from "./createOrderModal";
+import UpdateProgressModal from "./updateProgressModal";
+import {
+  getDesignOrders,
+  createDesignOrder,
+  updateDesignOrder,
+  type DesignOrder,
+} from "../../services/designApi";
 
 const { Option } = Select;
 
@@ -33,27 +50,27 @@ const DesignPage: React.FC = () => {
   // 处理下单操作
   const handlePlaceOrder = (record: DesignOrder) => {
     Modal.confirm({
-      title: '确认下单',
+      title: "确认下单",
       content: `确定要为订单 ${record.orderNumber} 下单吗？`,
-      okText: '确认',
-      cancelText: '取消',
+      okText: "确认",
+      cancelText: "取消",
       onOk: async () => {
         try {
           setLoading(true);
           const response = await updateDesignOrder(record.orderNumber, {
             ...record,
-            state: '已下单',
+            state: "已下单",
           });
-          
+
           if (response.code === 200) {
-            message.success('下单成功');
+            message.success("下单成功");
             await loadDesignData(); // 重新加载数据
           } else {
-            message.error(response.message || '下单失败');
+            message.error(response.message || "下单失败");
           }
         } catch (error) {
-          message.error('下单失败，请稍后重试');
-          console.error('下单失败:', error);
+          message.error("下单失败，请稍后重试");
+          console.error("下单失败:", error);
         } finally {
           setLoading(false);
         }
@@ -88,7 +105,7 @@ const DesignPage: React.FC = () => {
   }) => {
     try {
       setLoading(true);
-      
+
       if (editingRecord) {
         // 编辑模式
         const response = await updateDesignOrder(editingRecord.orderNumber, {
@@ -96,17 +113,17 @@ const DesignPage: React.FC = () => {
           address: values.orderAddress,
           designer: values.designer,
           salesperson: values.salesperson,
-          splitTime: values.splitDate || '',
+          splitTime: values.splitDate || "",
           progressDetail: values.progressDetail,
-          category: values.categories.join(','),
+          category: values.categories.join(","),
           orderType: values.orderType,
-          remark: values.remark || '',
+          remark: values.remark || "",
         });
-        
+
         if (response.code === 200) {
-          message.success('更新成功');
+          message.success("更新成功");
         } else {
-          message.error(response.message || '更新失败');
+          message.error(response.message || "更新失败");
           return;
         }
       } else {
@@ -116,31 +133,31 @@ const DesignPage: React.FC = () => {
           address: values.orderAddress,
           designer: values.designer,
           salesperson: values.salesperson,
-          splitTime: values.splitDate || '',
-          progress: '',
+          splitTime: values.splitDate || "",
+          progress: "",
           progressDetail: values.progressDetail,
-          category: values.categories.join(','),
-          cycle: '0',
-          state: '未下单',
+          category: values.categories.join(","),
+          cycle: "0",
+          state: "未下单",
           orderType: values.orderType,
-          remark: values.remark || '',
+          remark: values.remark || "",
         });
-        
+
         if (response.code === 200) {
-          message.success('创建成功');
+          message.success("创建成功");
         } else {
-          message.error(response.message || '创建失败');
+          message.error(response.message || "创建失败");
           return;
         }
       }
-      
+
       // 重新加载数据
       await loadDesignData();
       setIsModalVisible(false);
       setEditingRecord(null);
     } catch (error) {
-      message.error('操作失败，请稍后重试');
-      console.error('操作失败:', error);
+      message.error("操作失败，请稍后重试");
+      console.error("操作失败:", error);
     } finally {
       setLoading(false);
     }
@@ -159,11 +176,11 @@ const DesignPage: React.FC = () => {
       if (response.code === 200) {
         setDesignData(response.data);
       } else {
-        message.error(response.message || '获取数据失败');
+        message.error(response.message || "获取数据失败");
       }
     } catch (error) {
-      message.error('获取数据失败，请稍后重试');
-      console.error('获取数据失败:', error);
+      message.error("获取数据失败，请稍后重试");
+      console.error("获取数据失败:", error);
     } finally {
       setLoading(false);
     }
@@ -209,11 +226,7 @@ const DesignPage: React.FC = () => {
       title: "进度过程",
       dataIndex: "progress",
       key: "progress",
-      render: (
-        text: string,
-        record: DesignOrder,
-        index: number
-      ) => {
+      render: (text: string, record: DesignOrder, index: number) => {
         if (!text) return "-";
         const items = text
           .split(",")
@@ -370,17 +383,17 @@ const DesignPage: React.FC = () => {
           >
             编辑
           </Button>
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             size="small"
             onClick={() => showProgressModal(record)}
           >
             更新进度
           </Button>
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             size="small"
-            disabled={record.state === '已下单'}
+            disabled={record.state === "已下单"}
             onClick={() => handlePlaceOrder(record)}
           >
             下单
@@ -397,8 +410,8 @@ const DesignPage: React.FC = () => {
         <Row gutter={24}>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                订单编号：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                订单编号
               </label>
               <Input
                 placeholder="请输入"
@@ -410,8 +423,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                订单名称：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                订单名称
               </label>
               <Input
                 placeholder="请输入"
@@ -423,8 +436,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                订单状态：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                订单状态
               </label>
               <Select
                 placeholder="全部状态"
@@ -440,8 +453,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-12">
-                设计师：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                设计师
               </label>
               <Select
                 placeholder="请选择"
@@ -456,8 +469,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-12">
-                销售员：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                销售员
               </label>
               <Select
                 placeholder="请选择"
@@ -473,8 +486,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                进度详情：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                进度详情
               </label>
               <Select
                 placeholder="全部"
@@ -492,8 +505,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                进度事项：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                进度事项
               </label>
               <Select
                 placeholder="全部"
@@ -511,8 +524,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                订单类型：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                订单类型
               </label>
               <Select
                 placeholder="请选择"
@@ -527,8 +540,8 @@ const DesignPage: React.FC = () => {
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16">
-                设计周期：
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                设计周期
               </label>
               <Select
                 placeholder="请选择"
@@ -611,7 +624,7 @@ const DesignPage: React.FC = () => {
             : undefined
         }
       />
-      
+
       {/* 更新进度Modal */}
       <UpdateProgressModal
         visible={isProgressModalVisible}
