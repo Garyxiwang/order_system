@@ -1,85 +1,184 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-  Typography,
-  Card,
-  Table,
-  Button,
-  Space,
-  Input,
-  Select,
-  Row,
-  Col,
-  Tag,
-} from "antd";
+import React, { useState, useEffect } from "react";
+import { Card, Table, Button, Space, Input, Select, Row, Col, Tag, message, Modal } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import CreateOrderModal from "../../components/CreateOrderModal";
+import UpdateProgressModal from "../../components/UpdateProgressModal";
+import { getDesignOrders, createDesignOrder, updateDesignOrder, type DesignOrder } from "../../services/designApi";
 
-const { Title } = Typography;
 const { Option } = Select;
 
 const DesignPage: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [activeTab, setActiveTab] = useState("1");
-  const [selectedDesign, setSelectedDesign] = useState<string | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<DesignOrder | null>(null);
+  const [isProgressModalVisible, setIsProgressModalVisible] = useState(false);
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
+  const [designData, setDesignData] = useState<DesignOrder[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // 模拟设计页数据
-  const designData = [
-    {
-      designNumber: "D2024-022",
-      customerName: "榆林古城店-段总别墅",
-      address: "西安",
-      designer: "张设计师",
-      salesperson: "王销售员",
-      splitTime: "2024-07-20",
-      progress: "",
-      progressDetail: "",
-      category: "木门",
-      cycle: "1",
-      state: "未下单",
-      orderType: "设计单",
-      remark: "",
-    },
-    {
-      designNumber: "D2024-001",
-      customerName: "计翠艳-甘肃庆阳宏都雅居马小伟",
-      address: "西安",
-      designer: "张设计师",
-      salesperson: "王销售员",
-      splitTime: "2024-06-20",
-      progress: "量尺,初稿,已报价未打款",
-      progressDetail: "正在进行中",
-      category: "木门,柜体,石材",
-      cycle: "70",
-      state: "已下单",
-      orderType: "设计单",
-      remark: "这个是一个备注",
-    },
-    {
-      designNumber: "D2024-002",
-      customerName: "县佳宁-天宝名都1号楼2108",
-      address: "西安",
-      designer: "张设计师",
-      salesperson: "王销售员",
-      splitTime: "2024-07-20",
-      progress:
-        "量尺:2025/07/11,初稿:2025/07/20,已报价未打款:2025/08/20,已打款,已打款,已打款,已打款",
-      progressDetail: "待客户确认",
-      category: "木门,柜体,石材,板材",
-      cycle: "21",
-      state: "已下单",
-      orderType: "设计单",
-      remark:
-        "一个很长很长很长很长很很长很长很很长很长很很长很长很很长很长很很长很长很很长很长很长很长很长很长的备注",
-    },
-    
-  ];
+  const showModal = () => {
+    setEditingRecord(null);
+    setIsModalVisible(true);
+  };
 
-  const columns = [
+  const showEditModal = (record: DesignOrder) => {
+    console.log("record", record);
+    setEditingRecord(record);
+    setIsModalVisible(true);
+  };
+
+  // 处理下单操作
+  const handlePlaceOrder = (record: DesignOrder) => {
+    Modal.confirm({
+      title: '确认下单',
+      content: `确定要为订单 ${record.orderNumber} 下单吗？`,
+      okText: '确认',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          setLoading(true);
+          const response = await updateDesignOrder(record.orderNumber, {
+            ...record,
+            state: '已下单',
+          });
+          
+          if (response.code === 200) {
+            message.success('下单成功');
+            await loadDesignData(); // 重新加载数据
+          } else {
+            message.error(response.message || '下单失败');
+          }
+        } catch (error) {
+          message.error('下单失败，请稍后重试');
+          console.error('下单失败:', error);
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
+  // 显示更新进度弹窗
+  const showProgressModal = (record: DesignOrder) => {
+    setSelectedOrderNumber(record.orderNumber);
+    setIsProgressModalVisible(true);
+  };
+
+  // 关闭更新进度弹窗
+  const handleProgressModalCancel = () => {
+    setIsProgressModalVisible(false);
+    setSelectedOrderNumber("");
+  };
+
+  const handleOk = async (values: {
+    orderNumber: string;
+    customerName: string;
+    orderAddress: string;
+    orderType: string;
+    designer: string;
+    salesperson: string;
+    categories: string[];
+    splitDate?: string;
+    orderStatus: string;
+    progressDetail: string;
+    remark?: string;
+  }) => {
+    try {
+      setLoading(true);
+      
+      if (editingRecord) {
+        // 编辑模式
+        const response = await updateDesignOrder(editingRecord.orderNumber, {
+          customerName: values.customerName,
+          address: values.orderAddress,
+          designer: values.designer,
+          salesperson: values.salesperson,
+          splitTime: values.splitDate || '',
+          progressDetail: values.progressDetail,
+          category: values.categories.join(','),
+          orderType: values.orderType,
+          remark: values.remark || '',
+        });
+        
+        if (response.code === 200) {
+          message.success('更新成功');
+        } else {
+          message.error(response.message || '更新失败');
+          return;
+        }
+      } else {
+        // 新增模式
+        const response = await createDesignOrder({
+          customerName: values.customerName,
+          address: values.orderAddress,
+          designer: values.designer,
+          salesperson: values.salesperson,
+          splitTime: values.splitDate || '',
+          progress: '',
+          progressDetail: values.progressDetail,
+          category: values.categories.join(','),
+          cycle: '0',
+          state: '未下单',
+          orderType: values.orderType,
+          remark: values.remark || '',
+        });
+        
+        if (response.code === 200) {
+          message.success('创建成功');
+        } else {
+          message.error(response.message || '创建失败');
+          return;
+        }
+      }
+      
+      // 重新加载数据
+      await loadDesignData();
+      setIsModalVisible(false);
+      setEditingRecord(null);
+    } catch (error) {
+      message.error('操作失败，请稍后重试');
+      console.error('操作失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setEditingRecord(null);
+  };
+
+  // 加载设计订单数据
+  const loadDesignData = async () => {
+    try {
+      setLoading(true);
+      const response = await getDesignOrders();
+      if (response.code === 200) {
+        setDesignData(response.data);
+      } else {
+        message.error(response.message || '获取数据失败');
+      }
+    } catch (error) {
+      message.error('获取数据失败，请稍后重试');
+      console.error('获取数据失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 组件挂载时加载数据
+  useEffect(() => {
+    loadDesignData();
+  }, []);
+
+  const columns: ColumnsType<DesignOrder> = [
     {
       title: "订单编号",
-      dataIndex: "designNumber",
-      key: "designNumber",
+      dataIndex: "orderNumber",
+      key: "orderNumber",
     },
     {
       title: "客户名称",
@@ -112,7 +211,7 @@ const DesignPage: React.FC = () => {
       key: "progress",
       render: (
         text: string,
-        record: Record<string, unknown>,
+        record: DesignOrder,
         index: number
       ) => {
         if (!text) return "-";
@@ -262,15 +361,28 @@ const DesignPage: React.FC = () => {
     {
       title: "操作",
       key: "action",
-      render: (_: unknown, record: Record<string, string | number>) => (
-        <Space >
-          <Button type="link" size="small">
+      render: (_: unknown, record: DesignOrder) => (
+        <Space>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => showEditModal(record)}
+          >
             编辑
           </Button>
-          <Button type="link" size="small">
+          <Button 
+            type="link" 
+            size="small"
+            onClick={() => showProgressModal(record)}
+          >
             更新进度
           </Button>
-          <Button type="link" size="small">
+          <Button 
+            type="link" 
+            size="small"
+            disabled={record.state === '已下单'}
+            onClick={() => handlePlaceOrder(record)}
+          >
             下单
           </Button>
         </Space>
@@ -456,6 +568,7 @@ const DesignPage: React.FC = () => {
             icon={<PlusOutlined />}
             size="large"
             className="bg-blue-600 hover:bg-blue-700"
+            onClick={showModal}
           >
             创建订单
           </Button>
@@ -465,13 +578,46 @@ const DesignPage: React.FC = () => {
         <Table
           columns={columns}
           dataSource={designData}
+          loading={loading}
           bordered={false}
           pagination={{ pageSize: 10 }}
           rowClassName="hover:bg-blue-50"
-          rowKey={(record) => record.designNumber}
+          rowKey={(record) => record.orderNumber}
           scroll={{ x: "max-content" }}
         />
       </Card>
+
+      {/* 新增订单Modal */}
+      <CreateOrderModal
+        visible={isModalVisible}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        initialValues={
+          editingRecord
+            ? {
+                orderNumber: editingRecord.orderNumber as string,
+                customerName: editingRecord.customerName as string,
+                orderAddress: editingRecord.address as string,
+                orderType: editingRecord.orderType as string,
+                designer: editingRecord.designer as string,
+                salesperson: editingRecord.salesperson as string,
+                splitDate: editingRecord.splitTime as string,
+                orderStatus: editingRecord.state as string,
+                progressDetail: editingRecord.progressDetail as string,
+                categories:
+                  (editingRecord.category as string)?.split(",") || [],
+                remark: editingRecord.remark as string,
+              }
+            : undefined
+        }
+      />
+      
+      {/* 更新进度Modal */}
+      <UpdateProgressModal
+        visible={isProgressModalVisible}
+        onCancel={handleProgressModalCancel}
+        orderNumber={selectedOrderNumber}
+      />
     </div>
   );
 };
