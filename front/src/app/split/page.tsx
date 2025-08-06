@@ -363,7 +363,7 @@ const DesignPage: React.FC = () => {
               >
                 <Option value="-1">拆单中</Option>
                 <Option value="1">已审核</Option>
-                <Option value="1">已完结</Option>
+                <Option value="1">已完成</Option>
               </Select>
             </div>
           </Col>

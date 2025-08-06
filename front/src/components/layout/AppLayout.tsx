@@ -67,21 +67,21 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {isLoginPage ? (
         <>{children}</>
       ) : (
-        <Layout style={{ height: '100vh', overflow: 'hidden' }}>
+        <Layout style={{ height: "100vh", overflow: "hidden" }}>
           <Sider
-            width={250}
+            width={200}
             theme="light"
             style={{
-              position: 'fixed',
+              position: "fixed",
               left: 0,
               top: 0,
-              height: '100vh',
+              height: "100vh",
               zIndex: 1000,
-              overflowY: 'auto'
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
             }}
             className="shadow-md bg-gradient-to-b from-blue-50 to-white"
-            breakpoint="lg"
-            collapsible
           >
             <div className="flex items-center justify-center py-6 px-4 border-b border-gray-100">
               <div className="text-xl font-bold text-blue-700 flex items-center">
@@ -89,101 +89,111 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 <span>订单系统</span>
               </div>
             </div>
-            <div className="py-2">
+            <div className="py-2" style={{ height: "calc(100vh - 120px)", overflowY: "auto" }}>
               <SideMenu />
             </div>
+            <div 
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: "16px",
+                borderTop: "1px solid #f0f0f0",
+                backgroundColor: "#fafafa",
+                textAlign: "center",
+                fontSize: "12px",
+                color: "#999",
+              }}
+            >
+              订单系统 ©{new Date().getFullYear()}
+            </div>
           </Sider>
-          <Layout style={{ marginLeft: 250 }}>
+          <Layout style={{ marginLeft: 200 }}>
             <Header
               style={{
                 backgroundColor: "white",
-                position: 'fixed',
+                position: "fixed",
                 top: 0,
                 right: 0,
-                left: 250,
+                left: 200,
                 zIndex: 999,
-                height: 64
+                height: 64,
               }}
               className="px-6 flex justify-between items-center shadow-sm"
             >
-                <div className="flex-1">
-                  <Menu
-                    mode="horizontal"
-                    selectedKeys={[pathname.split("/")[1] || ""]}
-                    className="border-b-0 font-medium"
-                    items={[
-                      {
-                        key: "design",
-                        label: (
-                          <Link
-                            href="/design"
-                            className="text-gray-700 hover:text-blue-600"
-                          >
-                            设计管理
-                          </Link>
-                        ),
-                      },
-                      {
-                        key: "split",
-                        label: (
-                          <Link
-                            href="/split"
-                            className="text-gray-700 hover:text-blue-600"
-                          >
-                            拆单管理
-                          </Link>
-                        ),
-                      },
-                      {
-                        key: "config",
-                        label: (
-                          <Link
-                            href="/config"
-                            className="text-gray-700 hover:text-blue-600"
-                          >
-                            系统配置
-                          </Link>
-                        ),
-                      },
-                    ]}
-                  />
-                </div>
-                <div className="flex items-center">
-                  {/* <Button
+              <div className="flex-1">
+                <Menu
+                  mode="horizontal"
+                  selectedKeys={[pathname.split("/")[1] || ""]}
+                  className="border-b-0 font-medium"
+                  items={[
+                    {
+                      key: "design",
+                      label: (
+                        <Link
+                          href="/design"
+                          className="text-gray-700 hover:text-blue-600"
+                        >
+                          设计管理
+                        </Link>
+                      ),
+                    },
+                    {
+                      key: "split",
+                      label: (
+                        <Link
+                          href="/split"
+                          className="text-gray-700 hover:text-blue-600"
+                        >
+                          拆单管理
+                        </Link>
+                      ),
+                    },
+                    {
+                      key: "config",
+                      label: (
+                        <Link
+                          href="/config"
+                          className="text-gray-700 hover:text-blue-600"
+                        >
+                          系统配置
+                        </Link>
+                      ),
+                    },
+                  ]}
+                />
+              </div>
+              <div className="flex items-center">
+                {/* <Button
                     type="text"
                     icon={<BellOutlined className="text-lg" />}
                     className="mr-4 hover:bg-gray-100 h-10 w-10 flex items-center justify-center rounded-full"
                   /> */}
-                  <Dropdown
-                    menu={{ items: userMenuItems }}
-                    placement="bottomRight"
-                    arrow
-                  >
-                    <Space className="cursor-pointer px-3 py-2 rounded-md hover:bg-gray-100 border border-gray-100">
-                      <Avatar icon={<UserOutlined />} className="bg-blue-500" />
-                      <span className="font-medium">{currentUser.name}</span>
-                    </Space>
-                  </Dropdown>
-                </div>
-              </Header>
-              <Content 
-                style={{
-                  marginTop: 64,
-                  maxHeight: 'calc(100vh - 64px)',
-                  overflow: 'auto',
-                  padding: '16px'
-                }}
-                className="rounded-lg"
-              >
-                <div>
-                  {children}
-                </div>
-                <Footer className="text-center text-gray-500 bg-transparent mt-4">
-                  订单系统 ©{new Date().getFullYear()} -
-                  基于Next.js、TypeScript和Ant Design构建
-                </Footer>
-              </Content>
-            </Layout>
+                <Dropdown
+                  menu={{ items: userMenuItems }}
+                  placement="bottomRight"
+                  arrow
+                >
+                  <Space className="cursor-pointer px-3 py-2 rounded-md hover:bg-gray-100 border border-gray-100">
+                    <Avatar icon={<UserOutlined />} className="bg-blue-500" />
+                    <span className="font-medium">{currentUser.name}</span>
+                  </Space>
+                </Dropdown>
+              </div>
+            </Header>
+            <Content
+              style={{
+                marginTop: 64,
+                maxHeight: "calc(100vh - 64px)",
+                overflow: "auto",
+                padding: "16px",
+              }}
+              className="rounded-lg"
+            >
+              <div>{children}</div>
+            </Content>
+          </Layout>
         </Layout>
       )}
     </AntdRegistry>
