@@ -30,7 +30,7 @@ interface ProgressFormValues {
   progressType: string;
   customContent?: string;
   plannedDate: dayjs.Dayjs;
-  actualDate: dayjs.Dayjs;
+  actualDate?: dayjs.Dayjs;
 }
 
 interface UpdateProgressModalProps {
@@ -65,7 +65,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
     try {
       // 模拟API调用
       await new Promise((resolve) => setTimeout(resolve, 500));
-      
+
       // 模拟数据
       const mockData: ProgressItem[] = [
         {
@@ -87,7 +87,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
           actualDate: "2025-06-05",
         },
       ];
-      
+
       setProgressList(mockData);
     } catch (error) {
       message.error("获取进度数据失败");
@@ -102,14 +102,19 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
     try {
       // 模拟API调用
       await new Promise((resolve) => setTimeout(resolve, 500));
-      
+
       const newProgress: ProgressItem = {
         id: Date.now().toString(),
-        item: values.progressType === "其他" ? (values.customContent || "") : values.progressType,
+        item:
+          values.progressType === "其他"
+            ? values.customContent || ""
+            : values.progressType,
         plannedDate: values.plannedDate.format("YYYY-MM-DD"),
-        actualDate: values.actualDate.format("YYYY-MM-DD"),
+        actualDate: values.actualDate
+          ? values.actualDate.format("YYYY-MM-DD")
+          : "",
       };
-      
+
       setProgressList([...progressList, newProgress]);
       form.resetFields();
       setShowCustomContent(false);
@@ -129,10 +134,44 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
     }
   };
 
+  // 编辑状态管理
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [tempDate, setTempDate] = useState<dayjs.Dayjs | null>(null);
+
+  // 处理编辑实际日期
+  const handleEditActualDate = (record: ProgressItem) => {
+    setEditingId(record.id);
+    setTempDate(record.actualDate ? dayjs(record.actualDate) : null);
+  };
+
+  // 保存实际日期
+  const handleSaveActualDate = () => {
+    if (editingId) {
+      setProgressList((prevList) =>
+        prevList.map((item) =>
+          item.id === editingId
+            ? {
+                ...item,
+                actualDate: tempDate ? tempDate.format("YYYY-MM-DD") : "",
+              }
+            : item
+        )
+      );
+      setEditingId(null);
+      setTempDate(null);
+    }
+  };
+
+  // 取消编辑
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setTempDate(null);
+  };
+
   // 表格列定义
   const columns: ColumnsType<ProgressItem> = [
     {
-      title: "事项",
+      title: "过程",
       dataIndex: "item",
       key: "item",
       width: 120,
@@ -147,7 +186,54 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       title: "实际日期",
       dataIndex: "actualDate",
       key: "actualDate",
+      width: 150,
+      render: (text: string, record: ProgressItem) => {
+        if (editingId === record.id) {
+          return (
+            <DatePicker
+              value={tempDate}
+              onChange={setTempDate}
+              format="YYYY-MM-DD"
+              size="small"
+              placeholder="选择日期"
+              style={{ width: "100%" }}
+            />
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "操作",
+      key: "action",
       width: 120,
+      render: (text: string, record: ProgressItem) => {
+        if (editingId === record.id) {
+          return (
+            <div style={{ display: "flex", gap: "4px" }}>
+              <Button
+                type="primary"
+                size="small"
+                onClick={handleSaveActualDate}
+              >
+                保存
+              </Button>
+              <Button size="small" onClick={handleCancelEdit}>
+                取消
+              </Button>
+            </div>
+          );
+        }
+        return (
+          <Button
+            type="link"
+            size="small"
+            onClick={() => handleEditActualDate(record)}
+          >
+            编辑
+          </Button>
+        );
+      },
     },
   ];
 
@@ -217,10 +303,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
               name="customContent"
               rules={[{ required: true, message: "请填写进度内容" }]}
             >
-              <TextArea
-                placeholder="请填写具体的进度内容"
-                rows={3}
-              />
+              <TextArea placeholder="请填写具体的进度内容" rows={3} />
             </Form.Item>
           )}
 
@@ -235,10 +318,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
             />
           </Form.Item>
 
-          <Form.Item
-            label="实际日期"
-            name="actualDate"
-          >
+          <Form.Item label="实际日期" name="actualDate">
             <DatePicker
               style={{ width: "100%" }}
               placeholder="请选择实际日期"
@@ -246,11 +326,9 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
           </Form.Item>
 
           <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
-            <div style={{ textAlign: 'right' }}>
+            <div style={{ textAlign: "right" }}>
               <Space>
-                <Button onClick={handleCancel}>
-                  取消
-                </Button>
+                <Button onClick={handleCancel}>取消</Button>
                 <Button type="primary" htmlType="submit" loading={loading}>
                   确认
                 </Button>

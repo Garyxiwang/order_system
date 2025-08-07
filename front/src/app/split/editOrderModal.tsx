@@ -152,12 +152,6 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 label: "下单日期",
                 children: orderData.createTime,
               },
-              // {
-              //   key: "category",
-              //   label: "类目",
-              //   children: "木门，柜体，石材，板材",
-              //   span: 2,
-              // },
             ]}
           />
         </div>
@@ -184,29 +178,32 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
               </Form.Item>
             </Col>
             <Col span={12}>
-            <Form.Item
-              label="下单类目"
-              name="categories"
-              rules={[{ required: true, message: "请选择下单类目" }]}
-            >
-              <Checkbox.Group>
-                <Row>
-                  <Col span={6}>
-                    <Checkbox value="木门">木门</Checkbox>
-                  </Col>
-                  <Col span={6}>
-                    <Checkbox value="柜体">柜体</Checkbox>
-                  </Col>
-                  <Col span={6}>
-                    <Checkbox value="石材">石材</Checkbox>
-                  </Col>
-                  <Col span={6}>
-                    <Checkbox value="板材">板材</Checkbox>
-                  </Col>
-                </Row>
-              </Checkbox.Group>
-            </Form.Item>
-          </Col>
+              <Form.Item
+                label="下单类目"
+                name="categories"
+                rules={[{ required: true, message: "请选择下单类目" }]}
+              >
+                <Checkbox.Group>
+                  <Row>
+                    <Col span={6}>
+                      <Checkbox value="木门">木门</Checkbox>
+                    </Col>
+                    <Col span={6}>
+                      <Checkbox value="柜体">柜体</Checkbox>
+                    </Col>
+                    <Col span={6}>
+                      <Checkbox value="石材">石材</Checkbox>
+                    </Col>
+                    <Col span={6}>
+                      <Checkbox value="板材">板材</Checkbox>
+                    </Col>
+                  </Row>
+                </Checkbox.Group>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={24}>
             <Col span={12}>
               <Form.Item
                 label="订单状态"
@@ -222,9 +219,6 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 </Select>
               </Form.Item>
             </Col>
-          </Row>
-
-          <Row gutter={24}>
             <Col span={12}>
               <Form.Item
                 label="报价状态"
@@ -232,18 +226,13 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 rules={[{ required: true, message: "请选择报价状态" }]}
               >
                 <Select placeholder="请选择报价状态">
-                  <Option value="报价已发未打款">报价已发未打款</Option>
-                  <Option value="已报价">已报价</Option>
-                  <Option value="已打款">已打款</Option>
-                  <Option value="未打款">未打款</Option>
-                  <Option value="部分打款">部分打款</Option>
+                  <Option value="normal">未打款</Option>
+                  <Option value="normal">已打款</Option>
+                  <Option value="important">报价已发未打款</Option>
                 </Select>
               </Form.Item>
             </Col>
-            
           </Row>
-
-          
 
           <Form.Item
             label="备注"

@@ -12,9 +12,14 @@ import {
   Col,
   Tag,
   message,
+  DatePicker,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { SearchOutlined, CheckOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  CheckOutlined,
+  ExportOutlined,
+} from "@ant-design/icons";
 import { getSplitOrders, type SplitOrder } from "../../services/splitApi";
 import EditOrderModal from "./editOrderModal";
 import type { EditFormValues } from "./editOrderModal";
@@ -22,7 +27,7 @@ import SplitOrderModal from "./SplitOrderModal";
 import type { SplitFormValues } from "./SplitOrderModal";
 
 const { Option } = Select;
-
+const { RangePicker } = DatePicker;
 const DesignPage: React.FC = () => {
   const [splitData, setSplitData] = useState<SplitOrder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -138,7 +143,7 @@ const DesignPage: React.FC = () => {
       },
     },
     {
-      title: "木门/柜体",
+      title: "场内生成项",
       dataIndex: "doorBody",
       key: "doorBody",
       render: (text: string) => {
@@ -187,7 +192,7 @@ const DesignPage: React.FC = () => {
       },
     },
     {
-      title: "外购项目",
+      title: "外购项",
       dataIndex: "external",
       key: "external",
       render: (text: string) => {
@@ -244,7 +249,7 @@ const DesignPage: React.FC = () => {
         return text;
       },
     },
-   
+
     {
       title: "完成日期",
       dataIndex: "finishTime",
@@ -352,23 +357,6 @@ const DesignPage: React.FC = () => {
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
-                拆单状态
-              </label>
-              <Select
-                placeholder="全部状态"
-                className="rounded-md flex-1"
-                size="middle"
-                allowClear
-              >
-                <Option value="-1">拆单中</Option>
-                <Option value="1">已审核</Option>
-                <Option value="1">已完成</Option>
-              </Select>
-            </div>
-          </Col>
-          <Col span={6} className="py-2">
-            <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
                 设计师
               </label>
               <Select
@@ -419,7 +407,7 @@ const DesignPage: React.FC = () => {
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
-                类目
+                下单类目
               </label>
               <Select
                 placeholder="全部"
@@ -438,6 +426,23 @@ const DesignPage: React.FC = () => {
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                拆单状态
+              </label>
+              <Select
+                placeholder="全部状态"
+                className="rounded-md flex-1"
+                size="middle"
+                allowClear
+              >
+                <Option value="-1">拆单中</Option>
+                <Option value="1">已审核</Option>
+                <Option value="1">已完成</Option>
+              </Select>
+            </div>
+          </Col>
+          <Col span={6} className="py-2">
+            <div className="flex items-center gap-2">
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
                 报价状态
               </label>
               <Select
@@ -446,8 +451,9 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 allowClear
               >
+                <Option value="normal">未打款</Option>
                 <Option value="normal">已打款</Option>
-                <Option value="important">报价已发未大款</Option>
+                <Option value="important">报价已发未打款</Option>
               </Select>
             </div>
           </Col>
@@ -463,7 +469,7 @@ const DesignPage: React.FC = () => {
                 allowClear
               >
                 <Option value="design">设计单</Option>
-                <Option value="development">拆单订单</Option>
+                <Option value="development">经销商订单</Option>
               </Select>
             </div>
           </Col>
@@ -477,10 +483,24 @@ const DesignPage: React.FC = () => {
                 className="rounded-md flex-1"
                 size="middle"
                 allowClear
+                defaultValue={"0"}
               >
                 <Option value="-1">已下单</Option>
                 <Option value="0">未下单</Option>
               </Select>
+            </div>
+          </Col>
+          <Col span={6} className="py-2">
+            <div className="flex items-center gap-2">
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                完成日期
+              </label>
+              <RangePicker
+                placeholder={["开始日期", "结束日期"]}
+                className="rounded-md flex-1"
+                size="middle"
+                allowClear
+              />
             </div>
           </Col>
         </Row>
@@ -493,7 +513,13 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                搜索
+                查询
+              </Button>
+              <Button
+                size="middle"
+                className="border-gray-300 hover:border-blue-500"
+              >
+                重置
               </Button>
             </Space>
           </Col>
@@ -502,6 +528,16 @@ const DesignPage: React.FC = () => {
 
       {/* 内容Card */}
       <Card variant="outlined">
+        {/* 新增按钮 */}
+        <div className="flex justify-end items-center mb-4">
+          <Button
+            icon={<ExportOutlined />}
+            size="small"
+            className="border-gray-300 hover:border-blue-500"
+          >
+            导出
+          </Button>
+        </div>
         {/* 表格区域 */}
         <Table<SplitOrder>
           columns={columns}

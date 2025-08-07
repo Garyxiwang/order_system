@@ -58,9 +58,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         form.resetFields();
         form.setFieldsValue({
           orderType: "设计单",
-          orderStatus: "未审核",
           progressDetail: "正常进行中",
-          categories: ["木门"],
+          categories: [],
         });
       }
     }
@@ -85,7 +84,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   return (
     <Modal
-      title="新增/编辑 订单"
+      title={initialValues ? "编辑订单" : "新增订单"}
       open={visible}
       onOk={handleOk}
       onCancel={handleCancel}
@@ -200,7 +199,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           </Col>
           <Col span={12}>
             <Form.Item label="分单日期" name="splitDate">
-              <DatePicker placeholder="请选择日期" style={{ width: "100%" }} />
+              <DatePicker 
+                placeholder="请选择日期" 
+                style={{ width: "100%" }} 
+                defaultValue={dayjs()}
+              />
             </Form.Item>
           </Col>
         </Row>
@@ -208,15 +211,15 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item label="订单状态" name="orderStatus">
-              <Select placeholder="未审核">
+              <Select placeholder="请选择订单状态" allowClear>
                 <Option value="进行中">进行中</Option>
-                <Option value="已完成">已完成</Option>
-                <Option value="reviewing">等硬装</Option>
-                <Option value="completed">客户待打款</Option>
-                <Option value="completed">待客户确认</Option>
-                <Option value="completed">其他</Option>
                 <Option value="延期">延期</Option>
                 <Option value="暂停">暂停</Option>
+                <Option value="已完成">已完成</Option>
+                <Option value="等硬装">等硬装</Option>
+                <Option value="客户待打款">客户待打款</Option>
+                <Option value="待客户确认">待客户确认</Option>
+                <Option value="其他">其他</Option>
               </Select>
             </Form.Item>
           </Col>

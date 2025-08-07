@@ -28,6 +28,7 @@ interface StaffData {
 interface CategoryData {
   id: number;
   name: string;
+  category: string;
 }
 
 interface StaffFormValues {
@@ -37,6 +38,7 @@ interface StaffFormValues {
 
 interface CategoryFormValues {
   name: string;
+  category: string;
 }
 
 const ConfigPage: React.FC = () => {
@@ -50,11 +52,11 @@ const ConfigPage: React.FC = () => {
     { id: 3, name: "王五", type: "销售员" },
   ]);
   const [categoryData, setCategoryData] = useState<CategoryData[]>([
-    { id: 1, name: "木门" },
-    { id: 2, name: "柜体" },
-    { id: 3, name: "石材" },
-    { id: 4, name: "铝合金门" },
-    { id: 5, name: "板材" },
+    { id: 1, name: "木门", category: "场内生成项" },
+    { id: 2, name: "柜体", category: "场内生成项" },
+    { id: 3, name: "石材", category: "外购项" },
+    { id: 4, name: "铝合金门", category: "外购项" },
+    { id: 5, name: "板材", category: "外购项" },
   ]);
 
   // 人员配置表格列
@@ -101,6 +103,11 @@ const ConfigPage: React.FC = () => {
       title: "类目名称",
       dataIndex: "name",
       key: "name",
+    },
+    {
+      title: "类目分类",
+      dataIndex: "category",
+      key: "category",
     },
     {
       title: "操作",
@@ -181,7 +188,7 @@ const ConfigPage: React.FC = () => {
             },
             {
               key: "2",
-              label: "类目配置",
+              label: "下单类目配置",
               children: (
                 <div>
                   <div className="mb-4">
@@ -273,6 +280,16 @@ const ConfigPage: React.FC = () => {
             rules={[{ required: true, message: "请输入类目名称" }]}
           >
             <Input placeholder="请输入类目名称" />
+          </Form.Item>
+          <Form.Item
+            name="category"
+            label="类目分类"
+            rules={[{ required: true, message: "请选择类目分类" }]}
+          >
+            <Select placeholder="请选择类目分类">
+              <Option value="场内生成项">场内生成项</Option>
+              <Option value="外购项">外购项</Option>
+            </Select>
           </Form.Item>
           <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
             <div style={{ textAlign: "right" }}>

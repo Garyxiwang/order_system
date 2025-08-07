@@ -13,11 +13,18 @@ import {
   Tag,
   message,
   Modal,
+  DatePicker,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  SearchOutlined,
+  PlusOutlined,
+  ExportOutlined,
+  CheckOutlined,
+} from "@ant-design/icons";
 import CreateOrderModal from "./createOrderModal";
 import UpdateProgressModal from "./updateProgressModal";
+import ProgressDetailModal from "./progressDetailModal";
 import {
   getDesignOrders,
   createDesignOrder,
@@ -26,13 +33,18 @@ import {
 } from "../../services/designApi";
 
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 const DesignPage: React.FC = () => {
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DesignOrder | null>(null);
   const [isProgressModalVisible, setIsProgressModalVisible] = useState(false);
   const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
+  const [selectedOrderName, setSelectedOrderName] = useState<string>("");
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [selectedProgressData, setSelectedProgressData] = useState<string[]>(
+    []
+  );
   const [designData, setDesignData] = useState<DesignOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -81,6 +93,7 @@ const DesignPage: React.FC = () => {
   // 显示更新进度弹窗
   const showProgressModal = (record: DesignOrder) => {
     setSelectedOrderNumber(record.orderNumber);
+    setSelectedOrderName(record.customerName || "");
     setIsProgressModalVisible(true);
   };
 
@@ -88,6 +101,22 @@ const DesignPage: React.FC = () => {
   const handleProgressModalCancel = () => {
     setIsProgressModalVisible(false);
     setSelectedOrderNumber("");
+  };
+
+  // 显示进度详情弹窗
+  const showDetailModal = (record: DesignOrder) => {
+    setSelectedOrderNumber(record.orderNumber);
+    setSelectedOrderName(record.customerName || "");
+    setSelectedProgressData(record.progress ? record.progress.split(",") : []);
+    setIsDetailModalVisible(true);
+  };
+
+  // 关闭进度详情弹窗
+  const handleDetailModalCancel = () => {
+    setIsDetailModalVisible(false);
+    setSelectedOrderNumber("");
+    setSelectedOrderName("");
+    setSelectedProgressData([]);
   };
 
   const handleOk = async (values: {
@@ -102,6 +131,7 @@ const DesignPage: React.FC = () => {
     orderStatus: string;
     progressDetail: string;
     remark?: string;
+    finishTime?: string;
   }) => {
     try {
       setLoading(true);
@@ -114,7 +144,6 @@ const DesignPage: React.FC = () => {
           designer: values.designer,
           salesperson: values.salesperson,
           splitTime: values.splitDate || "",
-          progressDetail: values.progressDetail,
           category: values.categories.join(","),
           orderType: values.orderType,
           remark: values.remark || "",
@@ -135,7 +164,6 @@ const DesignPage: React.FC = () => {
           salesperson: values.salesperson,
           splitTime: values.splitDate || "",
           progress: "",
-          progressDetail: values.progressDetail,
           category: values.categories.join(","),
           cycle: "0",
           state: "未下单",
@@ -226,26 +254,15 @@ const DesignPage: React.FC = () => {
       title: "进度过程",
       dataIndex: "progress",
       key: "progress",
-      render: (text: string, record: DesignOrder, index: number) => {
+      width: 200,
+      render: (text: string, record: DesignOrder) => {
         if (!text) return "-";
         const items = text
           .split(",")
           .map((item) => item.trim())
           .filter((item) => item);
 
-        const isExpanded = expandedRows.has(index);
-        const shouldShowExpand = items.length > 3;
-        const displayItems = isExpanded ? items : items.slice(0, 3);
-
-        const toggleExpand = () => {
-          const newExpandedRows = new Set(expandedRows);
-          if (isExpanded) {
-            newExpandedRows.delete(index);
-          } else {
-            newExpandedRows.add(index);
-          }
-          setExpandedRows(newExpandedRows);
-        };
+        const displayItems = items;
 
         // 解析进度项目，分离状态和时间
         const parseProgressItem = (item: string) => {
@@ -258,14 +275,17 @@ const DesignPage: React.FC = () => {
 
         return (
           <div>
-            {displayItems.map((item, itemIndex) => {
+            {displayItems.slice(0, 3).map((item, itemIndex) => {
               const { status, time } = parseProgressItem(item);
 
               return (
                 <div key={itemIndex}>
                   {time ? (
                     <span>
-                      {status}{" "}
+                      <CheckOutlined
+                        style={{ color: "green", marginRight: "4px" }}
+                      />
+                      {status}
                       <span style={{ fontSize: "12px", color: "#666" }}>
                         ({time})
                       </span>
@@ -276,27 +296,15 @@ const DesignPage: React.FC = () => {
                 </div>
               );
             })}
-            {shouldShowExpand && !isExpanded && (
+            {displayItems.length >= 3 && (
               <div style={{ textAlign: "right", marginTop: "4px" }}>
                 <Button
                   type="link"
                   size="small"
-                  onClick={toggleExpand}
+                  onClick={() => showDetailModal(record)}
                   style={{ padding: "0 4px", fontSize: "12px" }}
                 >
-                  展开
-                </Button>
-              </div>
-            )}
-            {shouldShowExpand && isExpanded && (
-              <div style={{ textAlign: "right", marginTop: "4px" }}>
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={toggleExpand}
-                  style={{ padding: "0 4px", fontSize: "12px" }}
-                >
-                  收起
+                  详情
                 </Button>
               </div>
             )}
@@ -304,15 +312,6 @@ const DesignPage: React.FC = () => {
         );
       },
     },
-    // {
-    //   title: "",
-    //   dataIndex: "progressDetail",
-    //   key: "progressDetail",
-    //   render: (text: string) => {
-    //     if (!text) return "-";
-    //     return text;
-    //   },
-    // },
     {
       title: "下单类目",
       dataIndex: "category",
@@ -341,14 +340,20 @@ const DesignPage: React.FC = () => {
     },
     {
       title: "订单状态",
-      dataIndex: "progressDetail",
-      key: "progressDetail",
-      // render: (text: string) => {
-      //   if (text === "已下单") {
-      //     return <Tag color="green">{text}</Tag>;
-      //   }
-      //   return text;
-      // },
+      dataIndex: "state",
+      key: "state",
+      render: (text: string) => {
+        if (text === "已下单") {
+          return <Tag color="green">{text}</Tag>;
+        }
+        return text;
+      },
+    },
+    {
+      title: "下单日期",
+      dataIndex: "finishTime",
+      key: "finishTime",
+      render: (text: string) => <div>{text || "-"}</div>,
     },
     {
       title: "订单类型",
@@ -381,9 +386,11 @@ const DesignPage: React.FC = () => {
             type="link"
             size="small"
             onClick={() => showEditModal(record)}
+            disabled={record.state === "已下单"}
           >
             编辑
           </Button>
+
           <Button
             type="link"
             size="small"
@@ -435,23 +442,7 @@ const DesignPage: React.FC = () => {
               />
             </div>
           </Col>
-          {/* <Col span={6} className="py-2">
-            <div className="flex items-center gap-2">
-              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
-                订单状态
-              </label>
-              <Select
-                placeholder="全部状态"
-                className="rounded-md flex-1"
-                size="middle"
-                defaultValue={"-1"}
-                allowClear
-              >
-                <Option value="-1">未下单</Option>
-                <Option value="1">已下单</Option>
-              </Select>
-            </div>
-          </Col> */}
+
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
@@ -479,9 +470,9 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 allowClear
               >
-                <Option value="designer1">销售员1</Option>
-                <Option value="designer2">销售员2</Option>
-                <Option value="designer2">销售员3</Option>
+                <Option value="1">销售员1</Option>
+                <Option value="2">销售员2</Option>
+                <Option value="3">销售员3</Option>
               </Select>
             </div>
           </Col>
@@ -496,21 +487,21 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 allowClear
               >
-                 <Option value="进行中">进行中</Option>
-                <Option value="已完成">已完成</Option>
-                <Option value="reviewing">等硬装</Option>
-                <Option value="completed">客户待打款</Option>
-                <Option value="completed">待客户确认</Option>
-                <Option value="completed">其他</Option>
+                <Option value="进行中">进行中</Option>
                 <Option value="延期">延期</Option>
                 <Option value="暂停">暂停</Option>
+                <Option value="已完成">已完成</Option>
+                <Option value="等硬装">等硬装</Option>
+                <Option value="客户待打款">客户待打款</Option>
+                <Option value="待客户确认">待客户确认</Option>
+                <Option value="其他">其他</Option>
               </Select>
             </div>
           </Col>
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
-                进度事项
+                进度过程
               </label>
               <Select
                 placeholder="全部"
@@ -518,11 +509,12 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 allowClear
               >
-                <Option value="normal">量尺</Option>
-                <Option value="important">初稿</Option>
-                <Option value="urgent">已报价未打款</Option>
-                <Option value="urgent">已打款</Option>
-                <Option value="urgent">已下单</Option>
+                <Option value="量尺">量尺</Option>
+                <Option value="初稿">初稿</Option>
+                <Option value="已报价未打款">已报价未打款</Option>
+                <Option value="已打款">已打款</Option>
+                <Option value="已下单">已下单</Option>
+                <Option value="其他">其他</Option>
               </Select>
             </div>
           </Col>
@@ -538,7 +530,7 @@ const DesignPage: React.FC = () => {
                 allowClear
               >
                 <Option value="design">设计单</Option>
-                <Option value="development">拆单订单</Option>
+                <Option value="development">经销商订单</Option>
               </Select>
             </div>
           </Col>
@@ -551,15 +543,51 @@ const DesignPage: React.FC = () => {
                 placeholder="请选择"
                 className="rounded-md flex-1"
                 size="middle"
-                defaultValue={"20"}
                 allowClear
               >
-                <Option value="20">大于20天</Option>
-                <Option value="50">大于50天</Option>
+                <Option value="小于20天">小于20天</Option>
+                <Option value="大于20天">大于20天</Option>
+                <Option value="大于50天">大于50天</Option>
               </Select>
             </div>
           </Col>
         </Row>
+
+        <Row gutter={24}>
+          <Col span={6} className="py-2">
+            <div className="flex items-center gap-2">
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                下单类目
+              </label>
+              <Select
+                placeholder="全部"
+                className="rounded-md flex-1"
+                size="middle"
+                allowClear
+              >
+                <Option value="designing">木门</Option>
+                <Option value="reviewing">柜体</Option>
+                <Option value="completed">石材</Option>
+                <Option value="completed">板材</Option>
+                <Option value="completed">铝合金门</Option>
+              </Select>
+            </div>
+          </Col>
+          <Col span={6} className="py-2">
+            <div className="flex items-center gap-2">
+              <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
+                下单日期
+              </label>
+              <RangePicker
+                placeholder={["开始日期", "结束日期"]}
+                className="rounded-md flex-1"
+                size="middle"
+                allowClear
+              />
+            </div>
+          </Col>
+        </Row>
+
         <Row className="mt-4">
           <Col span={24} className="text-right">
             <Space>
@@ -569,7 +597,13 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                搜索
+                查询
+              </Button>
+              <Button
+                size="middle"
+                className="border-gray-300 hover:border-blue-500"
+              >
+                重置
               </Button>
             </Space>
           </Col>
@@ -583,11 +617,17 @@ const DesignPage: React.FC = () => {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            size="large"
             className="bg-blue-600 hover:bg-blue-700"
             onClick={showModal}
           >
             创建订单
+          </Button>
+          <Button
+            icon={<ExportOutlined />}
+            size="small"
+            className="border-gray-300 hover:border-blue-500"
+          >
+            导出
           </Button>
         </div>
 
@@ -620,7 +660,6 @@ const DesignPage: React.FC = () => {
                 salesperson: editingRecord.salesperson as string,
                 splitDate: editingRecord.splitTime as string,
                 orderStatus: editingRecord.state as string,
-                progressDetail: editingRecord.progressDetail as string,
                 categories:
                   (editingRecord.category as string)?.split(",") || [],
                 remark: editingRecord.remark as string,
@@ -634,6 +673,15 @@ const DesignPage: React.FC = () => {
         visible={isProgressModalVisible}
         onCancel={handleProgressModalCancel}
         orderNumber={selectedOrderNumber}
+      />
+
+      {/* 进度详情Modal */}
+      <ProgressDetailModal
+        visible={isDetailModalVisible}
+        onCancel={handleDetailModalCancel}
+        orderNumber={selectedOrderNumber}
+        orderName={selectedOrderName}
+        progressData={selectedProgressData}
       />
     </div>
   );

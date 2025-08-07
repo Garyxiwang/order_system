@@ -86,7 +86,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             <div className="flex items-center justify-center py-6 px-4 border-b border-gray-100">
               <div className="text-xl font-bold text-blue-700 flex items-center">
                 <img src="/globe.svg" alt="Logo" className="w-8 h-8 mr-2" />
-                <span>订单系统</span>
+                <span>前端下单系统</span>
               </div>
             </div>
             <div className="py-2" style={{ height: "calc(100vh - 120px)", overflowY: "auto" }}>
