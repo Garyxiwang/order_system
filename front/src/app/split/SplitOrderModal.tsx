@@ -184,16 +184,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-              <Form.Item
-                label="定板日期"
-                name="doorFixedDate"
-                style={{ marginBottom: 0 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
+             
             </Card>
           </Col>
           <Col span={12}>
@@ -208,16 +199,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-              <Form.Item
-                label="定板日期"
-                name="cabinetFixedDate"
-                style={{ marginBottom: 0 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
+              
             </Card>
           </Col>
         </Row>
@@ -227,7 +209,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           <Col span={12}>
             <Card title="石材" size="small" style={{ height: "100%" }}>
               <Form.Item
-                label="拆单日期"
+                label="采购日期"
                 name="stoneSplitDate"
                 style={{ marginBottom: 12 }}
               >
@@ -236,22 +218,13 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-              <Form.Item
-                label="定板日期"
-                name="stoneFixedDate"
-                style={{ marginBottom: 0 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
+              
             </Card>
           </Col>
           <Col span={12}>
             <Card title="板材" size="small" style={{ height: "100%" }}>
               <Form.Item
-                label="拆单日期"
+                label="定板日期"
                 name="boardSplitDate"
                 style={{ marginBottom: 12 }}
               >
@@ -260,16 +233,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-              <Form.Item
-                label="定板日期"
-                name="boardFixedDate"
-                style={{ marginBottom: 0 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
+             
             </Card>
           </Col>
         </Row>
@@ -279,7 +243,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           <Col span={12}>
             <Card title="铝合金门" size="small">
               <Form.Item
-                label="拆单日期"
+                label="采购日期"
                 name="aluminumSplitDate"
                 style={{ marginBottom: 12 }}
               >
@@ -288,16 +252,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-              <Form.Item
-                label="定板日期"
-                name="aluminumFixedDate"
-                style={{ marginBottom: 0 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
+              
             </Card>
           </Col>
         </Row>

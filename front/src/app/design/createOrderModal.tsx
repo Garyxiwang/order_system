@@ -209,17 +209,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <Col span={12}>
             <Form.Item label="订单状态" name="orderStatus">
               <Select placeholder="未审核">
-                <Option value="未审核">未审核</Option>
-                <Option value="已审核">已审核</Option>
                 <Option value="进行中">进行中</Option>
                 <Option value="已完成">已完成</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="进度详情" name="progressDetail">
-              <Select placeholder="正常进行中">
-                <Option value="正常进行中">正常进行中</Option>
+                <Option value="reviewing">等硬装</Option>
+                <Option value="completed">客户待打款</Option>
+                <Option value="completed">待客户确认</Option>
+                <Option value="completed">其他</Option>
                 <Option value="延期">延期</Option>
                 <Option value="暂停">暂停</Option>
               </Select>

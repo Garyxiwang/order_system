@@ -304,15 +304,15 @@ const DesignPage: React.FC = () => {
         );
       },
     },
-    {
-      title: "进度详情",
-      dataIndex: "progressDetail",
-      key: "progressDetail",
-      render: (text: string) => {
-        if (!text) return "-";
-        return text;
-      },
-    },
+    // {
+    //   title: "",
+    //   dataIndex: "progressDetail",
+    //   key: "progressDetail",
+    //   render: (text: string) => {
+    //     if (!text) return "-";
+    //     return text;
+    //   },
+    // },
     {
       title: "下单类目",
       dataIndex: "category",
@@ -341,14 +341,14 @@ const DesignPage: React.FC = () => {
     },
     {
       title: "订单状态",
-      dataIndex: "state",
-      key: "state",
-      render: (text: string) => {
-        if (text === "已下单") {
-          return <Tag color="green">{text}</Tag>;
-        }
-        return text;
-      },
+      dataIndex: "progressDetail",
+      key: "progressDetail",
+      // render: (text: string) => {
+      //   if (text === "已下单") {
+      //     return <Tag color="green">{text}</Tag>;
+      //   }
+      //   return text;
+      // },
     },
     {
       title: "订单类型",
@@ -435,7 +435,7 @@ const DesignPage: React.FC = () => {
               />
             </div>
           </Col>
-          <Col span={6} className="py-2">
+          {/* <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
                 订单状态
@@ -451,7 +451,7 @@ const DesignPage: React.FC = () => {
                 <Option value="1">已下单</Option>
               </Select>
             </div>
-          </Col>
+          </Col> */}
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
@@ -488,7 +488,7 @@ const DesignPage: React.FC = () => {
           <Col span={6} className="py-2">
             <div className="flex items-center gap-2">
               <label className="whitespace-nowrap text-sm font-medium text-gray-700 min-w-16 text-right">
-                进度详情
+                订单状态
               </label>
               <Select
                 placeholder="全部"
@@ -496,11 +496,14 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 allowClear
               >
-                <Option value="designing">正常进行中</Option>
+                 <Option value="进行中">进行中</Option>
+                <Option value="已完成">已完成</Option>
                 <Option value="reviewing">等硬装</Option>
                 <Option value="completed">客户待打款</Option>
                 <Option value="completed">待客户确认</Option>
                 <Option value="completed">其他</Option>
+                <Option value="延期">延期</Option>
+                <Option value="暂停">暂停</Option>
               </Select>
             </div>
           </Col>

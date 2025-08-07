@@ -238,7 +238,6 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
           <Form.Item
             label="实际日期"
             name="actualDate"
-            rules={[{ required: true, message: "请选择实际日期" }]}
           >
             <DatePicker
               style={{ width: "100%" }}

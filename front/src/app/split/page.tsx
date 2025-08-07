@@ -244,17 +244,9 @@ const DesignPage: React.FC = () => {
         return text;
       },
     },
+   
     {
-      title: "定板日期",
-      dataIndex: "fixedTime",
-      key: "fixedTime",
-      render: (text: string) => {
-        if (!text) return "-";
-        return text;
-      },
-    },
-    {
-      title: "拆单完成日期",
+      title: "完成日期",
       dataIndex: "finishTime",
       key: "finishTime",
       render: (text: string) => {
@@ -313,6 +305,13 @@ const DesignPage: React.FC = () => {
             onClick={() => showSplitModal(record)}
           >
             拆单
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => showSplitModal(record)}
+          >
+            下单
           </Button>
         </Space>
       ),

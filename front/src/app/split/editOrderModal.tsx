@@ -7,6 +7,7 @@ import {
   Input,
   Select,
   DatePicker,
+  Checkbox,
   Button,
   Row,
   Col,
@@ -151,12 +152,12 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 label: "下单日期",
                 children: orderData.createTime,
               },
-              {
-                key: "category",
-                label: "类目",
-                children: "木门，柜体，石材，板材",
-                span: 2,
-              },
+              // {
+              //   key: "category",
+              //   label: "类目",
+              //   children: "木门，柜体，石材，板材",
+              //   span: 2,
+              // },
             ]}
           />
         </div>
@@ -183,6 +184,30 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
               </Form.Item>
             </Col>
             <Col span={12}>
+            <Form.Item
+              label="下单类目"
+              name="categories"
+              rules={[{ required: true, message: "请选择下单类目" }]}
+            >
+              <Checkbox.Group>
+                <Row>
+                  <Col span={6}>
+                    <Checkbox value="木门">木门</Checkbox>
+                  </Col>
+                  <Col span={6}>
+                    <Checkbox value="柜体">柜体</Checkbox>
+                  </Col>
+                  <Col span={6}>
+                    <Checkbox value="石材">石材</Checkbox>
+                  </Col>
+                  <Col span={6}>
+                    <Checkbox value="板材">板材</Checkbox>
+                  </Col>
+                </Row>
+              </Checkbox.Group>
+            </Form.Item>
+          </Col>
+            <Col span={12}>
               <Form.Item
                 label="订单状态"
                 name="orderStatus"
@@ -191,10 +216,9 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 <Select placeholder="请选择订单状态">
                   <Option value="未开始">未开始</Option>
                   <Option value="拆单中">拆单中</Option>
-                  <Option value="已完成">已完成</Option>
                   <Option value="未审核">未审核</Option>
                   <Option value="已审核">已审核</Option>
-                  <Option value="生产中">生产中</Option>
+                  <Option value="已完成">已完成</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -216,29 +240,10 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={12}>
-              <Form.Item label="定板日期" name="boardDate">
-                <DatePicker
-                  style={{ width: "100%" }}
-                  placeholder="请选择日期"
-                  format="YYYY/MM/DD"
-                />
-              </Form.Item>
-            </Col>
+            
           </Row>
 
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item label="拆单完成日期" name="splitCompleteDate">
-                <DatePicker
-                  style={{ width: "100%" }}
-                  placeholder="请选择日期"
-                  format="YYYY/MM/DD"
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}></Col>
-          </Row>
+          
 
           <Form.Item
             label="备注"

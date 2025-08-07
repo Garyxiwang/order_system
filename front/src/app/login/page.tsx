@@ -38,7 +38,7 @@ const LoginPage: React.FC = () => {
                   className="mb-8"
                 />
                 <div className="text-center">
-                  <h2 className="text-3xl font-bold text-white mb-4">订单管理系统</h2>
+                  <h2 className="text-3xl font-bold text-white mb-4">前端下单系统</h2>
                 <p className="text-blue-100 text-lg">高效、便捷的设计与生产管理平台</p>
                 </div>
               </div>
