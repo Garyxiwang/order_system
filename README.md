@@ -1,23 +1,56 @@
-# order_system
+# 订单系统前端
 
-李总订单系统，主要解决目前李总在管理订单时的效率问题。
-系统主要分三个页面：
+这是一个基于Next.js、TypeScript和Ant Design构建的订单系统前端应用。
 
-1. 设计页：用户录入员进行新订单录入以及设计过程事项追踪。
-2. 拆单页：在设计完成后进行订单拆单，主要对订单中设计的物料下单，跟踪具体物料进度。
-3. 配置页：超管可以进行人员，类目等系统内字典项配置。
+## 技术栈
 
-## 系统设计
+- **Next.js**: React框架，提供服务端渲染、路由等功能
+- **TypeScript**: JavaScript的超集，提供类型检查
+- **Ant Design**: 企业级UI设计语言和React组件库
+- **Tailwind CSS**: 实用优先的CSS框架
 
-系统设计主要包括前端设计，后端设计，数据库设计，接口设计。
-工程主要分前端Front，后端Server
+## 项目结构
 
-## 数据库设计
+```
+src/
+├── app/              # Next.js应用目录
+│   ├── globals.css   # 全局样式
+│   ├── layout.tsx    # 应用布局
+│   └── page.tsx      # 首页
+├── components/       # 组件目录
+│   ├── AntdRegistry.tsx  # Ant Design服务端渲染支持
+│   ├── layout/       # 布局相关组件
+│   │   └── Navbar.tsx    # 导航栏组件
+│   └── order/        # 订单相关组件
+│       └── OrderList.tsx  # 订单列表组件
+└── ...
+```
 
-## 接口设计
+## 开发
 
-## 前端设计
+```bash
+# 安装依赖
+npm install
 
-前端使用React + TypeScript + Ant Design。
+# 启动开发服务器
+npm run dev
 
-## 后端设计
+# 构建生产版本
+npm run build
+
+# 启动生产服务器
+npm start
+```
+
+## 功能
+
+- 订单管理：查看、创建、编辑和删除订单
+- 客户管理：管理客户信息
+- 系统设置：配置系统参数
+
+## 后续开发计划
+
+- 完善订单管理功能
+- 添加用户认证和权限控制
+- 集成后端API
+- 添加数据可视化功能
