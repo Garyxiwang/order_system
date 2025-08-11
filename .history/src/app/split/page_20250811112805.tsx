@@ -13,7 +13,6 @@ import {
   Tag,
   message,
   DatePicker,
-  Modal,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -103,29 +102,25 @@ const DesignPage: React.FC = () => {
 
   // 处理下单操作
   const handlePlaceOrder = (record: SplitOrder) => {
-    // 检查打款状态
-    if (record.priceState !== "已打款") {
-      message.warning("只有已打款的订单才能下单");
-      return;
-    }
-    
     Modal.confirm({
       title: "确认下单",
-      content: `确定要为订单 ${record.designNumber} 下单吗？`,
+      content: `确定要为订单 ${record.orderNumber} 下单吗？`,
       okText: "确认",
       cancelText: "取消",
       onOk: async () => {
         try {
           setLoading(true);
-          // 这里可以添加实际的API调用
-          // const response = await updateSplitOrder(record.designNumber, {
-          //   ...record,
-          //   state: "已下单",
-          // });
-          
-          // 模拟成功响应
-          message.success("下单成功");
-          await loadSplitData(); // 重新加载数据
+          const response = await updateDesignOrder(record.orderNumber, {
+            ...record,
+            state: "已下单",
+          });
+
+          if (response.code === 200) {
+            message.success("下单成功");
+            await loadDesignData(); // 重新加载数据
+          } else {
+            message.error(response.message || "下单失败");
+          }
         } catch (error) {
           message.error("下单失败，请稍后重试");
           console.error("下单失败:", error);
@@ -348,7 +343,6 @@ const DesignPage: React.FC = () => {
           <Button
             type="link"
             size="small"
-            disabled={record.priceState !== "已打款"}
             onClick={() => handlePlaceOrder(record)}
           >
             下单

@@ -13,7 +13,6 @@ import {
   Tag,
   message,
   DatePicker,
-  Modal,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -99,41 +98,8 @@ const DesignPage: React.FC = () => {
     // 这里可以调用API更新数据
     setIsSplitModalVisible(false);
     setSelectedOrder(null);
-  };
-
-  // 处理下单操作
-  const handlePlaceOrder = (record: SplitOrder) => {
-    // 检查打款状态
-    if (record.priceState !== "已打款") {
-      message.warning("只有已打款的订单才能下单");
-      return;
-    }
-    
-    Modal.confirm({
-      title: "确认下单",
-      content: `确定要为订单 ${record.designNumber} 下单吗？`,
-      okText: "确认",
-      cancelText: "取消",
-      onOk: async () => {
-        try {
-          setLoading(true);
-          // 这里可以添加实际的API调用
-          // const response = await updateSplitOrder(record.designNumber, {
-          //   ...record,
-          //   state: "已下单",
-          // });
-          
-          // 模拟成功响应
-          message.success("下单成功");
-          await loadSplitData(); // 重新加载数据
-        } catch (error) {
-          message.error("下单失败，请稍后重试");
-          console.error("下单失败:", error);
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
+    // 重新加载数据
+    loadSplitData();
   };
 
   const columns: ColumnsType<SplitOrder> = [
@@ -348,8 +314,7 @@ const DesignPage: React.FC = () => {
           <Button
             type="link"
             size="small"
-            disabled={record.priceState !== "已打款"}
-            onClick={() => handlePlaceOrder(record)}
+            onClick={() => showSplitModal(record)}
           >
             下单
           </Button>
@@ -450,11 +415,11 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 allowClear
               >
-                <Option value="1">木门</Option>
-                <Option value="2">柜体</Option>
-                <Option value="3">石材</Option>
-                <Option value="4">板材</Option>
-                <Option value="5">铝合金门</Option>
+                <Option value="designing">木门</Option>
+                <Option value="reviewing">柜体</Option>
+                <Option value="completed">石材</Option>
+                <Option value="completed">板材</Option>
+                <Option value="completed">铝合金门</Option>
               </Select>
             </div>
           </Col>

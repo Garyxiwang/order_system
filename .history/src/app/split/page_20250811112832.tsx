@@ -13,7 +13,6 @@ import {
   Tag,
   message,
   DatePicker,
-  Modal,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -103,12 +102,6 @@ const DesignPage: React.FC = () => {
 
   // 处理下单操作
   const handlePlaceOrder = (record: SplitOrder) => {
-    // 检查打款状态
-    if (record.priceState !== "已打款") {
-      message.warning("只有已打款的订单才能下单");
-      return;
-    }
-    
     Modal.confirm({
       title: "确认下单",
       content: `确定要为订单 ${record.designNumber} 下单吗？`,
@@ -348,7 +341,6 @@ const DesignPage: React.FC = () => {
           <Button
             type="link"
             size="small"
-            disabled={record.priceState !== "已打款"}
             onClick={() => handlePlaceOrder(record)}
           >
             下单

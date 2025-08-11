@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
-import "dayjs/locale/zh-cn";
+import 'dayjs/locale/zh-cn';
 
 // 确保客户端也设置中文语言
-dayjs.locale("zh-cn");
+dayjs.locale('zh-cn');
 import {
   Card,
   Table,
@@ -324,13 +324,7 @@ const DesignPage: React.FC = () => {
       render: (text: string) => {
         if (!text) return "-";
         const categories = text.split(",");
-        return (
-          <div>
-            {categories.map((category, index) => (
-              <div key={index}>{category.trim()}</div>
-            ))}
-          </div>
-        );
+        return categories.map((category) => category.trim()).join("、");
       },
     },
     {

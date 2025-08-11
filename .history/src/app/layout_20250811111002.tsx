@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "@ant-design/v5-patch-for-react-19";
+import '@ant-design/v5-patch-for-react-19';
 import "./globals.css";
 import { ConfigProvider } from "antd";
 import zhCN from "antd/locale/zh_CN";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +21,8 @@ export const metadata: Metadata = {
   description: "基于Next.js、TypeScript和Ant Design构建的订单系统",
 };
 
-import AppLayout from "@/components/layout/AppLayout";
+import AppLayout from '@/components/layout/AppLayout';
+
 
 export default function RootLayout({
   children,
@@ -33,7 +35,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ConfigProvider locale={zhCN}>
-          <AppLayout>{children}</AppLayout>
+          <AppLayout>
+            {children}
+          </AppLayout>
         </ConfigProvider>
       </body>
     </html>

@@ -103,12 +103,6 @@ const DesignPage: React.FC = () => {
 
   // 处理下单操作
   const handlePlaceOrder = (record: SplitOrder) => {
-    // 检查打款状态
-    if (record.priceState !== "已打款") {
-      message.warning("只有已打款的订单才能下单");
-      return;
-    }
-    
     Modal.confirm({
       title: "确认下单",
       content: `确定要为订单 ${record.designNumber} 下单吗？`,

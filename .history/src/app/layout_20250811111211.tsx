@@ -4,6 +4,11 @@ import "@ant-design/v5-patch-for-react-19";
 import "./globals.css";
 import { ConfigProvider } from "antd";
 import zhCN from "antd/locale/zh_CN";
+import dayjs from "dayjs";
+
+import "dayjs/locale/zh-cn";
+
+dayjs.locale("zh-cn");
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

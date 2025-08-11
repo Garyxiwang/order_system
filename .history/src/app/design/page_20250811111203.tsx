@@ -1,11 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import dayjs from "dayjs";
-import "dayjs/locale/zh-cn";
-
-// 确保客户端也设置中文语言
-dayjs.locale("zh-cn");
 import {
   Card,
   Table,
@@ -36,6 +31,7 @@ import {
   updateDesignOrder,
   type DesignOrder,
 } from "../../services/designApi";
+
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -259,7 +255,7 @@ const DesignPage: React.FC = () => {
       title: "进度过程",
       dataIndex: "progress",
       key: "progress",
-      width: 250,
+      width: 200,
       render: (text: string, record: DesignOrder) => {
         if (!text) return "-";
         const items = text
@@ -290,13 +286,13 @@ const DesignPage: React.FC = () => {
                       <CheckOutlined
                         style={{ color: "green", marginRight: "4px" }}
                       />
-                      {status}：
+                      {status}
                       <span style={{ fontSize: "12px", color: "#666" }}>
                         ({time})
                       </span>
                     </span>
                   ) : (
-                    <span>{status}：-</span>
+                    <span>{status}</span>
                   )}
                 </div>
               );
@@ -321,17 +317,6 @@ const DesignPage: React.FC = () => {
       title: "下单类目",
       dataIndex: "category",
       key: "category",
-      render: (text: string) => {
-        if (!text) return "-";
-        const categories = text.split(",");
-        return (
-          <div>
-            {categories.map((category, index) => (
-              <div key={index}>{category.trim()}</div>
-            ))}
-          </div>
-        );
-      },
     },
     {
       title: "设计周期",
@@ -581,11 +566,11 @@ const DesignPage: React.FC = () => {
                 size="middle"
                 allowClear
               >
-                <Option value="1">木门</Option>
-                <Option value="2">柜体</Option>
-                <Option value="3">石材</Option>
-                <Option value="4">板材</Option>
-                <Option value="5">铝合金门</Option>
+                <Option value="designing">木门</Option>
+                <Option value="reviewing">柜体</Option>
+                <Option value="completed">石材</Option>
+                <Option value="completed">板材</Option>
+                <Option value="completed">铝合金门</Option>
               </Select>
             </div>
           </Col>

@@ -327,7 +327,14 @@ const DesignPage: React.FC = () => {
         return (
           <div>
             {categories.map((category, index) => (
-              <div key={index}>{category.trim()}</div>
+              <div
+                key={index}
+                style={{
+                  marginBottom: index < categories.length - 1 ? "4px" : 0,
+                }}
+              >
+                {category.trim()}
+              </div>
             ))}
           </div>
         );

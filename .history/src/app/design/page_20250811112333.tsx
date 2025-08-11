@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
-import "dayjs/locale/zh-cn";
+import 'dayjs/locale/zh-cn';
 
 // 确保客户端也设置中文语言
-dayjs.locale("zh-cn");
+dayjs.locale('zh-cn');
 import {
   Card,
   Table,
@@ -327,7 +327,9 @@ const DesignPage: React.FC = () => {
         return (
           <div>
             {categories.map((category, index) => (
-              <div key={index}>{category.trim()}</div>
+              <div key={index} style={{ marginBottom: index < categories.length - 1 ? '4px' : 0 }}>
+                <Tag color="blue">{category.trim()}</Tag>
+              </div>
             ))}
           </div>
         );

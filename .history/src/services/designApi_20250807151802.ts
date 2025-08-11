@@ -19,7 +19,7 @@ export interface DesignOrder {
 // 模拟设计订单数据
 const mockDesignData: DesignOrder[] = [
   {
-    orderNumber: "D2024-021",
+    orderNumber: "D2024-022",
     customerName: "榆林古城店-段总别墅",
     address: "西安",
     designer: "张设计师",
@@ -34,7 +34,7 @@ const mockDesignData: DesignOrder[] = [
     finishTime: "",
   },
   {
-    orderNumber: "D2024-022",
+    orderNumber: "D2024-001",
     customerName: "计翠艳-甘肃庆阳宏都雅居马小伟",
     address: "西安",
     designer: "张设计师",
@@ -49,7 +49,7 @@ const mockDesignData: DesignOrder[] = [
     finishTime: "",
   },
   {
-    orderNumber: "D2024-023",
+    orderNumber: "D2024-002",
     customerName: "县佳宁-天宝名都1号楼2108",
     address: "西安",
     designer: "张设计师",
@@ -65,7 +65,7 @@ const mockDesignData: DesignOrder[] = [
     finishTime: "2024-07-30",
   },
   {
-    orderNumber: "D2024-024",
+    orderNumber: "D2024-001",
     customerName: "计翠艳-甘肃庆阳宏都雅居马小伟",
     address: "西安",
     designer: "张设计师",
