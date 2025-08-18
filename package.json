@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node src/scripts/server-logger.mjs && next dev",
+    "dev:log": "node src/scripts/server-logger.mjs && next dev",
+    "dev:no-log": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:log": "node src/scripts/server-logger.mjs && next start",
     "lint": "next lint"
   },
   "dependencies": {
