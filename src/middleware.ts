@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import logger from '@/utils/logger';
 
 export function middleware(request: NextRequest) {
   const startTime = Date.now();
@@ -27,8 +26,9 @@ export function middleware(request: NextRequest) {
     console.log(`[INFO] ${method} ${pathname}${search} - 请求结束 (${duration}ms)`);
     
     return response;
-  } catch (error: any) {
-    console.error(`[ERROR] 中间件处理请求时出错: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[ERROR] 中间件处理请求时出错: ${errorMessage}`);
     return NextResponse.next();
   }
 }

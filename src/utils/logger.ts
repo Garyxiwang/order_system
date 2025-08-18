@@ -61,9 +61,10 @@ export const logToServer = (type: string, message: string, level: LogLevel = Log
     }
     
     process.stdout.write(`${coloredMessage}\n`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 如果出现错误，使用console.log作为备选
-    console.log(`[SERVER LOG ERROR] 无法写入服务端日志: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.log(`[SERVER LOG ERROR] 无法写入服务端日志: ${errorMessage}`);
   }
 };
 
@@ -110,14 +111,14 @@ export const log = (type: string, message: string, level: LogLevel = LogLevel.IN
   try {
     // 尝试在服务端记录日志
     logToServer(type, message, level);
-  } catch (error: any) {
+  } catch {
     // 如果服务端日志失败，不做任何处理
   }
   
   try {
     // 尝试在客户端记录日志
     logToClient(type, message, level);
-  } catch (error: any) {
+  } catch {
     // 如果客户端日志失败，使用基本的console.log作为备选
     console.log(`[${type}] ${message}`);
   }

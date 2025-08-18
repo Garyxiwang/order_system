@@ -59,7 +59,7 @@ console.log = function() {
   try {
     const message = Array.from(arguments).join(' ');
     originalConsoleLog(logToFile(message, 'LOG'));
-  } catch (error) {
+  } catch {
     // 如果发生错误，回退到原始的console.log
     originalConsoleLog(...arguments);
   }
@@ -69,7 +69,7 @@ console.error = function() {
   try {
     const message = Array.from(arguments).join(' ');
     originalConsoleError(logToFile(message, 'ERROR'));
-  } catch (error) {
+  } catch {
     // 如果发生错误，回退到原始的console.error
     originalConsoleError(...arguments);
   }
@@ -79,7 +79,7 @@ console.warn = function() {
   try {
     const message = Array.from(arguments).join(' ');
     originalConsoleWarn(logToFile(message, 'WARN'));
-  } catch (error) {
+  } catch {
     // 如果发生错误，回退到原始的console.warn
     originalConsoleWarn(...arguments);
   }
@@ -89,7 +89,7 @@ console.info = function() {
   try {
     const message = Array.from(arguments).join(' ');
     originalConsoleInfo(logToFile(message, 'INFO'));
-  } catch (error) {
+  } catch {
     // 如果发生错误，回退到原始的console.info
     originalConsoleInfo(...arguments);
   }

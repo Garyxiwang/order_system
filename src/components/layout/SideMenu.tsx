@@ -25,7 +25,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
   useEffect(() => {
     try {
       logger.navigation(pathname);
-    } catch (error) {
+    } catch {
       console.log(`[导航日志] 页面已跳转到: ${pathname}`);
     }
   }, [pathname]);
@@ -34,7 +34,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
   useEffect(() => {
     try {
       logger.system('侧边菜单组件已加载');
-    } catch (error) {
+    } catch {
       console.log(`[系统信息] 侧边菜单组件已加载`);
     }
   }, []);
@@ -52,8 +52,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
   const handleMenuClick = (path: string, label: string) => {
     try {
       logger.menuClick(label, path);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error: any) {
+    } catch {
       console.log(`[菜单点击] 用户点击了 ${label}，跳转到 ${path}`);
     }
   };

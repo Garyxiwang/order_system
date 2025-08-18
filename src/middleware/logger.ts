@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import logger, { LogLevel } from '@/utils/logger';
 
 /**
  * 服务端日志中间件
@@ -24,8 +23,9 @@ export async function loggerMiddleware(request: NextRequest) {
     console.log(`[INFO] ${method} ${pathname}${search} - 请求结束 (${duration}ms)`);
     
     return response;
-  } catch (error: any) {
-    console.error(`[ERROR] 日志中间件处理请求时出错: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[ERROR] 日志中间件处理请求时出错: ${errorMessage}`);
     return NextResponse.next();
   }
 }
