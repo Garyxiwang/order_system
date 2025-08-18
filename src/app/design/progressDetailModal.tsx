@@ -26,7 +26,6 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
   orderName,
   progressData,
 }) => {
-  // 解析进度数据
   const parseProgressData = (data: string[]): ProgressDetailItem[] => {
     const tempData = [
       {
@@ -34,18 +33,21 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
         item: "量尺",
         estimatedTime: "2025-07-01",
         actualTime: "2025-07-01",
+        note: "这是个备注1",
       },
       {
         id: "2",
         item: "初稿",
         estimatedTime: "2025-07-03",
         actualTime: "2025-07-04",
+        note: "",
       },
       {
         id: "3",
         item: "已报价未打款",
         estimatedTime: "2025-07-05",
         actualTime: "2025-07-05",
+        note: "",
       },
     ];
     return tempData;
@@ -79,16 +81,20 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       key: "actualTime",
       width: 150,
       render: (time: string) => (
-        <span style={{ color: time ? "#1890ff" : "#999" }}>
-          {time || "-"}
-        </span>
+        <span style={{ color: time ? "#1890ff" : "#999" }}>{time || "-"}</span>
       ),
+    },
+    {
+      title: "备注",
+      dataIndex: "note",
+      key: "note",
+      width: 200,
     },
   ];
 
   return (
     <Modal
-      title="进度详情"
+      title="设计详情"
       open={visible}
       onCancel={onCancel}
       width={800}
@@ -112,7 +118,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
           </div>
         </Card>
       </div>
-      <Card title="进度明细" size="small">
+      <Card title="设计进度明细" size="small">
         <Table
           columns={columns}
           dataSource={progressList}

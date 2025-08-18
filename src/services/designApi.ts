@@ -13,7 +13,10 @@ export interface DesignOrder {
   state: string;
   orderType: string;
   remark: string;
+  isSetup: boolean;
   finishTime?: string;
+  designArea?: string;
+  orderAmount?: string;
 }
 
 // 模拟设计订单数据
@@ -31,7 +34,10 @@ const mockDesignData: DesignOrder[] = [
     state: "进行中",
     orderType: "设计单",
     remark: "",
+    isSetup: false,
     finishTime: "",
+    designArea: "120",
+    orderAmount: "50000",
   },
   {
     orderNumber: "D2024-022",
@@ -46,7 +52,10 @@ const mockDesignData: DesignOrder[] = [
     state: "进行中",
     orderType: "设计单",
     remark: "这个是一个备注",
+    isSetup: true,
     finishTime: "",
+    designArea: "85",
+    orderAmount: "32000",
   },
   {
     orderNumber: "D2024-023",
@@ -59,10 +68,13 @@ const mockDesignData: DesignOrder[] = [
     category: "木门,柜体,石材,板材",
     cycle: "21",
     state: "已下单",
+    isSetup: false,
     orderType: "设计单",
     remark:
       "一个很长很长很长很长很很长很长很很长很长很很长很长很很长很长很很长很长很很长很长很长很长很长很长的备注",
     finishTime: "2024-07-30",
+    designArea: "150",
+    orderAmount: "68000",
   },
   {
     orderNumber: "D2024-024",
@@ -76,8 +88,11 @@ const mockDesignData: DesignOrder[] = [
     cycle: "70",
     state: "暂停",
     orderType: "设计单",
+    isSetup: false,
     remark: "这个是一个备注",
     finishTime: "2024-07-30",
+    designArea: "95",
+    orderAmount: "42000",
   },
 ];
 

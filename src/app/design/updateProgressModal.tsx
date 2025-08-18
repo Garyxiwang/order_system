@@ -15,10 +15,10 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
-import 'dayjs/locale/zh-cn';
+import "dayjs/locale/zh-cn";
 
 // 确保客户端也设置中文语言
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -28,6 +28,7 @@ interface ProgressItem {
   item: string;
   plannedDate: string;
   actualDate: string;
+  note: string;
 }
 
 interface ProgressFormValues {
@@ -35,6 +36,7 @@ interface ProgressFormValues {
   customContent?: string;
   plannedDate: dayjs.Dayjs;
   actualDate?: dayjs.Dayjs;
+  note?: string;
 }
 
 interface UpdateProgressModalProps {
@@ -54,14 +56,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
   const [showCustomContent, setShowCustomContent] = useState(false);
 
   // 预定义的进度类型
-  const progressTypes = [
-    "量尺",
-    "初稿",
-    "已报价未打款",
-    "已打款",
-    "下单",
-    "其他",
-  ];
+  const progressTypes = ["量尺", "初稿", "已报价", "已打款", "下单", "其他"];
 
   // 模拟获取进度数据
   const fetchProgressData = async () => {
@@ -77,18 +72,21 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
           item: "量尺",
           plannedDate: "2025-06-01",
           actualDate: "2025-06-01",
+          note: "这是个备注1这是个备注1这是个备注1这是个备注1",
         },
         {
           id: "2",
           item: "初稿",
           plannedDate: "2025-06-02",
           actualDate: "2025-06-02",
+          note: "这是个备注2",
         },
         {
           id: "3",
           item: "下单",
           plannedDate: "2025-06-03",
           actualDate: "2025-06-05",
+          note: "",
         },
       ];
 
@@ -117,6 +115,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
         actualDate: values.actualDate
           ? values.actualDate.format("YYYY-MM-DD")
           : "",
+        note: values.note || "",
       };
 
       setProgressList([...progressList, newProgress]);
@@ -141,11 +140,13 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
   // 编辑状态管理
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempDate, setTempDate] = useState<dayjs.Dayjs | null>(null);
+  const [tempNote, setTempNote] = useState<string>("");
 
   // 处理编辑实际日期
   const handleEditActualDate = (record: ProgressItem) => {
     setEditingId(record.id);
     setTempDate(record.actualDate ? dayjs(record.actualDate) : null);
+    setTempNote(record.note || "");
   };
 
   // 保存实际日期
@@ -157,12 +158,14 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
             ? {
                 ...item,
                 actualDate: tempDate ? tempDate.format("YYYY-MM-DD") : "",
+                note: tempNote,
               }
             : item
         )
       );
       setEditingId(null);
       setTempDate(null);
+      setTempNote("");
     }
   };
 
@@ -170,6 +173,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
   const handleCancelEdit = () => {
     setEditingId(null);
     setTempDate(null);
+    setTempNote("");
   };
 
   // 表格列定义
@@ -208,6 +212,27 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       },
     },
     {
+      title: "备注",
+      dataIndex: "note",
+      key: "note",
+      width: 120,
+      render: (text: string, record: ProgressItem) => {
+        if (editingId === record.id) {
+          return (
+            <Input.TextArea
+              value={tempNote}
+              onChange={(e) => setTempNote(e.target.value)}
+              size="small"
+              placeholder="请输入备注"
+              style={{ width: "100%" }}
+              rows={2}
+            />
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
       title: "操作",
       key: "action",
       width: 120,
@@ -232,6 +257,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
           <Button
             type="link"
             size="small"
+            disabled={record.item === "下单"}
             onClick={() => handleEditActualDate(record)}
           >
             编辑
@@ -257,7 +283,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
 
   return (
     <Modal
-      title="进度过程"
+      title="设计进度"
       open={visible}
       onCancel={handleCancel}
       width={800}
@@ -326,6 +352,12 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
             <DatePicker
               style={{ width: "100%" }}
               placeholder="请选择实际日期"
+            />
+          </Form.Item>
+          <Form.Item label="备注" name="note">
+            <Input.TextArea
+              style={{ width: "100%" }}
+              placeholder="请输入备注"
             />
           </Form.Item>
 

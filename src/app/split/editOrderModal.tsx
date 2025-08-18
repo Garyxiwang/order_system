@@ -49,8 +49,6 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
     if (orderData) {
       form.setFieldsValue({
         splitter: orderData.splitPerson || undefined,
-        orderStatus: orderData.states || "未审核",
-        quoteStatus: orderData.priceState || undefined,
         boardDate: orderData.fixedTime ? dayjs(orderData.fixedTime) : undefined,
         splitCompleteDate: orderData.finishTime
           ? dayjs(orderData.finishTime)
@@ -148,9 +146,33 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 children: orderData.salesPerson,
               },
               {
+                key: "orderAmount",
+                label: "订单金额",
+                children: orderData.orderAmount
+                  ? `¥${orderData.orderAmount}`
+                  : "-",
+              },
+              {
+                key: "designArea",
+                label: "设计面积",
+                children: orderData.designArea
+                  ? `${orderData.designArea}㎡`
+                  : "-",
+              },
+              {
                 key: "createTime",
                 label: "下单日期",
                 children: orderData.createTime,
+              },
+              {
+                key: "orderStatus",
+                label: "订单状态",
+                children: orderData.states,
+              },
+              {
+                key: "quoteStatus",
+                label: "报价状态",
+                children: orderData.priceState,
               },
             ]}
           />
@@ -199,37 +221,6 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                     </Col>
                   </Row>
                 </Checkbox.Group>
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item
-                label="订单状态"
-                name="orderStatus"
-                rules={[{ required: true, message: "请选择订单状态" }]}
-              >
-                <Select placeholder="请选择订单状态">
-                  <Option value="未开始">未开始</Option>
-                  <Option value="拆单中">拆单中</Option>
-                  <Option value="未审核">未审核</Option>
-                  <Option value="已审核">已审核</Option>
-                  <Option value="已完成">已完成</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="报价状态"
-                name="quoteStatus"
-                rules={[{ required: true, message: "请选择报价状态" }]}
-              >
-                <Select placeholder="请选择报价状态">
-                  <Option value="normal">未打款</Option>
-                  <Option value="normal">已打款</Option>
-                  <Option value="important">报价已发未打款</Option>
-                </Select>
               </Form.Item>
             </Col>
           </Row>

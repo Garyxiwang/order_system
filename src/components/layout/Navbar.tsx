@@ -35,6 +35,11 @@ const Navbar: React.FC = () => {
       label: <Link href="/split">拆单页</Link>,
     },
     {
+      key: 'production',
+      icon: <ShoppingCartOutlined />,
+      label: <Link href="/production">生产页</Link>,
+    },
+    {
       key: 'config',
       icon: <SettingOutlined />,
       label: <Link href="/config">配置页</Link>,

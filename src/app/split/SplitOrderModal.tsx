@@ -175,6 +175,16 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           <Col span={12}>
             <Card title="木门" size="small" style={{ height: "100%" }}>
               <Form.Item
+                label="计划日期"
+                name="doorFixedDate"
+                style={{ marginBottom: 12 }}
+              >
+                <DatePicker
+                  placeholder="请选择日期"
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
+              <Form.Item
                 label="拆单日期"
                 name="doorSplitDate"
                 style={{ marginBottom: 12 }}
@@ -184,11 +194,20 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-             
             </Card>
           </Col>
           <Col span={12}>
             <Card title="柜体" size="small" style={{ height: "100%" }}>
+              <Form.Item
+                label="计划日期"
+                name="doorFixedDate"
+                style={{ marginBottom: 12 }}
+              >
+                <DatePicker
+                  placeholder="请选择日期"
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
               <Form.Item
                 label="拆单日期"
                 name="cabinetSplitDate"
@@ -199,7 +218,6 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-              
             </Card>
           </Col>
         </Row>
@@ -208,6 +226,16 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={12}>
             <Card title="石材" size="small" style={{ height: "100%" }}>
+              <Form.Item
+                label="计划日期"
+                name="doorFixedDate"
+                style={{ marginBottom: 12 }}
+              >
+                <DatePicker
+                  placeholder="请选择日期"
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
               <Form.Item
                 label="采购日期"
                 name="stoneSplitDate"
@@ -218,11 +246,20 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-              
             </Card>
           </Col>
           <Col span={12}>
             <Card title="板材" size="small" style={{ height: "100%" }}>
+              <Form.Item
+                label="计划日期"
+                name="doorFixedDate"
+                style={{ marginBottom: 12 }}
+              >
+                <DatePicker
+                  placeholder="请选择日期"
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
               <Form.Item
                 label="定板日期"
                 name="boardSplitDate"
@@ -233,7 +270,6 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-             
             </Card>
           </Col>
         </Row>
@@ -242,6 +278,16 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
         <Row style={{ marginBottom: 16 }}>
           <Col span={12}>
             <Card title="铝合金门" size="small">
+              <Form.Item
+                label="计划日期"
+                name="doorFixedDate"
+                style={{ marginBottom: 12 }}
+              >
+                <DatePicker
+                  placeholder="请选择日期"
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
               <Form.Item
                 label="采购日期"
                 name="aluminumSplitDate"
@@ -252,7 +298,6 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                   style={{ width: "100%" }}
                 />
               </Form.Item>
-              
             </Card>
           </Col>
         </Row>

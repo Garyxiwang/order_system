@@ -1,20 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import { Layout, Menu, Avatar, Dropdown, Button, Space } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Space, Button } from "antd";
 import type { MenuProps } from "antd";
 import {
   UserOutlined,
   LogoutOutlined,
-  BellOutlined,
-  SettingOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import SideMenu from "@/components/layout/SideMenu";
 import AntdRegistry from "../AntdRegistry";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
-const { Content, Footer, Sider, Header } = Layout;
+const { Content, Sider, Header } = Layout;
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -24,6 +24,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
   const isLoginPage = pathname === "/login";
+  const [collapsed, setCollapsed] = useState(false);
 
   // 模拟当前用户信息
   const [currentUser] = useState({
@@ -31,6 +32,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     avatar: "",
     role: "管理员",
   });
+
+  // 切换侧边栏收起状态
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+  };
 
   // 处理退出登录
   const handleLogout = () => {
@@ -69,7 +75,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       ) : (
         <Layout style={{ height: "100vh", overflow: "hidden" }}>
           <Sider
-            width={200}
+            width={210}
+            collapsedWidth={80}
+            collapsed={collapsed}
             theme="light"
             style={{
               position: "fixed",
@@ -83,42 +91,51 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             }}
             className="shadow-md bg-gradient-to-b from-blue-50 to-white"
           >
-            <div className="flex items-center justify-center py-6 px-4 border-b border-gray-100">
+            <div className="flex items-center justify-center py-4 px-4 border-b border-gray-100">
               <div className="text-xl font-bold text-blue-700 flex items-center">
                 <img src="/globe.svg" alt="Logo" className="w-8 h-8 mr-2" />
-                <span>前端下单系统</span>
+                {!collapsed && <span>前端下单系统</span>}
               </div>
             </div>
-            <div className="py-2" style={{ height: "calc(100vh - 120px)", overflowY: "auto" }}>
-              <SideMenu />
-            </div>
-            <div 
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                padding: "16px",
-                borderTop: "1px solid #f0f0f0",
-                backgroundColor: "#fafafa",
-                textAlign: "center",
-                fontSize: "12px",
-                color: "#999",
-              }}
+            <div
+              className="py-2 flex-1"
+              style={{ height: "calc(100vh - 160px)", overflowY: "auto" }}
             >
-              订单系统 ©{new Date().getFullYear()}
+              <SideMenu collapsed={collapsed} />
+            </div>
+            <div className="border-t border-gray-100 p-2 mt-auto">
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={toggleCollapsed}
+                className="w-full flex items-center justify-center hover:bg-blue-50"
+                style={{ height: "40px" }}
+              >
+                {!collapsed && <span className="ml-2">收起菜单</span>}
+              </Button>
+              {!collapsed && (
+                <div className="text-center text-xs text-gray-500 mt-2 px-2">
+                  <span>下单系统 ©{new Date().getFullYear()}</span>
+                </div>
+              )}
             </div>
           </Sider>
-          <Layout style={{ marginLeft: 200 }}>
+          <Layout
+            style={{
+              marginLeft: collapsed ? 80 : 200,
+              transition: "margin-left 0.2s",
+            }}
+          >
             <Header
               style={{
                 backgroundColor: "white",
                 position: "fixed",
                 top: 0,
                 right: 0,
-                left: 200,
+                left: collapsed ? 80 : 200,
                 zIndex: 999,
                 height: 64,
+                transition: "left 0.2s",
               }}
               className="px-6 flex justify-between items-center shadow-sm"
             >
@@ -147,6 +164,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                           className="text-gray-700 hover:text-blue-600"
                         >
                           拆单管理
+                        </Link>
+                      ),
+                    },
+                    {
+                      key: "production",
+                      label: (
+                        <Link
+                          href="/production"
+                          className="text-gray-700 hover:text-blue-600"
+                        >
+                          生产管理
                         </Link>
                       ),
                     },

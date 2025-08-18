@@ -12,10 +12,10 @@ import {
   Col,
 } from "antd";
 import dayjs from "dayjs";
-import 'dayjs/locale/zh-cn';
+import "dayjs/locale/zh-cn";
 
 // 确保客户端也设置中文语言
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const { Option } = Select;
 
@@ -30,7 +30,10 @@ interface OrderFormValues {
   splitDate?: string;
   orderStatus: string;
   progressDetail: string;
+  isSetup: boolean;
   remark?: string;
+  designArea?: string;
+  orderAmount?: string;
 }
 
 interface CreateOrderModalProps {
@@ -54,7 +57,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         // 编辑模式，设置编辑数据
         const formValues = {
           ...initialValues,
-          splitDate: initialValues.splitDate ? dayjs(initialValues.splitDate) : undefined,
+          splitDate: initialValues.splitDate
+            ? dayjs(initialValues.splitDate)
+            : undefined,
         };
         form.setFieldsValue(formValues);
       } else {
@@ -142,6 +147,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               <Select placeholder="设计单">
                 <Option value="设计单">设计单</Option>
                 <Option value="生产单">生产单</Option>
+                <Option value="成品单">成品单</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -152,7 +158,15 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             <Form.Item
               label="设计师"
               name="designer"
-              rules={[{ required: true, message: "请选择设计师" }]}
+              dependencies={["orderType"]}
+              rules={[
+                ({ getFieldValue }) => ({
+                  required:
+                    getFieldValue("orderType") !== "生产单" &&
+                    getFieldValue("orderType") !== "成品单",
+                  message: "请选择设计师",
+                }),
+              ]}
             >
               <Select placeholder="设计师A">
                 <Option value="设计师A">设计师A</Option>
@@ -203,9 +217,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           </Col>
           <Col span={12}>
             <Form.Item label="分单日期" name="splitDate">
-              <DatePicker 
-                placeholder="请选择日期" 
-                style={{ width: "100%" }} 
+              <DatePicker
+                placeholder="请选择日期"
+                style={{ width: "100%" }}
                 defaultValue={dayjs()}
               />
             </Form.Item>
@@ -213,21 +227,53 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         </Row>
 
         <Row gutter={16}>
+          {!initialValues && (
+            <Col span={12}>
+              <Form.Item label="订单状态" name="orderStatus">
+                <Select
+                  placeholder="请选择订单状态"
+                  allowClear
+                  defaultValue={"进行中"}
+                >
+                  <Option value="进行中">进行中</Option>
+                  <Option value="延期">延期</Option>
+                  <Option value="暂停">暂停</Option>
+                  <Option value="等硬装">等硬装</Option>
+                  <Option value="客户待打款">客户待打款</Option>
+                  <Option value="待客户确认">待客户确认</Option>
+                  <Option value="其他">其他</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          )}
+          {/* TODO: 拆单页也同步过去 */}
           <Col span={12}>
-            <Form.Item label="订单状态" name="orderStatus">
-              <Select placeholder="请选择订单状态" allowClear>
-                <Option value="进行中">进行中</Option>
-                <Option value="延期">延期</Option>
-                <Option value="暂停">暂停</Option>
-                <Option value="已完成">已完成</Option>
-                <Option value="等硬装">等硬装</Option>
-                <Option value="客户待打款">客户待打款</Option>
-                <Option value="待客户确认">待客户确认</Option>
-                <Option value="其他">其他</Option>
+            <Form.Item label="是否安装" name="isSetup">
+              <Select
+                placeholder="请选择是否安装"
+                allowClear
+                defaultValue={"是"}
+              >
+                <Option value="true">是</Option>
+                <Option value="false">否</Option>
               </Select>
             </Form.Item>
           </Col>
         </Row>
+        {/* TODO: 只有录入员和财务能看到这两个字段 */}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="设计面积" name="designArea">
+              <Input placeholder="请输入" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="订单金额" name="orderAmount">
+              <Input placeholder="请输入" />
+            </Form.Item>
+          </Col>
+        </Row>
+
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item label="备注" name="remark">

@@ -16,6 +16,8 @@ export interface SplitOrder {
   orderType: string;
   states: string;
   remark: string;
+  designArea?: string;
+  orderAmount?: string;
 }
 
 // 模拟拆单数据
@@ -36,6 +38,8 @@ const mockSplitData: SplitOrder[] = [
     orderType: "设计单",
     states: "拆单中",
     remark: "这个是一个备注",
+    designArea: "120",
+    orderAmount: "45000",
   },
   {
     designNumber: "D2024-023",
@@ -53,6 +57,8 @@ const mockSplitData: SplitOrder[] = [
     orderType: "设计单",
     states: "已完成",
     remark: "这个是一个备注",
+    designArea: "85",
+    orderAmount: "32000",
   },
   {
     designNumber: "D2024-024",
@@ -68,8 +74,10 @@ const mockSplitData: SplitOrder[] = [
     fixedTime: "",
     finishTime: "",
     orderType: "设计单",
-    states: "未开始",
+    states: "撤销中",
     remark: "",
+    designArea: "95",
+    orderAmount: "28000",
   },
 ];
 
