@@ -50,7 +50,7 @@ const Navbar: React.FC = () => {
     <>
       <Header className="flex justify-between items-center bg-white shadow-sm px-4 h-16">
         <div className="flex items-center">
-          <div className="text-xl font-bold mr-8">前端下单系统</div>
+          <div className="text-xl font-bold mr-8">订单管理系统</div>
           <div className="hidden md:block">
             <Menu mode="horizontal" items={menuItems} />
           </div>

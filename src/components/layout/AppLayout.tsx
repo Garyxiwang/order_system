@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Layout, Menu, Avatar, Dropdown, Space, Button } from "antd";
 import type { MenuProps } from "antd";
+import Image from "next/image";
 import {
   UserOutlined,
   LogoutOutlined,
@@ -91,10 +92,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             }}
             className="shadow-md bg-gradient-to-b from-blue-50 to-white"
           >
-            <div className="flex items-center justify-center py-4 px-4 border-b border-gray-100">
-              <div className="text-xl font-bold text-blue-700 flex items-center">
-                <img src="/globe.svg" alt="Logo" className="w-8 h-8 mr-2" />
-                {!collapsed && <span>前端下单系统</span>}
+            <div
+              className="flex items-center justify-center px-4 border-b border-gray-100"
+              style={{ height: "64px" }}
+            >
+              <div className="text-xl font-bold  flex items-center">
+                <Image
+                  src="/logoicon.jpg"
+                  alt="Logo"
+                  width={40}
+                  height={40}
+                  className="mr-3 rounded-lg object-cover"
+                />
+                {!collapsed && <span>订单管理系统</span>}
               </div>
             </div>
             <div

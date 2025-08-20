@@ -3,10 +3,10 @@
 import React, { useEffect } from "react";
 import { Menu, Tooltip } from "antd";
 import {
-  FileOutlined,
-  ShoppingCartOutlined,
+  CreditCardOutlined,
+  LaptopOutlined,
   SettingOutlined,
-  ToolOutlined,
+  ShopOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,11 +29,11 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
       console.log(`[导航日志] 页面已跳转到: ${pathname}`);
     }
   }, [pathname]);
-  
+
   // 组件挂载时记录日志
   useEffect(() => {
     try {
-      logger.system('侧边菜单组件已加载');
+      logger.system("侧边菜单组件已加载");
     } catch {
       console.log(`[系统信息] 侧边菜单组件已加载`);
     }
@@ -62,12 +62,15 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
       key: "design",
       icon: collapsed ? (
         <Tooltip title="设计管理" placement="right">
-          <Link href="/design" onClick={() => handleMenuClick("/design", "设计管理")}>
-            <FileOutlined className="text-blue-600" />
+          <Link
+            href="/design"
+            onClick={() => handleMenuClick("/design", "设计管理")}
+          >
+            <LaptopOutlined className="text-blue-600" />
           </Link>
         </Tooltip>
       ) : (
-        <FileOutlined className="text-blue-600" />
+        <LaptopOutlined className="text-blue-600" />
       ),
       label: !collapsed ? (
         <Link
@@ -83,12 +86,15 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
       key: "split",
       icon: collapsed ? (
         <Tooltip title="拆单管理" placement="right">
-          <Link href="/split" onClick={() => handleMenuClick("/split", "拆单管理")}>
-            <ShoppingCartOutlined className="text-blue-600" />
+          <Link
+            href="/split"
+            onClick={() => handleMenuClick("/split", "拆单管理")}
+          >
+            <CreditCardOutlined className="text-blue-600" />
           </Link>
         </Tooltip>
       ) : (
-        <ShoppingCartOutlined className="text-blue-600" />
+        <CreditCardOutlined className="text-blue-600" />
       ),
       label: !collapsed ? (
         <Link
@@ -104,12 +110,15 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
       key: "production",
       icon: collapsed ? (
         <Tooltip title="生产管理" placement="right">
-          <Link href="/production" onClick={() => handleMenuClick("/production", "生产管理")}>
-            <ToolOutlined className="text-blue-600" />
+          <Link
+            href="/production"
+            onClick={() => handleMenuClick("/production", "生产管理")}
+          >
+            <ShopOutlined className="text-blue-600" />
           </Link>
         </Tooltip>
       ) : (
-        <ToolOutlined className="text-blue-600" />
+        <ShopOutlined className="text-blue-600" />
       ),
       label: !collapsed ? (
         <Link
@@ -125,7 +134,10 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
       key: "config",
       icon: collapsed ? (
         <Tooltip title="系统配置" placement="right">
-          <Link href="/config" onClick={() => handleMenuClick("/config", "系统配置")}>
+          <Link
+            href="/config"
+            onClick={() => handleMenuClick("/config", "系统配置")}
+          >
             <SettingOutlined className="text-blue-600" />
           </Link>
         </Tooltip>

@@ -18,6 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "前端下单系统",
   description: "基于Next.js、TypeScript和Ant Design构建的订单系统",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 import AppLayout from "@/components/layout/AppLayout";
