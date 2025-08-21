@@ -241,8 +241,14 @@ const ConfigPage: React.FC = () => {
           >
             <Select placeholder="请选择人员类别">
               <Option value="设计师">设计师</Option>
+              <Option value="销售员">录入员</Option>
               <Option value="管理员">拆单员</Option>
-              <Option value="销售员">销售员</Option>
+              <Option value="销售员">销售</Option>
+              <Option value="销售员">采购</Option>
+              <Option value="销售员">车间</Option>
+              <Option value="销售员">主管</Option>
+              <Option value="销售员">财务</Option>
+              <Option value="销售员">发货员</Option>
             </Select>
           </Form.Item>
           <Form.Item wrapperCol={{ offset: 6, span: 18 }}>

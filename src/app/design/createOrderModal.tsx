@@ -226,7 +226,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           </Col>
         </Row>
 
-        <Row gutter={16}>
+        {/* <Row gutter={16}>
           {!initialValues && (
             <Col span={12}>
               <Form.Item label="订单状态" name="orderStatus">
@@ -246,7 +246,26 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               </Form.Item>
             </Col>
           )}
-          {/* TODO: 拆单页也同步过去 */}
+        </Row> */}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="柜体面积" name="designArea">
+              <Input placeholder="请输入" addonAfter="㎡" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="墙板面积" name="designArea">
+              <Input placeholder="请输入" addonAfter="㎡" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="订单金额" name="orderAmount">
+              <Input placeholder="请输入" addonAfter="元" />
+            </Form.Item>
+          </Col>
           <Col span={12}>
             <Form.Item label="是否安装" name="isSetup">
               <Select
@@ -259,22 +278,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               </Select>
             </Form.Item>
           </Col>
-        </Row>
-        {/* TODO: 只有录入员和财务能看到这两个字段 */}
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="设计面积" name="designArea">
-              <Input placeholder="请输入" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="订单金额" name="orderAmount">
-              <Input placeholder="请输入" />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
           <Col span={12}>
             <Form.Item label="备注" name="remark">
               <Input.TextArea placeholder="请输入" rows={3} />

@@ -206,6 +206,16 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
       >
         <Row gutter={24}>
           <Col span={12}>
+            <Form.Item label="18板" name="board18">
+              <Input placeholder="请输入18板数量" addonAfter="张" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="09板" name="board09">
+              <Input placeholder="请输入09板数量" addonAfter="张" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
             <Form.Item
               label="预计交货日期"
               name="expectedDeliveryDate"
@@ -227,40 +237,6 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
                 <Option value="已入库">已入库</Option>
                 <Option value="已出货">已出货</Option>
               </Select>
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={24}>
-          <Col span={12}>
-            <Form.Item label="18板" name="board18">
-              <Input placeholder="请输入18板数量" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="09板" name="board09">
-              <Input placeholder="请输入09板数量" />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={24}>
-          <Col span={12}>
-            <Form.Item label="下料日期" name="cuttingDate">
-              <DatePicker placeholder="请选择日期" style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="成品入库日期" name="warehouseDate">
-              <DatePicker placeholder="请选择日期" style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={24}>
-          <Col span={12}>
-            <Form.Item label="预计出货日期" name="expectedShipmentDate">
-              <DatePicker placeholder="请选择日期" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col span={12}>

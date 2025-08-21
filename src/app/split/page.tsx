@@ -27,6 +27,7 @@ import EditOrderModal from "./editOrderModal";
 import type { EditFormValues } from "./editOrderModal";
 import SplitOrderModal from "./SplitOrderModal";
 import type { SplitFormValues } from "./SplitOrderModal";
+import type { Dayjs } from "dayjs";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -51,6 +52,18 @@ const DesignPage: React.FC = () => {
   const [priceStatusEditingRecord, setPriceStatusEditingRecord] =
     useState<SplitOrder | null>(null);
   const [selectedPriceStatus, setSelectedPriceStatus] = useState<string>("");
+  const [actualPaymentDate, setActualPaymentDate] = useState<Dayjs | null>(
+    null
+  );
+  const [dateError, setDateError] = useState<string>("");
+
+  // 设计面积相关状态
+  const [cabinetArea, setCabinetArea] = useState<string>("");
+  const [wallPanelArea, setWallPanelArea] = useState<string>("");
+  const [areaErrors, setAreaErrors] = useState<{
+    cabinet: string;
+    wallPanel: string;
+  }>({ cabinet: "", wallPanel: "" });
 
   // 加载拆单数据
   const loadSplitData = async () => {
@@ -74,7 +87,7 @@ const DesignPage: React.FC = () => {
   useEffect(() => {
     // 设置订单状态默认选择"拆单中"和"已审核"
     searchForm.setFieldsValue({
-      splitStatus: ["-1", "1"], // -1: 拆单中, 1: 已审核
+      splitStatus: ["未开始", "拆单中","未审核","已审核","撤销中"], // -1: 拆单中, 1: 已审核
     });
     loadSplitData();
   }, []);
@@ -148,6 +161,9 @@ const DesignPage: React.FC = () => {
     setIsOrderStatusModalVisible(false);
     setOrderStatusEditingRecord(null);
     setSelectedOrderStatus("");
+    setCabinetArea("");
+    setWallPanelArea("");
+    setAreaErrors({ cabinet: "", wallPanel: "" });
   };
 
   // 处理订单状态修改
@@ -157,19 +173,58 @@ const DesignPage: React.FC = () => {
       return;
     }
 
+    // 如果选择了"已完成"，验证设计面积
+    if (selectedOrderStatus === "已完成") {
+      const errors = { cabinet: "", wallPanel: "" };
+      let hasError = false;
+
+      if (!cabinetArea.trim()) {
+        errors.cabinet = "请输入柜体面积";
+        hasError = true;
+      } else if (isNaN(Number(cabinetArea)) || Number(cabinetArea) <= 0) {
+        errors.cabinet = "请输入有效的柜体面积";
+        hasError = true;
+      }
+
+      if (!wallPanelArea.trim()) {
+        errors.wallPanel = "请输入墙板面积";
+        hasError = true;
+      } else if (isNaN(Number(wallPanelArea)) || Number(wallPanelArea) <= 0) {
+        errors.wallPanel = "请输入有效的墙板面积";
+        hasError = true;
+      }
+
+      if (hasError) {
+        setAreaErrors(errors);
+        return;
+      }
+    }
+
+    // 清除面积错误提示
+    setAreaErrors({ cabinet: "", wallPanel: "" });
+
     try {
       setLoading(true);
       // 这里可以调用实际的API
+      // const updateData = {
+      //   ...orderStatusEditingRecord,
+      //   states: selectedOrderStatus,
+      //   ...(selectedOrderStatus === "已完成" && {
+      //     cabinetArea: cabinetArea,
+      //     wallPanelArea: wallPanelArea
+      //   })
+      // };
       // const response = await updateSplitOrder(
       //   orderStatusEditingRecord.designNumber,
-      //   {
-      //     ...orderStatusEditingRecord,
-      //     states: selectedOrderStatus,
-      //   }
+      //   updateData
       // );
 
       // 模拟成功响应
-      message.success("订单状态修改成功");
+      const areaInfo =
+        selectedOrderStatus === "已完成"
+          ? `，柜体面积：${cabinetArea}㎡，墙板面积：${wallPanelArea}㎡`
+          : "";
+      message.success(`订单状态修改成功${areaInfo}`);
       await loadSplitData(); // 重新加载数据
       handleOrderStatusModalCancel();
     } catch (error) {
@@ -192,6 +247,8 @@ const DesignPage: React.FC = () => {
     setIsPriceStatusModalVisible(false);
     setPriceStatusEditingRecord(null);
     setSelectedPriceStatus("");
+    setActualPaymentDate(null);
+    setDateError("");
   };
 
   // 处理报价状态修改
@@ -201,19 +258,36 @@ const DesignPage: React.FC = () => {
       return;
     }
 
+    // 如果选择了"已打款"但没有选择日期，提示用户
+    if (selectedPriceStatus === "已打款" && !actualPaymentDate) {
+      setDateError("请选择实际打款日期");
+      return;
+    }
+
+    // 清除日期错误提示
+    setDateError("");
+
     try {
       setLoading(true);
       // 这里可以调用实际的API
+      // const updateData = {
+      //   ...priceStatusEditingRecord,
+      //   priceState: selectedPriceStatus,
+      //   ...(selectedPriceStatus === "已打款" && actualPaymentDate && {
+      //     actualPaymentDate: actualPaymentDate.format("YYYY-MM-DD")
+      //   })
+      // };
       // const response = await updateSplitOrder(
       //   priceStatusEditingRecord.designNumber,
-      //   {
-      //     ...priceStatusEditingRecord,
-      //     priceState: selectedPriceStatus,
-      //   }
+      //   updateData
       // );
 
       // 模拟成功响应
-      message.success("报价状态修改成功");
+      const dateInfo =
+        selectedPriceStatus === "已打款" && actualPaymentDate
+          ? `，实际打款日期：${actualPaymentDate.format("YYYY-MM-DD")}`
+          : "";
+      message.success(`报价状态修改成功${dateInfo}`);
       await loadSplitData(); // 重新加载数据
       handlePriceStatusModalCancel();
     } catch (error) {
@@ -269,13 +343,14 @@ const DesignPage: React.FC = () => {
       title: "客户名称",
       dataIndex: "customerName",
       key: "customerName",
+      width: 150,
     },
     {
       title: "地址",
       dataIndex: "address",
       key: "address",
     },
-   
+
     {
       title: "下单日期",
       dataIndex: "createTime",
@@ -423,7 +498,7 @@ const DesignPage: React.FC = () => {
       dataIndex: "salesPerson",
       key: "salesPerson",
     },
-     {
+    {
       title: "订单金额",
       dataIndex: "orderAmount",
       key: "orderAmount",
@@ -594,6 +669,7 @@ const DesignPage: React.FC = () => {
             <Col span={6} className="py-2">
               <Form.Item name="orderCategory" label="下单类目" className="mb-0">
                 <Select
+                  mode="multiple"
                   placeholder="全部"
                   className="rounded-md"
                   size="middle"
@@ -646,11 +722,11 @@ const DesignPage: React.FC = () => {
                   allowClear
                 >
                   <Option value="未开始">未开始</Option>
-              <Option value="拆单中">拆单中</Option>
-              <Option value="未审核">未审核</Option>
-              <Option value="已审核">已审核</Option>
-              <Option value="已完成">已完成</Option>
-              <Option value="撤销中">撤销中</Option>
+                  <Option value="拆单中">拆单中</Option>
+                  <Option value="未审核">未审核</Option>
+                  <Option value="已审核">已审核</Option>
+                  <Option value="已完成">已完成</Option>
+                  <Option value="撤销中">撤销中</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -772,7 +848,7 @@ const DesignPage: React.FC = () => {
             <strong>当前状态：</strong>
             {orderStatusEditingRecord?.states}
           </div>
-          <div>
+          <div style={{ marginBottom: "16px" }}>
             <strong>选择新状态：</strong>
             <Select
               value={selectedOrderStatus}
@@ -785,9 +861,64 @@ const DesignPage: React.FC = () => {
               <Option value="未审核">未审核</Option>
               <Option value="已审核">已审核</Option>
               <Option value="已完成">已完成</Option>
-              <Option value="撤销中">撤销中</Option>
             </Select>
           </div>
+          {selectedOrderStatus === "已完成" && (
+            <div>
+              <div style={{ marginBottom: "16px" }}>
+                <strong>柜体面积：</strong>
+                <Input
+                  value={cabinetArea}
+                  onChange={(e) => {
+                    setCabinetArea(e.target.value);
+                    if (e.target.value.trim()) {
+                      setAreaErrors((prev) => ({ ...prev, cabinet: "" }));
+                    }
+                  }}
+                  placeholder="请输入柜体面积"
+                  style={{ width: "100%", marginTop: "8px" }}
+                  addonAfter="㎡"
+                />
+                {areaErrors.cabinet && (
+                  <div
+                    style={{
+                      color: "#ff4d4f",
+                      fontSize: "12px",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {areaErrors.cabinet}
+                  </div>
+                )}
+              </div>
+              <div>
+                <strong>墙板面积：</strong>
+                <Input
+                  value={wallPanelArea}
+                  onChange={(e) => {
+                    setWallPanelArea(e.target.value);
+                    if (e.target.value.trim()) {
+                      setAreaErrors((prev) => ({ ...prev, wallPanel: "" }));
+                    }
+                  }}
+                  placeholder="请输入墙板面积"
+                  style={{ width: "100%", marginTop: "8px" }}
+                  addonAfter="㎡"
+                />
+                {areaErrors.wallPanel && (
+                  <div
+                    style={{
+                      color: "#ff4d4f",
+                      fontSize: "12px",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {areaErrors.wallPanel}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
 
@@ -814,7 +945,7 @@ const DesignPage: React.FC = () => {
             <strong>当前状态：</strong>
             {priceStatusEditingRecord?.priceState}
           </div>
-          <div>
+          <div style={{ marginBottom: "16px" }}>
             <strong>选择新状态：</strong>
             <Select
               value={selectedPriceStatus}
@@ -827,6 +958,34 @@ const DesignPage: React.FC = () => {
               <Option value="报价已发未打款">报价已发未打款</Option>
             </Select>
           </div>
+          {selectedPriceStatus === "已打款" && (
+            <div>
+              <strong>实际打款日期：</strong>
+              <DatePicker
+                value={actualPaymentDate}
+                onChange={(date) => {
+                  setActualPaymentDate(date);
+                  if (date) {
+                    setDateError("");
+                  }
+                }}
+                placeholder="请选择实际打款日期"
+                style={{ width: "100%", marginTop: "8px" }}
+                format="YYYY-MM-DD"
+              />
+              {dateError && (
+                <div
+                  style={{
+                    color: "#ff4d4f",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                  }}
+                >
+                  {dateError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Modal>
     </div>

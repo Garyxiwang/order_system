@@ -38,6 +38,7 @@ const ProductionPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(
     null
   );
+  const [modalType, setModalType] = useState<'progress' | 'purchase'>('progress');
   const [searchForm] = Form.useForm();
 
   // 加载生产订单数据
@@ -60,6 +61,9 @@ const ProductionPage: React.FC = () => {
 
   // 组件挂载时加载数据
   useEffect(() => {
+    searchForm.setFieldsValue({
+      splitStatus: ["未齐料", "已齐料","已下料","已入库"], // -1: 拆单中, 1: 已审核
+    });
     loadProductionData();
   }, []);
 
@@ -86,27 +90,35 @@ const ProductionPage: React.FC = () => {
     message.success("更新成功");
   };
 
-  // 显示材料状态模态框
+  // 显示生产进度模态框
   const showProgressModal = (record: ProductionOrder) => {
     setSelectedOrder(record);
+    setModalType('progress');
     setIsProgressModalVisible(true);
   };
 
-  // 处理材料状态模态框取消
+  // 显示采购状态模态框
+  const showPurchaseModal = (record: ProductionOrder) => {
+    setSelectedOrder(record);
+    setModalType('purchase');
+    setIsProgressModalVisible(true);
+  };
+
+  // 处理模态框取消
   const handleProgressModalCancel = () => {
     setIsProgressModalVisible(false);
     setSelectedOrder(null);
   };
 
-  // 处理材料状态模态框确认
+  // 处理模态框确认
   const handleProgressModalOk = (values: Partial<ProductionOrder>) => {
-    console.log("材料状态表单数据:", values);
+    console.log("表单数据:", values);
     // 这里可以调用API更新数据
     setIsProgressModalVisible(false);
     setSelectedOrder(null);
     // 重新加载数据
     loadProductionData();
-    message.success("材料状态更新成功");
+    message.success(modalType === 'progress' ? "生产进度更新成功" : "采购状态更新成功");
   };
 
   // 处理搜索
@@ -151,10 +163,10 @@ const ProductionPage: React.FC = () => {
       title: "客户名称",
       dataIndex: "customerName",
       key: "customerName",
-      width: 120,
+      width: 150,
     },
     {
-      title: "发货地址",
+      title: "地址",
       dataIndex: "deliveryAddress",
       key: "deliveryAddress",
       ellipsis: true,
@@ -256,7 +268,7 @@ const ProductionPage: React.FC = () => {
           <div>
             <div>下料日期：{record.cuttingDate || "-"}</div>
             <div>成品入库日期：{record.warehouseDate || "-"}</div>
-            <div>预计出货：{record.expectedShipmentDate || "-"}</div>
+            <div>预计出货日期：{record.expectedShipmentDate || "-"}</div>
             <div>实际出货日期：{record.actualShipmentDate || "-"}</div>
           </div>
         );
@@ -388,14 +400,21 @@ const ProductionPage: React.FC = () => {
             size="small"
             onClick={() => showEditModal(record)}
           >
-            生产进度
+            编辑
           </Button>
           <Button
             type="link"
             size="small"
             onClick={() => showProgressModal(record)}
           >
-            材料状态
+            生产进度
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => showPurchaseModal(record)}
+          >
+            采购状态
           </Button>
         </>
       ),
@@ -448,8 +467,8 @@ const ProductionPage: React.FC = () => {
             </Col>
             <Col span={6} className="py-2">
               <Form.Item
-                name="orderDateRange"
-                label="下料日期"
+                name="expectedDeliveryDate"
+                label="预计交货日期"
                 className="mb-0"
               >
                 <RangePicker
@@ -461,11 +480,17 @@ const ProductionPage: React.FC = () => {
               </Form.Item>
             </Col>
             <Col span={6} className="py-2">
-              <Form.Item
-                name="finishDateRange"
-                label="成品入库日期"
-                className="mb-0"
-              >
+              <Form.Item name="orderDate" label="下料日期" className="mb-0">
+                <RangePicker
+                  placeholder={["开始日期", "结束日期"]}
+                  className="rounded-md w-full"
+                  size="middle"
+                  allowClear
+                />
+              </Form.Item>
+            </Col>
+            <Col span={6} className="py-2">
+              <Form.Item name="entryDate" label="成品入库日期" className="mb-0">
                 <RangePicker
                   placeholder={["开始日期", "结束日期"]}
                   className="rounded-md w-full"
@@ -476,7 +501,7 @@ const ProductionPage: React.FC = () => {
             </Col>
             <Col span={6} className="py-2">
               <Form.Item
-                name="finishDateRange"
+                name="expectedDate"
                 label="预计出货日期"
                 className="mb-0"
               >
@@ -490,7 +515,7 @@ const ProductionPage: React.FC = () => {
             </Col>
             <Col span={6} className="py-2">
               <Form.Item
-                name="finishDateRange"
+                name="actualDate"
                 label="实际出货日期"
                 className="mb-0"
               >
@@ -561,12 +586,13 @@ const ProductionPage: React.FC = () => {
         orderData={selectedOrder}
       />
 
-      {/* 材料状态模态框 */}
+      {/* 生产进度/采购状态模态框 */}
       <ProgressModal
         visible={isProgressModalVisible}
         order={selectedOrder}
         onCancel={handleProgressModalCancel}
         onOk={handleProgressModalOk}
+        modalType={modalType}
       />
     </div>
   );

@@ -54,61 +54,12 @@ const DesignPage: React.FC = () => {
   );
   const [designData, setDesignData] = useState<DesignOrder[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isStatusModalVisible, setIsStatusModalVisible] = useState(false);
-  const [statusEditingRecord, setStatusEditingRecord] =
-    useState<DesignOrder | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+
   const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
 
   const showModal = () => {
     setEditingRecord(null);
     setIsModalVisible(true);
-  };
-
-  // 显示订单状态修改弹窗
-  const showStatusModal = (record: DesignOrder) => {
-    setStatusEditingRecord(record);
-    setSelectedStatus(record.state || "");
-    setIsStatusModalVisible(true);
-  };
-
-  // 关闭订单状态修改弹窗
-  const handleStatusModalCancel = () => {
-    setIsStatusModalVisible(false);
-    setStatusEditingRecord(null);
-    setSelectedStatus("");
-  };
-
-  // 处理订单状态修改
-  const handleUpdateOrderStatus = async () => {
-    if (!statusEditingRecord || !selectedStatus) {
-      message.warning("请选择订单状态");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await updateDesignOrder(
-        statusEditingRecord.orderNumber,
-        {
-          ...statusEditingRecord,
-          state: selectedStatus,
-        }
-      );
-
-      if (response.code === 200) {
-        message.success("订单状态修改成功");
-        await loadDesignData(); // 重新加载数据
-        handleStatusModalCancel();
-      } else {
-        message.error(response.message || "订单状态修改失败");
-      }
-    } catch (error) {
-      message.error("订单状态修改失败，请稍后重试");
-      console.error("订单状态修改失败:", error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const showEditModal = (record: DesignOrder) => {
@@ -597,17 +548,6 @@ const DesignPage: React.FC = () => {
                 </Button>
               </Col>
             )}
-            {/* <Col span={12}>
-              <Button
-                type="link"
-                size="small"
-                disabled={record.state === "已下单"}
-                onClick={() => showStatusModal(record)}
-                style={{ padding: "0 4px", width: "100%" }}
-              >
-                订单状态
-              </Button>
-            </Col> */}
           </Row>
         </div>
       ),
@@ -676,13 +616,28 @@ const DesignPage: React.FC = () => {
                   className="rounded-md"
                   size="middle"
                   allowClear
+                  defaultValue={[
+                    "量尺",
+                    "初稿",
+                    "报价",
+                    "打款",
+                    "延期",
+                    "等硬装",
+                    "客户待打款",
+                    "待客户确认",
+                    "其他",
+                  ]}
                 >
+                  <Option value="量尺">量尺</Option>
+                  <Option value="初稿">初稿</Option>
+                  <Option value="报价">报价</Option>
+                  <Option value="打款">打款</Option>
                   <Option value="延期">延期</Option>
                   <Option value="暂停">暂停</Option>
-                  <Option value="已完成">已完成</Option>
                   <Option value="等硬装">等硬装</Option>
                   <Option value="客户待打款">客户待打款</Option>
                   <Option value="待客户确认">待客户确认</Option>
+                  <Option value="下单">下单</Option>
                   <Option value="其他">其他</Option>
                 </Select>
               </Form.Item>
@@ -719,6 +674,7 @@ const DesignPage: React.FC = () => {
             <Col span={6} className="py-2">
               <Form.Item name="orderCategory" label="下单类目" className="mb-0">
                 <Select
+                  mode="multiple"
                   placeholder="全部"
                   className="rounded-md"
                   size="middle"
@@ -862,49 +818,6 @@ const DesignPage: React.FC = () => {
         orderName={selectedOrderName}
         progressData={selectedProgressData}
       />
-
-      {/* 订单状态修改Modal */}
-      <Modal
-        title="修改订单状态"
-        open={isStatusModalVisible}
-        onOk={handleUpdateOrderStatus}
-        onCancel={handleStatusModalCancel}
-        okText="确认"
-        cancelText="取消"
-        width={400}
-      >
-        <div style={{ padding: "20px 0" }}>
-          <div style={{ marginBottom: "16px" }}>
-            <strong>订单号：</strong>
-            {statusEditingRecord?.orderNumber}
-          </div>
-          <div style={{ marginBottom: "16px" }}>
-            <strong>客户名称：</strong>
-            {statusEditingRecord?.customerName}
-          </div>
-          <div style={{ marginBottom: "16px" }}>
-            <strong>当前状态：</strong>
-            {statusEditingRecord?.state}
-          </div>
-          <div>
-            <strong>选择新状态：</strong>
-            <Select
-              value={selectedStatus}
-              onChange={setSelectedStatus}
-              placeholder="请选择订单状态"
-              style={{ width: "100%", marginTop: "8px" }}
-            >
-              <Option value="进行中">进行中</Option>
-              <Option value="延期">延期</Option>
-              <Option value="暂停">暂停</Option>
-              <Option value="等硬装">等硬装</Option>
-              <Option value="客户待打款">客户待打款</Option>
-              <Option value="待客户确认">待客户确认</Option>
-              <Option value="其他">其他</Option>
-            </Select>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };
