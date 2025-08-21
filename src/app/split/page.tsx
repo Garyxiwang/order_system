@@ -275,24 +275,7 @@ const DesignPage: React.FC = () => {
       dataIndex: "address",
       key: "address",
     },
-    {
-      title: "订单金额",
-      dataIndex: "orderAmount",
-      key: "orderAmount",
-      render: (text: string) => {
-        if (!text) return "-";
-        return `¥${text}`;
-      },
-    },
-    {
-      title: "设计面积",
-      dataIndex: "designArea",
-      key: "designArea",
-      render: (text: string) => {
-        if (!text) return "-";
-        return `${text}㎡`;
-      },
-    },
+   
     {
       title: "下单日期",
       dataIndex: "createTime",
@@ -439,6 +422,24 @@ const DesignPage: React.FC = () => {
       title: "销售员",
       dataIndex: "salesPerson",
       key: "salesPerson",
+    },
+     {
+      title: "订单金额",
+      dataIndex: "orderAmount",
+      key: "orderAmount",
+      render: (text: string) => {
+        if (!text) return "-";
+        return `¥${text}`;
+      },
+    },
+    {
+      title: "设计面积",
+      dataIndex: "designArea",
+      key: "designArea",
+      render: (text: string) => {
+        if (!text) return "-";
+        return `${text}㎡`;
+      },
     },
     {
       title: "备注",
@@ -644,9 +645,12 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="-1">拆单中</Option>
-                  <Option value="1">已审核</Option>
-                  <Option value="2">已完成</Option>
+                  <Option value="未开始">未开始</Option>
+              <Option value="拆单中">拆单中</Option>
+              <Option value="未审核">未审核</Option>
+              <Option value="已审核">已审核</Option>
+              <Option value="已完成">已完成</Option>
+              <Option value="撤销中">撤销中</Option>
                 </Select>
               </Form.Item>
             </Col>

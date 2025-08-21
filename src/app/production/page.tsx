@@ -199,7 +199,7 @@ const ProductionPage: React.FC = () => {
       render: (text: string) => text || "-",
     },
     {
-      title: "材料状态",
+      title: "采购状态",
       dataIndex: "actualMaterialStatus",
       key: "actualMaterialStatus",
       render: (text: string) => {
@@ -241,8 +241,8 @@ const ProductionPage: React.FC = () => {
       render: (value, record: ProductionOrder) => {
         return (
           <div>
-            <div>18板：{record.board18}个</div>
-            <div>09板：{record.board09}个</div>
+            <div>18板：{record.board18}张</div>
+            <div>09板：{record.board09}张</div>
           </div>
         );
       },

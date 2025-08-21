@@ -56,8 +56,8 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
   const [showCustomContent, setShowCustomContent] = useState(false);
 
   // 预定义的进度类型
-  const progressTypes = ["量尺", "初稿", "已报价", "已打款", "下单", "其他"];
-
+  const progressTypes = ["量尺", "初稿", "报价", "打款", "下单","延期","暂停","等硬装","客户待打款","待客户确认", "其他"];
+ 
   // 模拟获取进度数据
   const fetchProgressData = async () => {
     setLoading(true);

@@ -104,7 +104,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                   height={40}
                   className="mr-3 rounded-lg object-cover"
                 />
-                {!collapsed && <span>订单管理系统</span>}
+                {!collapsed && <span>进度管理系统</span>}
               </div>
             </div>
             <div

@@ -597,7 +597,7 @@ const DesignPage: React.FC = () => {
                 </Button>
               </Col>
             )}
-            <Col span={12}>
+            {/* <Col span={12}>
               <Button
                 type="link"
                 size="small"
@@ -607,7 +607,7 @@ const DesignPage: React.FC = () => {
               >
                 订单状态
               </Button>
-            </Col>
+            </Col> */}
           </Row>
         </div>
       ),
@@ -677,7 +677,6 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="进行中">进行中</Option>
                   <Option value="延期">延期</Option>
                   <Option value="暂停">暂停</Option>
                   <Option value="已完成">已完成</Option>
