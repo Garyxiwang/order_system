@@ -1,6 +1,21 @@
-# 订单系统前端
+# 订单管理系统 (Order Management System)
 
-这是一个基于Next.js、TypeScript和Ant Design构建的订单系统前端应用。
+一个基于前后端分离架构的订单管理系统。
+
+## 项目结构
+
+```
+order_system/
+├── front/          # 前端项目 (Next.js + TypeScript)
+│   ├── src/        # 源代码
+│   ├── public/     # 静态资源
+│   └── package.json
+├── server/         # 后端项目 (FastAPI + Python)
+│   ├── app/        # 应用代码
+│   └── requirements.txt
+├── logs/           # 日志文件
+└── package.json    # 工作区配置
+```
 
 ## 技术栈
 

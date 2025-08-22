@@ -1,34 +1,20 @@
 {
-  "name": "front",
-  "version": "0.1.0",
+  "name": "order-system",
+  "version": "1.0.0",
+  "description": "订单管理系统 - 前后端分离项目",
   "private": true,
+  "workspaces": [
+    "front",
+    "server"
+  ],
   "scripts": {
-    "dev": "node src/scripts/server-logger.mjs && next dev",
-    "dev:log": "node src/scripts/server-logger.mjs && next dev",
-    "dev:no-log": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "start:log": "node src/scripts/server-logger.mjs && next start",
-    "lint": "next lint"
+    "dev:front": "cd front && npm run dev",
+    "build:front": "cd front && npm run build",
+    "start:front": "cd front && npm start",
+    "dev:server": "cd server && python -m uvicorn main:app --reload",
+    "install:all": "npm install && cd front && npm install && cd ../server && pip install -r requirements.txt"
   },
-  "dependencies": {
-    "@ant-design/cssinjs": "^1.24.0",
-    "@ant-design/icons": "^6.0.0",
-    "@ant-design/v5-patch-for-react-19": "^1.0.3",
-    "antd": "^5.26.7",
-    "next": "15.4.5",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.4.5",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+  "keywords": ["order-management", "nextjs", "fastapi", "typescript", "python"],
+  "author": "Your Name",
+  "license": "MIT"
 }

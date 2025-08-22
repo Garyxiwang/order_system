@@ -1,6 +1,32 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Frontend (Next.js)
+front/node_modules/
+front/.next/
+front/out/
+front/build/
+front/*.tsbuildinfo
+front/next-env.d.ts
+
+# Backend (Python)
+server/__pycache__/
+server/*.pyc
+server/*.pyo
+server/*.pyd
+server/.Python
+server/env/
+server/venv/
+server/.venv/
+server/pip-log.txt
+server/pip-delete-this-directory.txt
+server/.pytest_cache/
+server/htmlcov/
+server/.coverage
+server/.mypy_cache/
+server/instance/
+server/.webassets-cache
+
+# Root dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,33 +36,36 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# Testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# Misc
 .DS_Store
 *.pem
+*.log
 
-# debug
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# Environment files
 .env*
+!.env.example
 
-# vercel
+# Vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/*.log
+
+# History
 .history
