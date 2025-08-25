@@ -5,8 +5,8 @@ import uvicorn
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.core.database import engine
-from app.models import Base
+from app.core.database import engine, create_tables
+from app.models import Base, User, UserRole
 from app.api.v1.api import api_router
 
 
@@ -17,7 +17,12 @@ async def lifespan(app: FastAPI):
     print("🚀 启动订单管理系统后端服务...")
     
     # 创建数据库表
-    # Base.metadata.create_all(bind=engine)
+    try:
+        create_tables()
+        print("✅ 数据库表创建成功")
+    except Exception as e:
+        print(f"❌ 数据库表创建失败: {e}")
+        raise
     
     yield
     

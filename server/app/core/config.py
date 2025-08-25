@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./order_system.db"
     # 生产环境可以使用PostgreSQL
     # DATABASE_URL: str = "postgresql://user:password@localhost/order_system"
+    DATABASE_HOST: str = "localhost"
+    DATABASE_PORT: int = 3306
+    DATABASE_NAME: str = "order_system"
+    DATABASE_USER: str = "root"
+    DATABASE_PASSWORD: str = ""
     
     # CORS配置
     BACKEND_CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080"

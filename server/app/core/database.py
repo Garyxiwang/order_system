@@ -2,8 +2,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
+import logging
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # 创建数据库引擎
 engine = create_engine(
@@ -12,6 +15,9 @@ engine = create_engine(
     connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
     # 连接池配置（PostgreSQL等）
     pool_pre_ping=True,
+    pool_recycle=300,  # 连接回收时间
+    pool_size=10,      # 连接池大小
+    max_overflow=20,   # 最大溢出连接数
     echo=settings.DEBUG  # 开发环境下打印SQL语句
 )
 
@@ -31,15 +37,29 @@ def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
+    except Exception as e:
+        logger.error(f"Database session error: {e}")
+        db.rollback()
+        raise
     finally:
         db.close()
 
 
 def create_tables():
     """创建所有数据库表"""
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
+        raise
 
 
 def drop_tables():
     """删除所有数据库表（谨慎使用）"""
-    Base.metadata.drop_all(bind=engine)
+    try:
+        Base.metadata.drop_all(bind=engine)
+        logger.info("Database tables dropped successfully")
+    except Exception as e:
+        logger.error(f"Error dropping tables: {e}")
+        raise
