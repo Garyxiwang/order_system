@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import health, users, orders, designs, production, auth, categories
+from app.api.v1.endpoints import health, users, orders, production, auth, categories
+from app.api.v1 import progress
 
 # 创建API路由器
 api_router = APIRouter()
@@ -30,11 +31,7 @@ api_router.include_router(
     tags=["订单管理"]
 )
 
-api_router.include_router(
-    designs.router, 
-    prefix="/designs", 
-    tags=["设计管理"]
-)
+# 设计管理模块已移除
 
 api_router.include_router(
     production.router, 
@@ -46,4 +43,10 @@ api_router.include_router(
     categories.router, 
     prefix="/categories", 
     tags=["类目管理"]
+)
+
+api_router.include_router(
+    progress.router, 
+    prefix="/progress", 
+    tags=["进度管理"]
 )

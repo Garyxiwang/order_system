@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Enum
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 import enum
@@ -19,6 +20,8 @@ class Category(Base):
     category_type = Column(Enum(CategoryType), nullable=False, comment="类目分类")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="创建时间")
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="更新时间")
+    
+    # 注释：订单不再关联类目表，直接存储类目名称
     
     def __repr__(self):
         return f"<Category(id={self.id}, name='{self.name}', type='{self.category_type.value}')>"
