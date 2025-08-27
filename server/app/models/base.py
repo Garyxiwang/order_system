@@ -20,16 +20,7 @@ class BaseModel(Base):
         onupdate=func.now(), 
         comment="更新时间"
     )
-    is_active = Column(
-        Boolean, 
-        default=True, 
-        comment="是否激活"
-    )
-    is_deleted = Column(
-        Boolean, 
-        default=False, 
-        comment="是否删除（软删除）"
-    )
+
     
     def __repr__(self):
         return f"<{self.__class__.__name__}(id={self.id})>"

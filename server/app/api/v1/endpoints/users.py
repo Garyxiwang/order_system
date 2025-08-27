@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 import logging
 
 from app.core.database import get_db
 from app.models.user import User
+from app.schemas.user import (
+    UserCreate, UserResponse, UserListResponse, 
+    DeleteUserResponse
+)
+from app.utils.auth import hash_password
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -12,68 +17,133 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/")
-async def get_users(
-    skip: int = Query(0, ge=0, description="跳过的记录数"),
-    limit: int = Query(100, ge=1, le=1000, description="返回的记录数"),
+@router.post("/", response_model=dict)
+async def create_user(
+    user_create: UserCreate,
     db: Session = Depends(get_db)
 ):
-    """获取用户列表"""
+    """
+    新增用户接口
+    
+    - **username**: 用户名
+    - **password**: 密码
+    - **role**: 用户角色
+    """
     try:
-        # 查询用户总数
-        total = db.query(User).filter(User.is_deleted == False).count()
+        # 检查用户名是否已存在
+        existing_user = db.query(User).filter(
+            User.username == user_create.username
+        ).first()
+        
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户名已存在"
+            )
+        
+        # 创建新用户
+        hashed_password = hash_password(user_create.password)
+        new_user = User(
+            username=user_create.username,
+            password=hashed_password,
+            role=user_create.role
+        )
+        
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        
+        user_response = UserResponse.model_validate(new_user)
+        
+        return {
+            "code": 200,
+            "message": "用户创建成功",
+            "data": {
+                "user": user_response.model_dump()
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"创建用户失败: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="创建用户失败")
 
-        # 分页查询用户列表
-        users = db.query(User).filter(
-            User.is_deleted == False
-        ).offset(skip).limit(limit).all()
 
-        # 转换为字典格式，排除敏感信息
-        users_data = []
-        for user in users:
-            user_dict = user.to_dict()
-            # 移除密码字段
-            user_dict.pop('password', None)
-            users_data.append(user_dict)
-        print("查询用户：" + str(users_data))
+@router.delete("/{username}", response_model=dict)
+async def delete_user(
+    username: str,
+    db: Session = Depends(get_db)
+):
+    """
+    删除用户接口 - RESTful风格
+    
+    - **username**: 要删除的用户名
+    """
+    try:
+        # 查找用户
+        user = db.query(User).filter(
+            User.username == username
+        ).first()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        
+        # 真删除用户
+        db.delete(user)
+        db.commit()
+        
+        return {
+            "code": 200,
+            "message": "用户删除成功",
+            "data": {
+                "username": username
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"删除用户失败: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="删除用户失败")
+
+
+@router.get("/", response_model=dict)
+async def get_users(
+    db: Session = Depends(get_db)
+):
+    """
+    查询所有用户列表
+    
+    返回用户名和角色信息
+    """
+    try:
+        # 查询所有用户
+        users = db.query(User).all()
+        
+        # 只返回用户名和角色
+        user_list = [
+            {
+                "username": user.username,
+                "role": user.role.value
+            }
+            for user in users
+        ]
+        
         return {
             "code": 200,
             "message": "获取用户列表成功",
             "data": {
-                "users": users_data,
-                "total": total,
-                "skip": skip,
-                "limit": limit,
-                "has_more": skip + limit < total
+                "users": user_list,
+                "total": len(user_list)
             }
         }
+        
     except Exception as e:
         logger.error(f"获取用户列表失败: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="获取用户列表失败"
-        )
-
-
-@router.post("/")
-async def create_user(db: Session = Depends(get_db)):
-    """创建用户"""
-    return {"message": "创建用户接口 - 待实现"}
-
-
-@router.get("/{user_id}")
-async def get_user(user_id: int, db: Session = Depends(get_db)):
-    """获取用户详情"""
-    return {"message": f"获取用户 {user_id} 详情 - 待实现"}
-
-
-@router.put("/{user_id}")
-async def update_user(user_id: int, db: Session = Depends(get_db)):
-    """更新用户信息"""
-    return {"message": f"更新用户 {user_id} 信息 - 待实现"}
-
-
-@router.delete("/{user_id}")
-async def delete_user(user_id: int, db: Session = Depends(get_db)):
-    """删除用户"""
-    return {"message": f"删除用户 {user_id} - 待实现"}
+        raise HTTPException(status_code=500, detail="获取用户列表失败")
