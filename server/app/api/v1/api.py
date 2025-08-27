@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import health, users, orders, designs, production, auth
+from app.api.v1.endpoints import health, users, orders, designs, production, auth, categories
 
 # 创建API路由器
 api_router = APIRouter()
@@ -40,4 +40,10 @@ api_router.include_router(
     production.router, 
     prefix="/production", 
     tags=["生产管理"]
+)
+
+api_router.include_router(
+    categories.router, 
+    prefix="/categories", 
+    tags=["类目管理"]
 )
