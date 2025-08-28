@@ -7,6 +7,7 @@ from datetime import datetime, date
 from app.core.database import get_db
 from app.models.order import Order, OrderStatus, OrderType, DesignCycle
 from app.models.progress import Progress
+from app.models.split import Split, QuoteStatus
 # from app.models.category import Category  # 不再需要
 from app.schemas.order import (
     OrderCreate,
@@ -226,8 +227,51 @@ async def update_order_status(
         if not order:
             return error_response(message="订单不存在")
         
+        # 记录原状态
+        old_status = order.order_status
+        
         # 更新状态
         order.order_status = status_data.order_status
+        
+        # 如果订单状态变更为下单，自动创建拆单记录
+        if (old_status != OrderStatus.CONFIRMED and 
+            status_data.order_status == OrderStatus.CONFIRMED):
+            
+            # 检查是否已存在拆单记录
+            existing_split = db.query(Split).filter(
+                Split.order_number == order.order_number
+            ).first()
+            
+            if not existing_split:
+                # 创建拆单记录
+                split = Split(
+                    order_number=order.order_number,
+                    customer_name=order.customer_name,
+                    address=order.address,
+                    order_date=order.order_date,
+                    designer=order.designer,
+                    salesperson=order.salesperson,
+                    order_amount=order.order_amount,
+                    design_area=getattr(order, 'design_area', None),
+                    order_status=status_data.order_status.value,
+                    order_type=order.order_type.value if order.order_type else None,
+                    quote_status=QuoteStatus.PENDING,
+                    remarks=getattr(order, 'remarks', None),
+                    # 根据订单类目创建生产项
+                    internal_production_items=[
+                        {
+                            "category_name": order.category_name,
+                            "planned_date": None,
+                            "actual_date": None,
+                            "status": "待开始",
+                            "remarks": ""
+                        }
+                    ] if order.category_name else [],
+                    external_purchase_items=[],
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                db.add(split)
         
         db.commit()
         db.refresh(order)

@@ -64,8 +64,9 @@ class Order(Base):
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")
     
-    # 关联进度
+    # 关联关系
     progresses = relationship("Progress", back_populates="order", cascade="all, delete-orphan")
+    splits = relationship("Split", back_populates="order", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Order(id={self.id}, order_number='{self.order_number}', customer='{self.customer_name}', status='{self.order_status.value}')>"

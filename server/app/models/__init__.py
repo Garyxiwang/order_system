@@ -5,6 +5,7 @@ from .user import User, UserRole
 from .category import Category, CategoryType
 from .order import Order, OrderStatus, OrderType, DesignCycle
 from .progress import Progress
+from .split import Split, QuoteStatus
 # from .design import Design
 # from .production import Production
 
