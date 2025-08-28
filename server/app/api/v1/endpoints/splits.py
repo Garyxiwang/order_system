@@ -3,11 +3,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import List
 import math
+import json
 from datetime import datetime
 
 from app.core.database import get_db
 from app.models.split import Split, QuoteStatus
 from app.models.order import Order, OrderStatus
+from app.models.production import Production, PurchaseStatus
 from app.schemas.split import (
     SplitListQuery,
     SplitListResponse,
@@ -307,6 +309,31 @@ async def place_split_order(
         order = db.query(Order).filter(Order.order_number == split.order_number).first()
         if order:
             order.order_status = OrderStatus.CONFIRMED
+            
+        # 检查是否已存在生产记录，如果不存在则创建
+        existing_production = db.query(Production).filter(
+            Production.order_number == split.order_number
+        ).first()
+        
+        if not existing_production and order:
+            # 创建生产记录
+            production = Production(
+                order_number=split.order_number,
+                customer_name=split.customer_name,
+                address=getattr(order, 'address', ''),
+                is_installation=getattr(order, 'is_installation', False),
+                customer_payment_date=getattr(order, 'customer_payment_date', None),
+                split_order_date=datetime.utcnow().date(),
+                expected_delivery_date=getattr(order, 'expected_delivery_date', None),
+                purchase_status=PurchaseStatus.PENDING,
+                board_18_quantity=0,
+                board_09_quantity=0,
+                internal_production_items=json.dumps(split.internal_production_items or []),
+                external_purchase_items=json.dumps(split.external_purchase_items or []),
+                remarks=getattr(split, 'remarks', ''),
+                order_status=OrderStatus.CONFIRMED.value
+            )
+            db.add(production)
             
         split.updated_at = datetime.utcnow()
         db.commit()

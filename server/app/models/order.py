@@ -67,6 +67,7 @@ class Order(Base):
     # 关联关系
     progresses = relationship("Progress", back_populates="order", cascade="all, delete-orphan")
     splits = relationship("Split", back_populates="order", cascade="all, delete-orphan")
+    productions = relationship("Production", back_populates="order", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Order(id={self.id}, order_number='{self.order_number}', customer='{self.customer_name}', status='{self.order_status.value}')>"

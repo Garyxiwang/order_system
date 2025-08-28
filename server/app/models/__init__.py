@@ -7,7 +7,7 @@ from .order import Order, OrderStatus, OrderType, DesignCycle
 from .progress import Progress
 from .split import Split, QuoteStatus
 # from .design import Design
-# from .production import Production
+from .production import Production, PurchaseStatus
 
 # 导出Base供其他模块使用
 __all__ = ["Base"]

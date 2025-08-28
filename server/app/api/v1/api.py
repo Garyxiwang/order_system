@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import health, users, orders, production, auth, categories, splits
+from app.api.v1.endpoints import health, users, orders, productions, auth, categories, splits
 from app.api.v1 import progress
 
 # 创建API路由器
@@ -34,8 +34,8 @@ api_router.include_router(
 # 设计管理模块已移除
 
 api_router.include_router(
-    production.router, 
-    prefix="/production", 
+    productions.router, 
+    prefix="/productions", 
     tags=["生产管理"]
 )
 
