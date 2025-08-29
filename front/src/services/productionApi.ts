@@ -24,6 +24,16 @@ export interface ProductionOrder {
   expectedShipmentDate?: string; // 预计出货日期
   actualShipmentDate?: string; // 实际出货日期
   shipmentStatus?: string; // 出货状态
+  
+  // 成品入库进度字段
+  doorWarehouseTime?: string; // 木门入库时间
+  doorHardwareCount?: string; // 木门五金个数
+  cabinetWarehouseTime?: string; // 柜体入库时间
+  cabinetHardwareCount?: string; // 柜体五金个数
+  stoneWarehouseTime?: string; // 石材入库时间
+  stoneCount?: string; // 石材件数
+  boardWarehouseTime?: string; // 板材入库时间
+  boardCount?: string; // 板材件数
 }
 
 // API响应接口

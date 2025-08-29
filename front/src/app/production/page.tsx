@@ -38,7 +38,9 @@ const ProductionPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(
     null
   );
-  const [modalType, setModalType] = useState<'progress' | 'purchase'>('progress');
+  const [modalType, setModalType] = useState<"progress" | "purchase">(
+    "progress"
+  );
   const [searchForm] = Form.useForm();
 
   // 加载生产订单数据
@@ -62,7 +64,7 @@ const ProductionPage: React.FC = () => {
   // 组件挂载时加载数据
   useEffect(() => {
     searchForm.setFieldsValue({
-      splitStatus: ["未齐料", "已齐料","已下料","已入库"], // -1: 拆单中, 1: 已审核
+      splitStatus: ["未齐料", "已齐料", "已下料", "已入库"], // -1: 拆单中, 1: 已审核
     });
     loadProductionData();
   }, []);
@@ -93,14 +95,14 @@ const ProductionPage: React.FC = () => {
   // 显示生产进度模态框
   const showProgressModal = (record: ProductionOrder) => {
     setSelectedOrder(record);
-    setModalType('progress');
+    setModalType("progress");
     setIsProgressModalVisible(true);
   };
 
   // 显示采购状态模态框
   const showPurchaseModal = (record: ProductionOrder) => {
     setSelectedOrder(record);
-    setModalType('purchase');
+    setModalType("purchase");
     setIsProgressModalVisible(true);
   };
 
@@ -118,7 +120,9 @@ const ProductionPage: React.FC = () => {
     setSelectedOrder(null);
     // 重新加载数据
     loadProductionData();
-    message.success(modalType === 'progress' ? "生产进度更新成功" : "采购状态更新成功");
+    message.success(
+      modalType === "progress" ? "生产进度更新成功" : "采购状态更新成功"
+    );
   };
 
   // 处理搜索
@@ -260,14 +264,24 @@ const ProductionPage: React.FC = () => {
       },
     },
     {
-      title: "生产进度",
-      dataIndex: "productionProgress",
-      key: "productionProgress",
+      title: "下料日期",
+      dataIndex: "cuttingDate",
+      key: "cuttingDate",
+      render: (text: string) => text || "-",
+    },
+    {
+      title: "成品入库日期",
+      dataIndex: "warehouseDate",
+      key: "warehouseDate",
+      render: (text: string) =>  "-",
+    },
+    {
+      title: "出货进度",
+      dataIndex: "shipmentProgress",
+      key: "shipmentProgress",
       render: (text, record: ProductionOrder) => {
         return (
           <div>
-            <div>下料日期：{record.cuttingDate || "-"}</div>
-            <div>成品入库日期：{record.warehouseDate || "-"}</div>
             <div>预计出货日期：{record.expectedShipmentDate || "-"}</div>
             <div>实际出货日期：{record.actualShipmentDate || "-"}</div>
           </div>
@@ -323,55 +337,55 @@ const ProductionPage: React.FC = () => {
         );
       },
     },
-    {
-      title: "外购项",
-      dataIndex: "external",
-      key: "external",
-      render: (text: string) => {
-        if (!text) return null;
+    // {
+    //   title: "外购项",
+    //   dataIndex: "external",
+    //   key: "external",
+    //   render: (text: string) => {
+    //     if (!text) return null;
 
-        const items = text.split(",");
-        return (
-          <div>
-            {items.map((item, index) => {
-              const parts = item.split(":");
-              const name = parts[0];
-              const time = parts[1];
-              const days = parts[2];
+    //     const items = text.split(",");
+    //     return (
+    //       <div>
+    //         {items.map((item, index) => {
+    //           const parts = item.split(":");
+    //           const name = parts[0];
+    //           const time = parts[1];
+    //           const days = parts[2];
 
-              if (parts.length === 3 && name && time && days) {
-                const dayCount = parseInt(days);
-                const dayColor = dayCount >= 3 ? "red" : "";
-                return (
-                  <div key={index}>
-                    <CheckOutlined
-                      style={{ color: "green", marginRight: "4px" }}
-                    />
-                    {name}:{time}{" "}
-                    <span style={{ color: dayColor }}>{days}天</span>
-                  </div>
-                );
-              } else if (parts.length >= 2 && name && time) {
-                return (
-                  <div key={index}>
-                    <CheckOutlined
-                      style={{ color: "green", marginRight: "4px" }}
-                    />
-                    {name}:{time}
-                  </div>
-                );
-              } else {
-                return (
-                  <div key={index} style={{ marginLeft: "20px" }}>
-                    {name}: -
-                  </div>
-                );
-              }
-            })}
-          </div>
-        );
-      },
-    },
+    //           if (parts.length === 3 && name && time && days) {
+    //             const dayCount = parseInt(days);
+    //             const dayColor = dayCount >= 3 ? "red" : "";
+    //             return (
+    //               <div key={index}>
+    //                 <CheckOutlined
+    //                   style={{ color: "green", marginRight: "4px" }}
+    //                 />
+    //                 {name}:{time}{" "}
+    //                 <span style={{ color: dayColor }}>{days}天</span>
+    //               </div>
+    //             );
+    //           } else if (parts.length >= 2 && name && time) {
+    //             return (
+    //               <div key={index}>
+    //                 <CheckOutlined
+    //                   style={{ color: "green", marginRight: "4px" }}
+    //                 />
+    //                 {name}:{time}
+    //               </div>
+    //             );
+    //           } else {
+    //             return (
+    //               <div key={index} style={{ marginLeft: "20px" }}>
+    //                 {name}: -
+    //               </div>
+    //             );
+    //           }
+    //         })}
+    //       </div>
+    //     );
+    //   },
+    // },
 
     {
       title: "备注",
@@ -405,16 +419,16 @@ const ProductionPage: React.FC = () => {
           <Button
             type="link"
             size="small"
-            onClick={() => showProgressModal(record)}
+            onClick={() => showPurchaseModal(record)}
           >
-            生产进度
+            采购状态
           </Button>
           <Button
             type="link"
             size="small"
-            onClick={() => showPurchaseModal(record)}
+            onClick={() => showProgressModal(record)}
           >
-            采购状态
+            生产进度
           </Button>
         </>
       ),

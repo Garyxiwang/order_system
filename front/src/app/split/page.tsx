@@ -57,14 +57,6 @@ const DesignPage: React.FC = () => {
   );
   const [dateError, setDateError] = useState<string>("");
 
-  // 设计面积相关状态
-  const [cabinetArea, setCabinetArea] = useState<string>("");
-  const [wallPanelArea, setWallPanelArea] = useState<string>("");
-  const [areaErrors, setAreaErrors] = useState<{
-    cabinet: string;
-    wallPanel: string;
-  }>({ cabinet: "", wallPanel: "" });
-
   // 加载拆单数据
   const loadSplitData = async () => {
     setLoading(true);
@@ -87,7 +79,7 @@ const DesignPage: React.FC = () => {
   useEffect(() => {
     // 设置订单状态默认选择"拆单中"和"已审核"
     searchForm.setFieldsValue({
-      splitStatus: ["未开始", "拆单中","未审核","已审核","撤销中"], // -1: 拆单中, 1: 已审核
+      splitStatus: ["未开始", "拆单中", "未审核", "已审核", "撤销中"], // -1: 拆单中, 1: 已审核
     });
     loadSplitData();
   }, []);
@@ -161,9 +153,6 @@ const DesignPage: React.FC = () => {
     setIsOrderStatusModalVisible(false);
     setOrderStatusEditingRecord(null);
     setSelectedOrderStatus("");
-    setCabinetArea("");
-    setWallPanelArea("");
-    setAreaErrors({ cabinet: "", wallPanel: "" });
   };
 
   // 处理订单状态修改
@@ -172,37 +161,6 @@ const DesignPage: React.FC = () => {
       message.warning("请选择订单状态");
       return;
     }
-
-    // 如果选择了"已完成"，验证设计面积
-    if (selectedOrderStatus === "已完成") {
-      const errors = { cabinet: "", wallPanel: "" };
-      let hasError = false;
-
-      if (!cabinetArea.trim()) {
-        errors.cabinet = "请输入柜体面积";
-        hasError = true;
-      } else if (isNaN(Number(cabinetArea)) || Number(cabinetArea) <= 0) {
-        errors.cabinet = "请输入有效的柜体面积";
-        hasError = true;
-      }
-
-      if (!wallPanelArea.trim()) {
-        errors.wallPanel = "请输入墙板面积";
-        hasError = true;
-      } else if (isNaN(Number(wallPanelArea)) || Number(wallPanelArea) <= 0) {
-        errors.wallPanel = "请输入有效的墙板面积";
-        hasError = true;
-      }
-
-      if (hasError) {
-        setAreaErrors(errors);
-        return;
-      }
-    }
-
-    // 清除面积错误提示
-    setAreaErrors({ cabinet: "", wallPanel: "" });
-
     try {
       setLoading(true);
       // 这里可以调用实际的API
@@ -219,12 +177,7 @@ const DesignPage: React.FC = () => {
       //   updateData
       // );
 
-      // 模拟成功响应
-      const areaInfo =
-        selectedOrderStatus === "已完成"
-          ? `，柜体面积：${cabinetArea}㎡，墙板面积：${wallPanelArea}㎡`
-          : "";
-      message.success(`订单状态修改成功${areaInfo}`);
+      message.success(`订单状态修改成功`);
       await loadSplitData(); // 重新加载数据
       handleOrderStatusModalCancel();
     } catch (error) {
@@ -863,62 +816,6 @@ const DesignPage: React.FC = () => {
               <Option value="已完成">已完成</Option>
             </Select>
           </div>
-          {selectedOrderStatus === "已完成" && (
-            <div>
-              <div style={{ marginBottom: "16px" }}>
-                <strong>柜体面积：</strong>
-                <Input
-                  value={cabinetArea}
-                  onChange={(e) => {
-                    setCabinetArea(e.target.value);
-                    if (e.target.value.trim()) {
-                      setAreaErrors((prev) => ({ ...prev, cabinet: "" }));
-                    }
-                  }}
-                  placeholder="请输入柜体面积"
-                  style={{ width: "100%", marginTop: "8px" }}
-                  addonAfter="㎡"
-                />
-                {areaErrors.cabinet && (
-                  <div
-                    style={{
-                      color: "#ff4d4f",
-                      fontSize: "12px",
-                      marginTop: "4px",
-                    }}
-                  >
-                    {areaErrors.cabinet}
-                  </div>
-                )}
-              </div>
-              <div>
-                <strong>墙板面积：</strong>
-                <Input
-                  value={wallPanelArea}
-                  onChange={(e) => {
-                    setWallPanelArea(e.target.value);
-                    if (e.target.value.trim()) {
-                      setAreaErrors((prev) => ({ ...prev, wallPanel: "" }));
-                    }
-                  }}
-                  placeholder="请输入墙板面积"
-                  style={{ width: "100%", marginTop: "8px" }}
-                  addonAfter="㎡"
-                />
-                {areaErrors.wallPanel && (
-                  <div
-                    style={{
-                      color: "#ff4d4f",
-                      fontSize: "12px",
-                      marginTop: "4px",
-                    }}
-                  >
-                    {areaErrors.wallPanel}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </Modal>
 
