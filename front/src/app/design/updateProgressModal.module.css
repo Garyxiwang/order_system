@@ -1,0 +1,22 @@
+/* 更新进度模态框样式 */
+
+/* 全宽样式 */
+.fullWidth {
+  width: 100%;
+}
+
+/* 右对齐容器 */
+.rightAlign {
+  text-align: right;
+}
+
+/* 按钮容器样式 */
+.buttonContainer {
+  display: flex;
+  gap: 4px;
+}
+
+/* 底部间距样式 */
+.bottomMargin {
+  margin-bottom: 24px;
+}

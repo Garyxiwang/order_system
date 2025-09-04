@@ -15,6 +15,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import type { ProductionOrder } from "../../services/productionApi";
+import styles from "./progressModal.module.css";
 
 interface ProgressModalProps {
   visible: boolean;
@@ -244,52 +245,17 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
         {modalType === "purchase" && (
           <Card title="采购状态">
             {/* 厂内生产项 */}
-            <div style={{ marginBottom: 24 }}>
-              <h3
-                style={{ fontSize: "16px", fontWeight: 500, marginBottom: 16 }}
-              >
-                厂内生产项
-              </h3>
+            <div className={styles.sectionContainer}>
+              <h3 className={styles.sectionTitle}>厂内生产项</h3>
 
               <Row gutter={16}>
                 {/* 木门 */}
                 <Col span={12}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      padding: 16,
-                      border: "1px solid #e8e8e8",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        marginBottom: 12,
-                      }}
-                    >
-                      木门
-                    </h4>
-                    <div
-                      style={{
-                        marginBottom: 12,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: "14px",
-                          color: "#262626",
-                          marginRight: 8,
-                          minWidth: "100px",
-                          marginLeft: "35px",
-                        }}
-                      >
-                        下单日期:
-                      </label>
-                      <span style={{ fontSize: "14px", color: "#595959" }}>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>木门材料</h4>
+                    <div className={styles.dateInfoRow}>
+                      <label className={styles.dateLabel}>下单日期:</label>
+                      <span className={styles.dateValue}>
                         {form.getFieldValue("doorOrderDate")
                           ? dayjs(form.getFieldValue("doorOrderDate")).format(
                               "YYYY-MM-DD"
@@ -300,21 +266,21 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
                     <Form.Item
                       label="预计齐料日期"
                       name="doorExpectedMaterialDate"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择预计齐料日期"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                     <Form.Item
                       label="实际入库日期"
                       name="doorActualWarehouseDate"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择实际入库日期"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                   </div>
@@ -322,42 +288,11 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
 
                 {/* 柜体 */}
                 <Col span={12}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      padding: 16,
-                      border: "1px solid #e8e8e8",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        marginBottom: 12,
-                      }}
-                    >
-                      柜体
-                    </h4>
-                    <div
-                      style={{
-                        marginBottom: 12,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: "14px",
-                          color: "#262626",
-                          marginRight: 8,
-                          minWidth: "100px",
-                          marginLeft: "35px",
-                        }}
-                      >
-                        下单日期:
-                      </label>
-                      <span style={{ fontSize: "14px", color: "#595959" }}>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>柜体材料</h4>
+                    <div className={styles.dateInfoRow}>
+                      <label className={styles.dateLabel}>下单日期:</label>
+                      <span className={styles.dateValue}>
                         {form.getFieldValue("cabinetOrderDate")
                           ? dayjs(
                               form.getFieldValue("cabinetOrderDate")
@@ -368,21 +303,21 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
                     <Form.Item
                       label="预计齐料日期"
                       name="cabinetExpectedMaterialDate"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择预计齐料日期"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                     <Form.Item
                       label="实际入库日期"
                       name="cabinetActualWarehouseDate"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择实际入库日期"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                   </div>
@@ -391,52 +326,17 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
             </div>
 
             {/* 外购项 */}
-            <div style={{ marginBottom: 24 }}>
-              <h3
-                style={{ fontSize: "16px", fontWeight: 500, marginBottom: 16 }}
-              >
-                外购项
-              </h3>
+            <div className={styles.sectionContainer}>
+              <h3 className={styles.sectionTitle}>外购项</h3>
 
               <Row gutter={16}>
                 {/* 石材 */}
                 <Col span={12}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      padding: 16,
-                      border: "1px solid #e8e8e8",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        marginBottom: 12,
-                      }}
-                    >
-                      石材
-                    </h4>
-                    <div
-                      style={{
-                        marginBottom: 12,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: "14px",
-                          color: "#262626",
-                          marginRight: 8,
-                          minWidth: "100px",
-                          marginLeft: "35px",
-                        }}
-                      >
-                        下单日期:
-                      </label>
-                      <span style={{ fontSize: "14px", color: "#595959" }}>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>石材</h4>
+                    <div className={styles.dateInfoRow}>
+                      <label className={styles.dateLabel}>下单日期:</label>
+                      <span className={styles.dateValue}>
                         {form.getFieldValue("stoneOrderDate")
                           ? dayjs(form.getFieldValue("stoneOrderDate")).format(
                               "YYYY-MM-DD"
@@ -447,21 +347,21 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
                     <Form.Item
                       label="预计到厂日期"
                       name="stoneExpectedArrivalDate"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择预计到厂日期"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                     <Form.Item
                       label="实际到厂日期"
                       name="stoneActualArrivalDate"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择实际到厂日期"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                   </div>
@@ -469,42 +369,11 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
 
                 {/* 板材 */}
                 <Col span={12}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      padding: 16,
-                      border: "1px solid #e8e8e8",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        marginBottom: 12,
-                      }}
-                    >
-                      板材
-                    </h4>
-                    <div
-                      style={{
-                        marginBottom: 12,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: "14px",
-                          color: "#262626",
-                          marginRight: 8,
-                          minWidth: "100px",
-                          marginLeft: "35px",
-                        }}
-                      >
-                        下单日期:
-                      </label>
-                      <span style={{ fontSize: "14px", color: "#595959" }}>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>板材</h4>
+                    <div className={styles.dateInfoRow}>
+                      <label className={styles.dateLabel}>下单日期:</label>
+                      <span className={styles.dateValue}>
                         {form.getFieldValue("boardOrderDate")
                           ? dayjs(form.getFieldValue("boardOrderDate")).format(
                               "YYYY-MM-DD"
@@ -515,21 +384,21 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
                     <Form.Item
                       label="预计到厂日期"
                       name="boardExpectedArrivalDate"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择预计到厂日期"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                     <Form.Item
                       label="实际到厂日期"
                       name="boardActualArrivalDate"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择实际到厂日期"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                   </div>
@@ -540,29 +409,21 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
         )}
 
         {modalType === "progress" && (
-          <Card title="车间进度" style={{ marginBottom: 24 }}>
+          <Card title="车间进度" className={styles.card}>
             <Row gutter={16}>
-              <Col span={8}>
+              <Col span={10}>
                 <Form.Item label="下料日期" name="cuttingDate">
                   <DatePicker
                     placeholder="请选择日期"
-                    style={{ width: "100%" }}
+                    className={styles.fullWidth}
                   />
                 </Form.Item>
               </Col>
-              <Col span={8}>
+              <Col span={10}>
                 <Form.Item label="预计出货日期" name="expectedShipmentDate">
                   <DatePicker
                     placeholder="请选择日期"
-                    style={{ width: "100%" }}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item label="成品入库日期" name="warehouseDate">
-                  <DatePicker
-                    placeholder="请选择日期"
-                    style={{ width: "100%" }}
+                    className={styles.fullWidth}
                   />
                 </Form.Item>
               </Col>
@@ -572,51 +433,32 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
         {modalType === "progress" && (
           <Card title="成品入库进度">
             {/* 厂内生产项 */}
-            <div style={{ marginBottom: 24 }}>
-              <h3
-                style={{ fontSize: "16px", fontWeight: 500, marginBottom: 16 }}
-              >
-                厂内生产项
-              </h3>
+            <div className={styles.sectionContainer}>
+              <h3 className={styles.sectionTitle}>厂内生产项</h3>
 
               <Row gutter={16}>
                 {/* 木门 */}
                 <Col span={12}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      padding: 16,
-                      border: "1px solid #e8e8e8",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        marginBottom: 12,
-                      }}
-                    >
-                      木门
-                    </h4>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>木门</h4>
                     <Form.Item
                       label="入库时间"
                       name="doorWarehouseTime"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择入库时间"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                     <Form.Item
-                      label="五金个数"
+                      label="件数"
                       name="doorHardwareCount"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <Input
-                        placeholder="请输入五金个数"
-                        style={{ width: "100%" }}
+                        placeholder="请输入件数"
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                   </div>
@@ -624,105 +466,83 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
 
                 {/* 柜体 */}
                 <Col span={12}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      padding: 16,
-                      border: "1px solid #e8e8e8",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        marginBottom: 12,
-                      }}
-                    >
-                      柜体
-                    </h4>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>柜体</h4>
                     <Form.Item
                       label="入库时间"
                       name="cabinetWarehouseTime"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <DatePicker
                         placeholder="选择入库时间"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                     <Form.Item
-                      label="五金个数"
+                      label="件数"
                       name="cabinetHardwareCount"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <Input
-                        placeholder="请输入五金个数"
-                        style={{ width: "100%" }}
+                        placeholder="请输入件数"
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                   </div>
                 </Col>
+                {/* 五金 */}
+                <Col span={12}>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>五金</h4>
+                    <Form.Item
+                      label="入库时间"
+                      name="doorWarehouseTime"
+                      className={styles.formItem}
+                    >
+                      <DatePicker
+                        placeholder="选择入库时间"
+                        className={styles.fullWidth}
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      label="件数"
+                      name="doorHardwareCount"
+                      className={styles.formItem}
+                    >
+                      <Input
+                        placeholder="请输入件数"
+                        className={styles.fullWidth}
+                      />
+                    </Form.Item>
+                  </div>
+                </Col>
+                
               </Row>
             </div>
 
             {/* 外购项 */}
-            <div style={{ marginBottom: 24 }}>
-              <h3
-                style={{ fontSize: "16px", fontWeight: 500, marginBottom: 16 }}
-              >
-                外购项
-              </h3>
+            <div className={styles.card}>
+              <h3 className={styles.sectionTitle}>外购项</h3>
 
               <Row gutter={16}>
                 {/* 石材 */}
                 <Col span={12}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      padding: 16,
-                      border: "1px solid #e8e8e8",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        marginBottom: 12,
-                      }}
-                    >
-                      石材
-                    </h4>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: 12,
-                      }}
-                    >
-                      <span
-                        style={{
-                          minWidth: "70px",
-                          color: "#666",
-                          fontSize: "14px",
-                          marginLeft: 65,
-                        }}
-                      >
-                        入库时间:
-                      </span>
-                      <span style={{ color: "#333", fontSize: "14px" }}>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>石材</h4>
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoLabel}>入库时间:</span>
+                      <span className={styles.infoValue}>
                         {order?.stoneWarehouseTime || "2025-07-01"}
                       </span>
                     </div>
                     <Form.Item
                       label="件数"
                       name="stoneCount"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <Input
                         placeholder="请输入件数"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                   </div>
@@ -730,52 +550,22 @@ const ProgressModal: React.FC<ProgressModalProps> = ({
 
                 {/* 板材 */}
                 <Col span={12}>
-                  <div
-                    style={{
-                      marginBottom: 16,
-                      padding: 16,
-                      border: "1px solid #e8e8e8",
-                      borderRadius: 6,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        marginBottom: 12,
-                      }}
-                    >
-                      板材
-                    </h4>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        marginBottom: 12,
-                      }}
-                    >
-                      <span
-                        style={{
-                          minWidth: "70px",
-                          color: "#666",
-                          fontSize: "14px",
-                          marginLeft: 65,
-                        }}
-                      >
-                        入库时间:
-                      </span>
-                      <span style={{ color: "#333", fontSize: "14px" }}>
+                  <div className={styles.itemCard}>
+                    <h4 className={styles.itemTitle}>板材</h4>
+                    <div className={styles.infoRow}>
+                      <span className={styles.infoLabel}>入库时间:</span>
+                      <span className={styles.infoValue}>
                         {order?.boardWarehouseTime || "2025-07-01"}
                       </span>
                     </div>
                     <Form.Item
                       label="件数"
                       name="boardCount"
-                      style={{ marginBottom: 12 }}
+                      className={styles.formItem}
                     >
                       <Input
                         placeholder="请输入件数"
-                        style={{ width: "100%" }}
+                        className={styles.fullWidth}
                       />
                     </Form.Item>
                   </div>

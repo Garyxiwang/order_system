@@ -29,12 +29,14 @@ import {
 } from "../../services/productionApi";
 import EditProductionModal from "./editProductionModal";
 import ProgressModal from "./progressModal";
+import PurchaseDetailModal from "./purchaseDetailModal";
 
 const ProductionPage: React.FC = () => {
   const [productionData, setProductionData] = useState<ProductionOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isProgressModalVisible, setIsProgressModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(
     null
   );
@@ -104,6 +106,18 @@ const ProductionPage: React.FC = () => {
     setSelectedOrder(record);
     setModalType("purchase");
     setIsProgressModalVisible(true);
+  };
+
+  // 显示采购状态详情模态框
+  const showDetailModal = (record: ProductionOrder) => {
+    setSelectedOrder(record);
+    setIsDetailModalVisible(true);
+  };
+
+  // 处理详情模态框取消
+  const handleDetailModalCancel = () => {
+    setIsDetailModalVisible(false);
+    setSelectedOrder(null);
   };
 
   // 处理模态框取消
@@ -218,7 +232,7 @@ const ProductionPage: React.FC = () => {
       title: "采购状态",
       dataIndex: "actualMaterialStatus",
       key: "actualMaterialStatus",
-      render: (text: string) => {
+      render: (text: string, record: ProductionOrder) => {
         if (!text) return null;
 
         const items = text.split(",");
@@ -246,6 +260,16 @@ const ProductionPage: React.FC = () => {
                 );
               }
             })}
+            <div style={{ textAlign: "right", marginTop: "4px" }}>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => showDetailModal(record)}
+                style={{ padding: "0 4px", fontSize: "12px" }}
+              >
+                详情
+              </Button>
+            </div>
           </div>
         );
       },
@@ -269,12 +293,7 @@ const ProductionPage: React.FC = () => {
       key: "cuttingDate",
       render: (text: string) => text || "-",
     },
-    {
-      title: "成品入库日期",
-      dataIndex: "warehouseDate",
-      key: "warehouseDate",
-      render: (text: string) =>  "-",
-    },
+
     {
       title: "出货进度",
       dataIndex: "shipmentProgress",
@@ -288,105 +307,6 @@ const ProductionPage: React.FC = () => {
         );
       },
     },
-    {
-      title: "厂内生产项",
-      dataIndex: "doorBody",
-      key: "doorBody",
-      render: (text: string) => {
-        if (!text) return null;
-
-        const items = text.split(",");
-        return (
-          <div>
-            {items.map((item, index) => {
-              const parts = item.split(":");
-              const name = parts[0];
-              const time = parts[1];
-              const days = parts[2];
-
-              if (parts.length === 3 && name && time && days) {
-                const dayCount = parseInt(days);
-                const dayColor = dayCount >= 3 ? "red" : "-";
-                return (
-                  <div key={index}>
-                    <CheckOutlined
-                      style={{ color: "green", marginRight: "4px" }}
-                    />
-                    {name}:{time}
-                    <span style={{ color: dayColor }}>{days}天</span>
-                  </div>
-                );
-              } else if (parts.length >= 2 && name && time) {
-                return (
-                  <div key={index}>
-                    <CheckOutlined
-                      style={{ color: "green", marginRight: "4px" }}
-                    />
-                    {name}:{time}
-                  </div>
-                );
-              } else {
-                return (
-                  <div key={index} style={{ marginLeft: "20px" }}>
-                    {name}: -
-                  </div>
-                );
-              }
-            })}
-          </div>
-        );
-      },
-    },
-    // {
-    //   title: "外购项",
-    //   dataIndex: "external",
-    //   key: "external",
-    //   render: (text: string) => {
-    //     if (!text) return null;
-
-    //     const items = text.split(",");
-    //     return (
-    //       <div>
-    //         {items.map((item, index) => {
-    //           const parts = item.split(":");
-    //           const name = parts[0];
-    //           const time = parts[1];
-    //           const days = parts[2];
-
-    //           if (parts.length === 3 && name && time && days) {
-    //             const dayCount = parseInt(days);
-    //             const dayColor = dayCount >= 3 ? "red" : "";
-    //             return (
-    //               <div key={index}>
-    //                 <CheckOutlined
-    //                   style={{ color: "green", marginRight: "4px" }}
-    //                 />
-    //                 {name}:{time}{" "}
-    //                 <span style={{ color: dayColor }}>{days}天</span>
-    //               </div>
-    //             );
-    //           } else if (parts.length >= 2 && name && time) {
-    //             return (
-    //               <div key={index}>
-    //                 <CheckOutlined
-    //                   style={{ color: "green", marginRight: "4px" }}
-    //                 />
-    //                 {name}:{time}
-    //               </div>
-    //             );
-    //           } else {
-    //             return (
-    //               <div key={index} style={{ marginLeft: "20px" }}>
-    //                 {name}: -
-    //               </div>
-    //             );
-    //           }
-    //         })}
-    //       </div>
-    //     );
-    //   },
-    // },
-
     {
       title: "备注",
       dataIndex: "remarks",
@@ -439,7 +359,13 @@ const ProductionPage: React.FC = () => {
     <div className="space-y-6">
       {/* 搜索Card */}
       <Card variant="outlined" style={{ marginBottom: 20 }}>
-        <Form form={searchForm} layout="inline">
+        <Form
+          form={searchForm}
+          layout="inline"
+          initialValues={{
+            sort: "预计交货日期",
+          }}
+        >
           <Row gutter={24}>
             <Col span={6} className="py-2">
               <Form.Item name="orderNumber" label="订单编号" className="mb-0">
@@ -541,6 +467,19 @@ const ProductionPage: React.FC = () => {
                 />
               </Form.Item>
             </Col>
+            <Col span={6} className="py-2">
+              <Form.Item name="sort" label="排序项" className="mb-0">
+                <Select
+                  placeholder="全部状态"
+                  className="rounded-md"
+                  size="middle"
+                  allowClear
+                >
+                  <Option value="预计交货日期">预计交货日期</Option>
+                  <Option value="预计出货日期">预计出货日期</Option>
+                </Select>
+              </Form.Item>
+            </Col>
           </Row>
         </Form>
         <Row className="mt-4">
@@ -607,6 +546,13 @@ const ProductionPage: React.FC = () => {
         onCancel={handleProgressModalCancel}
         onOk={handleProgressModalOk}
         modalType={modalType}
+      />
+
+      {/* 采购详情模态框 */}
+      <PurchaseDetailModal
+        visible={isDetailModalVisible}
+        order={selectedOrder}
+        onCancel={handleDetailModalCancel}
       />
     </div>
   );

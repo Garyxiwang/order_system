@@ -16,6 +16,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
+import styles from "./updateProgressModal.module.css";
 
 // 确保客户端也设置中文语言
 dayjs.locale("zh-cn");
@@ -216,7 +217,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
               format="YYYY-MM-DD"
               size="small"
               placeholder="选择日期"
-              style={{ width: "100%" }}
+              className={styles.fullWidth}
             />
           );
         }
@@ -236,7 +237,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
               onChange={(e) => setTempNote(e.target.value)}
               size="small"
               placeholder="请输入备注"
-              style={{ width: "100%" }}
+              className={styles.fullWidth}
               rows={2}
             />
           );
@@ -251,7 +252,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       render: (text: string, record: ProgressItem) => {
         if (editingId === record.id) {
           return (
-            <div style={{ display: "flex", gap: "4px" }}>
+            <div className={styles.buttonContainer}>
               <Button
                 type="primary"
                 size="small"
@@ -301,7 +302,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       width={800}
       footer={null}
     >
-      <div style={{ marginBottom: 24 }}>
+      <div className={styles.bottomMargin}>
         <Card title="进度详情" size="small">
           <Table
             columns={columns}
@@ -355,26 +356,26 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
             rules={[{ required: true, message: "请选择计划日期" }]}
           >
             <DatePicker
-              style={{ width: "100%" }}
+              className={styles.fullWidth}
               placeholder="请选择计划日期"
             />
           </Form.Item>
 
           <Form.Item label="实际日期" name="actualDate">
             <DatePicker
-              style={{ width: "100%" }}
+              className={styles.fullWidth}
               placeholder="请选择实际日期"
             />
           </Form.Item>
           <Form.Item label="备注" name="note">
             <Input.TextArea
-              style={{ width: "100%" }}
+              className={styles.fullWidth}
               placeholder="请输入备注"
             />
           </Form.Item>
 
           <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
-            <div style={{ textAlign: "right" }}>
+            <div className={styles.rightAlign}>
               <Space>
                 <Button onClick={handleCancel}>取消</Button>
                 <Button type="primary" htmlType="submit" loading={loading}>

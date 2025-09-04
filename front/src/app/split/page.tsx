@@ -253,6 +253,19 @@ const DesignPage: React.FC = () => {
 
   // 处理下单操作
   const handlePlaceOrder = (record: SplitOrder) => {
+    if (!record.designArea || !record.orderAmount) {
+      // message.warning("请输入设计面积和订单金额");
+      Modal.error({
+        title: "订单错误",
+        content: (
+          <div>
+            <p>当前订单缺少设计面积和订单金额</p>
+            <p>请先补后，再下单！</p>
+          </div>
+        ),
+      });
+      return;
+    }
     // 检查打款状态
     if (record.priceState !== "已打款") {
       message.warning("只有已打款的订单才能下单");

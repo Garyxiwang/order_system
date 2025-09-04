@@ -1,0 +1,49 @@
+/* 进度详情模态框样式 */
+
+/* 项目名称样式 */
+.itemText {
+  font-weight: 500;
+  color: #333;
+}
+
+/* 计划时间样式 */
+.plannedTime {
+  color: #666;
+}
+
+/* 实际时间样式 - 已完成 */
+.actualTimeCompleted {
+  color: #1890ff;
+}
+
+/* 实际时间样式 - 未完成 */
+.actualTimePending {
+  color: #999;
+}
+
+/* 信息容器样式 */
+.infoContainer {
+  margin-bottom: 16px;
+}
+
+/* 信息卡片样式 */
+.infoCard {
+  background-color: #f8f9fa;
+}
+
+/* 信息文本样式 */
+.infoText {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 标签样式 */
+.label {
+  font-weight: bold;
+  color: #333;
+}
+
+/* 客户名称容器样式 */
+.customerName {
+  margin-left: 16px;
+}

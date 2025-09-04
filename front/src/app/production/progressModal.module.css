@@ -1,0 +1,86 @@
+/* 进度模态框样式 */
+
+/* 分组容器样式 */
+.sectionContainer {
+  margin-bottom: 24px;
+}
+
+/* 分组标题样式 */
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+/* 项目卡片容器样式 */
+.itemCard {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+}
+
+/* 项目标题样式 */
+.itemTitle {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+/* 表单项样式 */
+.formItem {
+  margin-bottom: 12px;
+}
+
+/* 全宽输入框样式 */
+.fullWidth {
+  width: 100%;
+}
+
+/* 信息展示行样式 */
+.infoRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* 信息标签样式 */
+.infoLabel {
+  min-width: 70px;
+  color: #666;
+  font-size: 14px;
+  margin-left: 65px;
+}
+
+/* 信息值样式 */
+.infoValue {
+  color: #333;
+  font-size: 14px;
+}
+
+/* 日期信息行样式 */
+.dateInfoRow {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+/* 日期标签样式 */
+.dateLabel {
+  font-size: 14px;
+  color: #262626;
+  margin-right: 8px;
+  min-width: 100px;
+  margin-left: 35px;
+}
+
+/* 日期值样式 */
+.dateValue {
+  font-size: 14px;
+  color: #595959;
+}
+
+/* 卡片样式 */
+.card {
+  margin-bottom: 24px;
+}

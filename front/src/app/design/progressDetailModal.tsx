@@ -3,6 +3,7 @@
 import React from "react";
 import { Modal, Table, Card } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import styles from "./progressDetailModal.module.css";
 
 interface ProgressDetailItem {
   id: string;
@@ -63,7 +64,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       key: "item",
       width: 150,
       render: (text: string) => (
-        <span style={{ fontWeight: "500", color: "#333" }}>{text}</span>
+        <span className={styles.itemText}>{text}</span>
       ),
     },
     {
@@ -72,7 +73,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       key: "estimatedTime",
       width: 150,
       render: (time: string) => (
-        <span style={{ color: "#666" }}>{time || "-"}</span>
+        <span className={styles.plannedTime}>{time || "-"}</span>
       ),
     },
     {
@@ -81,7 +82,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       key: "actualTime",
       width: 150,
       render: (time: string) => (
-        <span style={{ color: time ? "#1890ff" : "#999" }}>{time || "-"}</span>
+        <span className={time ? styles.actualTimeCompleted : styles.actualTimePending}>{time || "-"}</span>
       ),
     },
     {
@@ -100,16 +101,16 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       width={800}
       footer={null}
     >
-      <div style={{ marginBottom: 16 }}>
-        <Card size="small" style={{ backgroundColor: "#f8f9fa" }}>
-          <div style={{ fontSize: "14px", color: "#666" }}>
-            <span style={{ fontWeight: "bold", color: "#333" }}>
+      <div className={styles.infoContainer}>
+        <Card size="small" className={styles.infoCard}>
+          <div className={styles.infoText}>
+            <span className={styles.label}>
               订单编号：
             </span>
             {orderNumber}
             {orderName && (
-              <span style={{ marginLeft: 16 }}>
-                <span style={{ fontWeight: "bold", color: "#333" }}>
+              <span className={styles.customerName}>
+                <span className={styles.label}>
                   客户名称：
                 </span>
                 {orderName}

@@ -216,12 +216,44 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             </Form.Item>
           </Col>
           <Col span={12}>
+            <Form.Item
+              label="是否安装"
+              name="isSetup"
+              rules={[{ required: true, message: "请选择是否安装" }]}
+            >
+              <Select placeholder="请选择是否安装" allowClear>
+                <Option value="true">是</Option>
+                <Option value="false">否</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
             <Form.Item label="分单日期" name="splitDate">
               <DatePicker
                 placeholder="请选择日期"
                 style={{ width: "100%" }}
                 defaultValue={dayjs()}
               />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="订单金额" name="orderAmount">
+              <Input placeholder="请输入" addonAfter="元" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="柜体面积" name="designArea">
+              <Input placeholder="请输入" addonAfter="㎡" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="墙板面积" name="designArea">
+              <Input placeholder="请输入" addonAfter="㎡" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="备注" name="remark">
+              <Input.TextArea placeholder="请输入" rows={3} />
             </Form.Item>
           </Col>
         </Row>
@@ -247,43 +279,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             </Col>
           )}
         </Row> */}
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="柜体面积" name="designArea">
-              <Input placeholder="请输入" addonAfter="㎡" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="墙板面积" name="designArea">
-              <Input placeholder="请输入" addonAfter="㎡" />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="订单金额" name="orderAmount">
-              <Input placeholder="请输入" addonAfter="元" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="是否安装" name="isSetup">
-              <Select
-                placeholder="请选择是否安装"
-                allowClear
-                defaultValue={"是"}
-              >
-                <Option value="true">是</Option>
-                <Option value="false">否</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="备注" name="remark">
-              <Input.TextArea placeholder="请输入" rows={3} />
-            </Form.Item>
-          </Col>
-        </Row>
       </Form>
     </Modal>
   );
