@@ -69,13 +69,8 @@ def create_initial_data():
             # 创建默认管理员用户
             admin_user = User(
                 username="admin",
-                email="admin@example.com",
-                hashed_password=get_password_hash("admin123"),
-                full_name="系统管理员",
-                role=UserRole.ADMIN,
-                is_active=True,
-                created_at=datetime.now(),
-                updated_at=datetime.now()
+                password=get_password_hash("admin123"),
+                role=UserRole.ADMIN
             )
             db.add(admin_user)
             
@@ -85,13 +80,8 @@ def create_initial_data():
             # 创建测试用户
             test_user = User(
                 username="test",
-                email="test@example.com",
-                hashed_password=get_password_hash("test123"),
-                full_name="测试用户",
-                role=UserRole.USER,
-                is_active=True,
-                created_at=datetime.now(),
-                updated_at=datetime.now()
+                password=get_password_hash("test123"),
+                role=UserRole.CLERK
             )
             db.add(test_user)
             
