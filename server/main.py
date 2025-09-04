@@ -88,6 +88,12 @@ async def health_check():
     )
 
 
+@app.get("/ping")
+async def ping():
+    """简单的ping检查"""
+    return {"message": "pong"}
+
+
 if __name__ == "__main__":
     # 支持动态端口配置，优先使用环境变量PORT
     port = int(os.environ.get("PORT", 8000))

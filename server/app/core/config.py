@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # 数据库配置
-    DATABASE_URL: str = "sqlite:///./order_system.db"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./order_system.db")
     # 生产环境可以使用PostgreSQL
     # DATABASE_URL: str = "postgresql://user:password@localhost/order_system"
     DATABASE_HOST: str = "localhost"
