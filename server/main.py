@@ -6,7 +6,7 @@ import os
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.core.database import engine, create_tables
+from app.core.database import engine, create_tables, create_initial_data
 from app.models import Base, User, UserRole
 from app.api.v1.api import api_router
 
@@ -24,6 +24,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"❌ 数据库表创建失败: {e}")
         raise
+    
+    # 创建初始数据
+    try:
+        create_initial_data()
+        print("✅ 初始数据创建成功")
+    except Exception as e:
+        print(f"❌ 初始数据创建失败: {e}")
+        # 初始数据创建失败不应该阻止应用启动
+        pass
     
     yield
     
