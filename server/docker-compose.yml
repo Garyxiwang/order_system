@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库服务
+  db:
+    image: postgres:15-alpine
+    container_name: order_system_db
+    environment:
+      POSTGRES_DB: order_system
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - order_system_network
+
+  # FastAPI应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: order_system_app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres123@db:5432/order_system
+      - ENVIRONMENT=production
+      - PORT=8000
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - order_system_network
+
+# 数据卷
+volumes:
+  postgres_data:
+    driver: local
+
+# 网络
+networks:
+  order_system_network:
+    driver: bridge
