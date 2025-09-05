@@ -17,6 +17,12 @@ import {
 } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { StaffService, StaffData } from "../../services/staffService";
+import {
+  CategoryService,
+  CategoryData as CategoryServiceData,
+  CreateCategoryData,
+} from "../../services/categoryService";
+import { formatDateTime } from "../../utils/dateUtils";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -24,7 +30,9 @@ const { Option } = Select;
 interface CategoryData {
   id: number;
   name: string;
-  category: string;
+  category_type: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface StaffFormValues {
@@ -34,7 +42,7 @@ interface StaffFormValues {
 
 interface CategoryFormValues {
   name: string;
-  category: string;
+  category_type: string;
 }
 
 const ConfigPage: React.FC = () => {
@@ -46,13 +54,7 @@ const ConfigPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [categoryData, setCategoryData] = useState<CategoryData[]>([
-    { id: 1, name: "木门", category: "场内生成项" },
-    { id: 2, name: "柜体", category: "场内生成项" },
-    { id: 3, name: "石材", category: "外购项" },
-    { id: 4, name: "铝合金门", category: "外购项" },
-    { id: 5, name: "板材", category: "外购项" },
-  ]);
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
 
   // 加载人员数据
   const loadStaffData = async () => {
@@ -76,8 +78,22 @@ const ConfigPage: React.FC = () => {
     }
   };
 
+  // 加载类目数据
+  const loadCategoryData = async () => {
+    try {
+      setLoading(true);
+      const data = await CategoryService.getCategoryList();
+      setCategoryData(data);
+    } catch (error) {
+      message.error("加载类目数据失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadStaffData();
+    loadCategoryData();
   }, []);
 
   // 人员配置表格列
@@ -112,17 +128,7 @@ const ConfigPage: React.FC = () => {
       title: "创建时间",
       dataIndex: "created_at",
       key: "created_at",
-      render: (text: string) => {
-        if (!text) return "-";
-        return new Date(text).toLocaleString("zh-CN", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
-      },
+      render: (text: string) => formatDateTime(text),
     },
     {
       title: "操作",
@@ -170,8 +176,14 @@ const ConfigPage: React.FC = () => {
     },
     {
       title: "类目分类",
-      dataIndex: "category",
-      key: "category",
+      dataIndex: "category_type",
+      key: "category_type",
+    },
+    {
+      title: "创建时间",
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (text: string) => formatDateTime(text),
     },
     {
       title: "操作",
@@ -192,11 +204,11 @@ const ConfigPage: React.FC = () => {
   // 删除人员
   const handleDeleteStaff = async (username: string) => {
     Modal.confirm({
-      title: '确认删除',
+      title: "确认删除",
       content: `确定要删除用户 "${username}" 吗？此操作不可撤销。`,
-      okText: '确定',
-      cancelText: '取消',
-      okType: 'danger',
+      okText: "确定",
+      cancelText: "取消",
+      okType: "danger",
       onOk: async () => {
         try {
           setLoading(true);
@@ -213,9 +225,26 @@ const ConfigPage: React.FC = () => {
   };
 
   // 删除类目
-  const handleDeleteCategory = (id: number) => {
-    setCategoryData(categoryData.filter((item) => item.id !== id));
-    message.success("删除成功");
+  const handleDeleteCategory = async (id: number) => {
+    Modal.confirm({
+      title: "确认删除",
+      content: "确定要删除此类目吗？此操作不可撤销。",
+      okText: "确定",
+      cancelText: "取消",
+      okType: "danger",
+      onOk: async () => {
+        try {
+          setLoading(true);
+          await CategoryService.deleteCategory(id);
+          setCategoryData(categoryData.filter((item) => item.id !== id));
+          message.success("删除成功");
+        } catch (error) {
+          message.error("删除失败");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   // 添加人员
@@ -232,7 +261,7 @@ const ConfigPage: React.FC = () => {
     try {
       setLoading(true);
       const newStaff = await StaffService.createStaff(values);
-      console.log('newStaff', newStaff)
+      console.log("newStaff", newStaff);
       setStaffData([newStaff, ...staffData]);
       setStaffModalVisible(false);
       staffForm.resetFields();
@@ -245,12 +274,23 @@ const ConfigPage: React.FC = () => {
   };
 
   // 添加类目
-  const handleAddCategory = (values: CategoryFormValues) => {
-    const newId = Math.max(...categoryData.map((item) => item.id)) + 1;
-    setCategoryData([...categoryData, { id: newId, ...values }]);
-    setCategoryModalVisible(false);
-    categoryForm.resetFields();
-    message.success("添加成功");
+  const handleAddCategory = async (values: CategoryFormValues) => {
+    try {
+      setLoading(true);
+      const createData: CreateCategoryData = {
+        name: values.name,
+        category_type: values.category_type,
+      };
+      const newCategory = await CategoryService.createCategory(createData);
+      setCategoryData([newCategory, ...categoryData]);
+      setCategoryModalVisible(false);
+      categoryForm.resetFields();
+      message.success("添加成功");
+    } catch (error) {
+      message.error(`添加失败,${error}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -402,12 +442,12 @@ const ConfigPage: React.FC = () => {
             <Input placeholder="请输入类目名称" />
           </Form.Item>
           <Form.Item
-            name="category"
+            name="category_type"
             label="类目分类"
             rules={[{ required: true, message: "请选择类目分类" }]}
           >
             <Select placeholder="请选择类目分类">
-              <Option value="场内生成项">场内生成项</Option>
+              <Option value="厂内生产项">厂内生产项</Option>
               <Option value="外购项">外购项</Option>
             </Select>
           </Form.Item>
