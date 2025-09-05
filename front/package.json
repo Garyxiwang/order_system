@@ -21,6 +21,10 @@
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
