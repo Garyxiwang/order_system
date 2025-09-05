@@ -37,7 +37,7 @@ const LoginPage: React.FC = () => {
           <div className="flex items-center justify-center mb-8">
             <Image
               src="/logo3.png"
-              alt="系统Logo"
+              alt="Logo"
               width={200}
               height={0}
               className="mr-6 rounded-lg h-auto"
