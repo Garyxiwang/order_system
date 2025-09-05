@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 为 Zeabur 部署优化配置
-  output: 'standalone',
+  // Zeabur 部署配置
   // 在构建时禁用rewrites，避免构建过程中访问外部URL
   async rewrites() {
     // 只在开发环境启用rewrites
