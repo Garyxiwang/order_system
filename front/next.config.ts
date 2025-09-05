@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
   
   // 优化配置
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // 暂时禁用，避免 critters 依赖问题
   },
   
   // 压缩配置
