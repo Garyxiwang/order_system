@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 为 Zeabur 部署优化配置
+  output: 'standalone',
   // 在构建时禁用rewrites，避免构建过程中访问外部URL
   async rewrites() {
-    // 只在运行时启用rewrites，构建时跳过
-    if (process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV !== 'production') {
+    // 只在开发环境启用rewrites
+    if (process.env.NODE_ENV === 'production') {
       return [];
     }
     return [

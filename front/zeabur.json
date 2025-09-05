@@ -4,10 +4,12 @@
     "commands": [
       "rm -rf node_modules package-lock.json",
       "npm install",
-      "npm run build"
+      "npm run build",
+      "cp -r public .next/standalone/front/",
+      "cp -r .next/static .next/standalone/front/.next/"
     ]
   },
-  "start": "npm start",
+  "start": "node .next/standalone/front/server.js",
   "environment": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1"
