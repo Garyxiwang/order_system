@@ -191,16 +191,25 @@ const ConfigPage: React.FC = () => {
 
   // 删除人员
   const handleDeleteStaff = async (username: string) => {
-    try {
-      setLoading(true);
-      await StaffService.deleteStaff(username);
-      setStaffData(staffData.filter((item) => item.username !== username));
-      message.success("删除成功");
-    } catch (error) {
-      message.error("删除失败");
-    } finally {
-      setLoading(false);
-    }
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除用户 "${username}" 吗？此操作不可撤销。`,
+      okText: '确定',
+      cancelText: '取消',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          setLoading(true);
+          await StaffService.deleteStaff(username);
+          setStaffData(staffData.filter((item) => item.username !== username));
+          message.success("删除成功");
+        } catch (error) {
+          message.error("删除失败");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   // 删除类目
@@ -223,7 +232,8 @@ const ConfigPage: React.FC = () => {
     try {
       setLoading(true);
       const newStaff = await StaffService.createStaff(values);
-      setStaffData([...staffData, newStaff]);
+      console.log('newStaff', newStaff)
+      setStaffData([newStaff, ...staffData]);
       setStaffModalVisible(false);
       staffForm.resetFields();
       message.success("添加成功");

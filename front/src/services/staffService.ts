@@ -45,7 +45,8 @@ export class StaffService {
       };
       return {
         username: response.data.user.username,
-        role: response.data.user.role
+        role: response.data.user.role,
+        created_at: response.data.user.created_at
       };
     } catch (error) {
       console.error('新增人员失败:', error);

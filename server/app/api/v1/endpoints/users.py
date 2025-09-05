@@ -123,8 +123,8 @@ async def get_users(
     返回用户名和角色信息
     """
     try:
-        # 查询所有用户
-        users = db.query(User).all()
+        # 查询所有用户，按创建时间倒序排列
+        users = db.query(User).order_by(User.created_at.desc()).all()
         
         # 只返回用户名和角色
         user_list = [

@@ -52,14 +52,17 @@ app = FastAPI(
 )
 
 # 配置CORS
-# CORS配置 - 临时硬编码解决配置问题
+# CORS配置 - 包含开发和生产环境域名
 cors_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000", 
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "http://localhost:8080",
-    "http://127.0.0.1:8080"
+    "http://127.0.0.1:8080",
+    "https://order1.zeabur.app",
+    "https://order-proxy.zeabur.app",
+    "https://orderendd.zeabur.app"
 ]
 
 app.add_middleware(
