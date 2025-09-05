@@ -12,7 +12,7 @@ export class StaffService {
   // 获取人员列表
   static async getStaffList(): Promise<StaffData[]> {
     try {
-      const response = await api.get('/api/v1/users/') as unknown as {
+      const response = await api.get('/v1/users/') as unknown as {
         code: number;
         message: string;
         data: {
@@ -36,7 +36,7 @@ export class StaffService {
         password: staffData.password || '123456' // 默认密码
       };
       
-      const response = await api.post('/api/v1/users/', createData) as unknown as {
+      const response = await api.post('/v1/users/', createData) as unknown as {
         code: number;
         message: string;
         data: {
@@ -56,7 +56,7 @@ export class StaffService {
   // 删除人员
   static async deleteStaff(username: string): Promise<void> {
     try {
-      await api.delete(`/api/v1/users/${username}`);
+      await api.delete(`/v1/users/${username}`);
     } catch (error) {
       console.error('删除人员失败:', error);
       throw error;
