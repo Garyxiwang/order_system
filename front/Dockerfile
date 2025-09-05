@@ -8,7 +8,7 @@ WORKDIR /app
 
 # 复制 package 文件
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # 构建阶段
 FROM base AS builder
