@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: order_system_nginx
+    ports:
+      - "80:80"
+      - "443:443"  # 如果需要 HTTPS
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./logs/nginx:/var/log/nginx  # 日志目录
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - order_system_network
+    restart: unless-stopped
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: order_system_frontend
+    ports:
+      - "3000:3000"  # 内部端口，通过 nginx 访问
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost/api  # 通过 nginx 代理访问后端
+    networks:
+      - order_system_network
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  # 后端服务
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: order_system_backend
+    ports:
+      - "8000:8000"  # 内部端口，通过 nginx 访问
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./order_system.db}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    volumes:
+      - ./server/data:/app/data  # 数据持久化
+    networks:
+      - order_system_network
+    restart: unless-stopped
+
+  # 数据库服务（可选，如果使用 PostgreSQL）
+  # database:
+  #   image: postgres:15-alpine
+  #   container_name: order_system_db
+  #   environment:
+  #     POSTGRES_DB: order_system
+  #     POSTGRES_USER: ${DB_USER:-admin}
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - order_system_network
+  #   restart: unless-stopped
+
+networks:
+  order_system_network:
+    driver: bridge
+
+volumes:
+  postgres_data:  # 如果使用 PostgreSQL
+    driver: local
