@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     DATABASE_PASSWORD: str = ""
     
     # CORS配置
-    BACKEND_CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080,http://127.0.0.1:8080"
+    BACKEND_CORS_ORIGINS: str = os.getenv("BACKEND_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:8080,http://127.0.0.1:8080")
     
     def get_cors_origins(self) -> List[str]:
         """获取CORS源列表"""

@@ -52,9 +52,19 @@ app = FastAPI(
 )
 
 # 配置CORS
+# CORS配置 - 临时硬编码解决配置问题
+cors_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000", 
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.get_cors_origins(),
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
