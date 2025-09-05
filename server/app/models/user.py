@@ -5,6 +5,7 @@ import enum
 
 class UserRole(str, enum.Enum):
     """用户角色枚举"""
+    SUPER_ADMIN = "superAdmin"  # 超级管理员
     ADMIN = "admin"          # 管理员
     MANAGER = "manager"      # 经理
     DESIGNER = "designer"    # 设计师

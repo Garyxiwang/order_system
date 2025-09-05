@@ -130,7 +130,8 @@ async def get_users(
         user_list = [
             {
                 "username": user.username,
-                "role": user.role.value
+                "role": user.role.value,
+                "created_at": user.created_at
             }
             for user in users
         ]

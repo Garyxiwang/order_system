@@ -16,7 +16,20 @@ SET timezone = 'Asia/Shanghai';
 
 -- 创建用户角色枚举类型（如果不存在）
 DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('admin', 'user', 'manager');
+    CREATE TYPE user_role AS ENUM (
+        'superAdmin',
+        'admin', 
+        'manager', 
+        'designer', 
+        'splitting', 
+        'clerk', 
+        'procurement', 
+        'salesperson', 
+        'finance', 
+        'workshop', 
+        'shipper', 
+        'customer'
+    );
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
