@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Nginx 代理部署配置
   // 在生产环境下，API 请求将通过 Nginx 代理到后端服务
   // 在开发环境下，直接代理到本地后端服务
@@ -34,4 +33,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
