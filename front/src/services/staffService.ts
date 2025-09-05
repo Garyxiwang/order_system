@@ -57,7 +57,7 @@ export class StaffService {
   // 删除人员
   static async deleteStaff(username: string): Promise<void> {
     try {
-      await api.delete(`/v1/users/${username}/`);
+      await api.delete(`/v1/users/${username}`);
     } catch (error) {
       console.error('删除人员失败:', error);
       throw error;

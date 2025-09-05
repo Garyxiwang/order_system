@@ -55,7 +55,7 @@ export class CategoryService {
   // 删除类目
   static async deleteCategory(categoryId: number): Promise<void> {
     try {
-      await api.delete(`/v1/categories/${categoryId}/`);
+      await api.delete(`/v1/categories/${categoryId}`);
     } catch (error) {
       console.error('删除类目失败:', error);
       throw error;
