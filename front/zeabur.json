@@ -1,0 +1,19 @@
+{
+  "name": "order-system-frontend",
+  "build": {
+    "commands": [
+      "npm ci",
+      "npm run build"
+    ]
+  },
+  "start": "npm start",
+  "environment": {
+    "NODE_ENV": "production",
+    "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "healthcheck": {
+    "path": "/",
+    "interval": 30,
+    "timeout": 10
+  }
+}
