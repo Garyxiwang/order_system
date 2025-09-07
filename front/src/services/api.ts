@@ -29,6 +29,7 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    // 直接返回响应数据，保持后端返回的完整结构
     return response.data;
   },
   (error) => {

@@ -2,10 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
-import "dayjs/locale/zh-cn";
-
-// 确保客户端也设置中文语言
-dayjs.locale("zh-cn");
 import {
   Card,
   Table,
@@ -35,8 +31,11 @@ import {
   getDesignOrders,
   createDesignOrder,
   updateDesignOrder,
+  updateOrderStatus,
   type DesignOrder,
+  type OrderListParams,
 } from "../../services/designApi";
+import { formatDateTime } from "../../utils/dateUtils";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -54,6 +53,9 @@ const DesignPage: React.FC = () => {
   );
   const [designData, setDesignData] = useState<DesignOrder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
 
@@ -72,16 +74,16 @@ const DesignPage: React.FC = () => {
   const handlePlaceOrder = (record: DesignOrder) => {
     Modal.confirm({
       title: "确认下单",
-      content: `确定要为订单 ${record.orderNumber} 下单吗？`,
+      content: `确定要为订单 ${record.order_number} 下单吗？`,
       okText: "确认",
       cancelText: "取消",
       onOk: async () => {
         try {
           setLoading(true);
-          const response = await updateDesignOrder(record.orderNumber, {
-            ...record,
-            state: "已下单",
-          });
+          const response = await updateOrderStatus(
+            record.order_number,
+            "已下单"
+          );
 
           if (response.code === 200) {
             message.success("下单成功");
@@ -102,23 +104,23 @@ const DesignPage: React.FC = () => {
   // 处理撤销操作
   const handleCancelOrder = (record: DesignOrder) => {
     // 检查订单状态
-    if (record.state !== "已下单") {
+    if (record.order_type !== "已下单") {
       message.warning("只有已下单的订单才能撤销");
       return;
     }
 
     Modal.confirm({
       title: "确认撤销",
-      content: `确定要撤销订单 ${record.orderNumber} 吗？`,
+      content: `确定要撤销订单 ${record.order_number} 吗？`,
       okText: "确认",
       cancelText: "取消",
       onOk: async () => {
         try {
           setLoading(true);
-          const response = await updateDesignOrder(record.orderNumber, {
-            ...record,
-            state: "未下单",
-          });
+          const response = await updateOrderStatus(
+            record.order_number,
+            "未下单"
+          );
 
           if (response.code === 200) {
             message.success("撤销成功");
@@ -138,8 +140,8 @@ const DesignPage: React.FC = () => {
 
   // 显示更新进度弹窗
   const showProgressModal = (record: DesignOrder) => {
-    setSelectedOrderNumber(record.orderNumber);
-    setSelectedOrderName(record.customerName || "");
+    setSelectedOrderNumber(record.order_number);
+    setSelectedOrderName(record.customer_name || "");
     setIsProgressModalVisible(true);
   };
 
@@ -151,9 +153,11 @@ const DesignPage: React.FC = () => {
 
   // 显示进度详情弹窗
   const showDetailModal = (record: DesignOrder) => {
-    setSelectedOrderNumber(record.orderNumber);
-    setSelectedOrderName(record.customerName || "");
-    setSelectedProgressData(record.progress ? record.progress.split(",") : []);
+    setSelectedOrderNumber(record.order_number);
+    setSelectedOrderName(record.customer_name || "");
+    setSelectedProgressData(
+      record.design_process ? record.design_process.split(",") : []
+    );
     setIsDetailModalVisible(true);
   };
 
@@ -166,71 +170,69 @@ const DesignPage: React.FC = () => {
   };
 
   const handleOk = async (values: {
-    orderNumber: string;
-    customerName: string;
-    orderAddress: string;
-    orderType: string;
+    order_number: string;
+    customer_name: string;
+    address: string;
+    order_type: string;
     designer: string;
     salesperson: string;
-    categories: string[];
-    splitDate?: string;
-    orderStatus: string;
-    progressDetail: string;
-    remark?: string;
-    finishTime?: string;
-    isSetup: boolean;
-    designArea?: string;
-    orderAmount?: string;
-  }) => {
+    category_name: string;
+    assignment_date?: string;
+    remarks?: string;
+    is_installation: boolean;
+    cabinet_area?: number;
+    wall_panel_area?: number;
+    order_amount?: number;
+  }): Promise<boolean> => {
     try {
       setLoading(true);
 
       if (editingRecord) {
         // 编辑模式
-        const response = await updateDesignOrder(editingRecord.orderNumber, {
-          customerName: values.customerName,
-          address: values.orderAddress,
+        const response = await updateDesignOrder(editingRecord.id!.toString(), {
+          order_number: values.order_number,
+          customer_name: values.customer_name,
+          address: values.address,
           designer: values.designer,
           salesperson: values.salesperson,
-          splitTime: values.splitDate || "",
-          category: values.categories.join(","),
-          orderType: values.orderType,
-          remark: values.remark || "",
-          isSetup: values.isSetup,
-          designArea: values.designArea || "",
-          orderAmount: values.orderAmount || "",
+          assignment_date: values.assignment_date ? dayjs(values.assignment_date).format('YYYY-MM-DD HH:mm:ss') : "",
+          category_name: values.category_name,
+          order_type: values.order_type,
+          remarks: values.remarks || "",
+          is_installation: values.is_installation,
+          order_amount: values.order_amount?.toString() || "0",
         });
 
         if (response.code === 200) {
           message.success("更新成功");
         } else {
           message.error(response.message || "更新失败");
-          return;
+          return false;
         }
       } else {
         // 新增模式
         const response = await createDesignOrder({
-          customerName: values.customerName,
-          address: values.orderAddress,
+          order_number: values.order_number,
+          customer_name: values.customer_name,
+          address: values.address,
           designer: values.designer,
           salesperson: values.salesperson,
-          splitTime: values.splitDate || "",
-          progress: "",
-          category: values.categories.join(","),
-          cycle: "0",
-          state: "未下单",
-          orderType: values.orderType,
-          remark: values.remark || "",
-          isSetup: values.isSetup,
-          designArea: values.designArea || "",
-          orderAmount: values.orderAmount || "",
+          assignment_date: values.assignment_date ? dayjs(values.assignment_date).format('YYYY-MM-DD HH:mm:ss') : "",
+          design_process: "",
+          category_name: values.category_name,
+          order_status: "未下单",
+          order_type: values.order_type,
+          design_cycle: "0",
+          remarks: values.remarks || "",
+          is_installation: values.is_installation,
+          order_amount: values.order_amount?.toString() || "0",
         });
 
         if (response.code === 200) {
-          message.success("创建成功");
+          message.success(response.message || "创建成功");
         } else {
           message.error(response.message || "创建失败");
-          return;
+          return false;
         }
       }
 
@@ -238,9 +240,11 @@ const DesignPage: React.FC = () => {
       await loadDesignData();
       setIsModalVisible(false);
       setEditingRecord(null);
+      return true;
     } catch (error) {
       message.error("操作失败，请稍后重试");
       console.error("操作失败:", error);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -252,15 +256,24 @@ const DesignPage: React.FC = () => {
   };
 
   // 加载设计订单数据
-  const loadDesignData = async () => {
+  const loadDesignData = async (
+    searchParams?: OrderListParams,
+    page?: number,
+    size?: number
+  ) => {
     try {
       setLoading(true);
-      const response = await getDesignOrders();
-      if (response.code === 200) {
-        setDesignData(response.data);
-      } else {
-        message.error(response.message || "获取数据失败");
-      }
+      const params = {
+        ...searchParams,
+        page: page || currentPage,
+        pageSize: size || pageSize,
+      };
+      const response = await getDesignOrders(params);
+      // 后端直接返回OrderListResponse对象，不是包装在ApiResponse中
+      setDesignData(response.items || []);
+      setTotal(response.total || 0);
+      setCurrentPage(response.page || 1);
+      setPageSize(response.page_size || 10);
     } catch (error) {
       message.error("获取数据失败，请稍后重试");
       console.error("获取数据失败:", error);
@@ -270,47 +283,102 @@ const DesignPage: React.FC = () => {
   };
 
   // 处理搜索功能
-  const handleSearch = () => {
+  const handleSearch = async () => {
     const formValues = searchForm.getFieldsValue();
-    console.log("搜索条件:", formValues);
-    console.log("当前筛选状态:", filterStatuses);
+    const searchParams: OrderListParams = {
+      orderNumber: formValues.orderNumber,
+      customerName: formValues.customerName,
+      designer: formValues.designer,
+      salesperson: formValues.salesperson,
+      orderStatus: filterStatuses.length > 0 ? filterStatuses : undefined,
+      orderType: formValues.orderType,
+      orderCategory: formValues.category ? [formValues.category] : undefined,
+      startDate: formValues.dateRange?.[0]?.format("YYYY-MM-DD"),
+      endDate: formValues.dateRange?.[1]?.format("YYYY-MM-DD"),
+    };
+
+    // 过滤掉空值
+    const filteredParams = Object.fromEntries(
+      Object.entries(searchParams).filter(
+        ([_, value]) => value !== undefined && value !== "" && value !== null
+      )
+    );
+
+    // 搜索时重置到第一页
+    setCurrentPage(1);
+    await loadDesignData(filteredParams, 1, pageSize);
   };
 
   // 处理重置功能
-  const handleReset = () => {
+  const handleReset = async () => {
     // 重置表单
     searchForm.resetFields();
     setFilterStatuses([]);
+    // 重置分页状态
+    setCurrentPage(1);
+    // 重新加载所有数据
+    await loadDesignData({}, 1, pageSize);
+  };
+
+  // 处理分页变化
+  const handlePageChange = async (page: number, size?: number) => {
+    const newPageSize = size || pageSize;
+    let newPage = page;
+
+    // 如果是pageSize变化，重置到第一页
+    if (size && size !== pageSize) {
+      setPageSize(size);
+      newPage = 1;
+      setCurrentPage(1);
+    } else {
+      setCurrentPage(page);
+    }
+
+    // 获取当前搜索条件
+    const formValues = searchForm.getFieldsValue();
+    const searchParams: OrderListParams = {
+      orderNumber: formValues.orderNumber,
+      customerName: formValues.customerName,
+      designer: formValues.designer,
+      salesperson: formValues.salesperson,
+      orderStatus: filterStatuses.length > 0 ? filterStatuses : undefined,
+      orderType: formValues.orderType,
+      orderCategory: formValues.category ? [formValues.category] : undefined,
+      startDate: formValues.dateRange?.[0]?.format("YYYY-MM-DD"),
+      endDate: formValues.dateRange?.[1]?.format("YYYY-MM-DD"),
+    };
+
+    // 过滤掉空值
+    const filteredParams = Object.fromEntries(
+      Object.entries(searchParams).filter(
+        ([_, value]) => value !== undefined && value !== "" && value !== null
+      )
+    );
+
+    await loadDesignData(filteredParams, newPage, newPageSize);
   };
 
   // 组件挂载时加载数据
   useEffect(() => {
     loadDesignData();
-  }, []); // 根据筛选条件过滤数据
-  const filteredDesignData = designData.filter((item) => {
-    // 订单状态筛选
-    if (filterStatuses.length > 0 && !filterStatuses.includes(item.state)) {
-      return false;
-    }
-    return true;
-  });
+  }, []);
 
   const columns: ColumnsType<DesignOrder> = [
     {
       title: "订单编号",
-      dataIndex: "orderNumber",
-      key: "orderNumber",
+      dataIndex: "order_number",
+      key: "order_number",
     },
     {
       title: "客户名称",
-      dataIndex: "customerName",
-      key: "customerName",
+      dataIndex: "customer_name",
+      key: "customer_name",
       width: 150,
     },
     {
       title: "地址",
       dataIndex: "address",
-      key: "customerName",
+      key: "address",
     },
     {
       title: "设计师",
@@ -324,13 +392,14 @@ const DesignPage: React.FC = () => {
     },
     {
       title: "分单日期",
-      dataIndex: "splitTime",
-      key: "splitTime",
+      dataIndex: "assignment_date",
+      key: "assignment_date",
+      render: (date: string) => formatDateTime(date),
     },
     {
       title: "设计过程",
-      dataIndex: "progress",
-      key: "progress",
+      dataIndex: "design_process",
+      key: "design_process",
       width: 250,
       render: (text: string, record: DesignOrder) => {
         if (!text) return "-";
@@ -391,69 +460,66 @@ const DesignPage: React.FC = () => {
     },
     {
       title: "下单类目",
-      dataIndex: "category",
-      key: "category",
-      render: (text: string) => {
-        if (!text) return "-";
-        const categories = text.split(",");
+      dataIndex: "category_name",
+      key: "category_name",
+      render: (categories: string[] | string) => {
+        if (!categories) return "-";
+
+        // 处理字符串类型的情况（兼容旧数据）
+        const categoryArray = Array.isArray(categories)
+          ? categories
+          : categories
+              .split(",")
+              .map((item) => item.trim())
+              .filter((item) => item);
+
+        if (categoryArray.length === 0) return "-";
+
         return (
           <div>
-            {categories.map((category, index) => (
-              <div key={index}>{category.trim()}</div>
+            {categoryArray.map((category, index) => (
+              <div key={index}>{category}</div>
             ))}
           </div>
         );
       },
     },
-    {
-      title: "设计周期",
-      dataIndex: "cycle",
-      key: "cycle",
-      render: (text: string) => {
-        if (!text) return "-";
-
-        // 提取数字部分
-        const match = text.match(/(\d+)/);
-        const days = match ? parseInt(match[1]) : 0;
-
-        let color = "#000"; // 默认黑色
-        if (days > 50) {
-          color = "#ff4d4f"; // 红色 - 大于50天
-        } else if (days > 20) {
-          color = "#faad14"; // 橙色 - 大于20天
-        }
-
-        return <span style={{ color }}>{text} 天</span>;
-      },
-    },
 
     {
       title: "下单日期",
-      dataIndex: "finishTime",
-      key: "finishTime",
-      render: (text: string) => <div>{text || "-"}</div>,
+      dataIndex: "order_date",
+      key: "order_date",
+      render: (date: string) => formatDateTime(date),
     },
     {
       title: "订单类型",
-      dataIndex: "orderType",
-      key: "orderType",
+      dataIndex: "order_type",
+      key: "order_type",
     },
     {
       title: "是否安装",
-      dataIndex: "isSetup",
-      key: "isSetup",
+      dataIndex: "is_installation",
+      key: "is_installation",
       render: (text: boolean) => <div>{text ? "是" : "否"}</div>,
     },
     {
-      title: "设计面积",
-      dataIndex: "designArea",
-      key: "designArea",
-      render: (text: string) => <div>{text ? `${text}㎡` : "-"}</div>,
+      title: "面积信息",
+      key: "area_info",
+      render: (text: string, record: DesignOrder) => {
+        const cabinetArea = record.cabinet_area;
+        const wallPanelArea = record.wall_panel_area;
+        return (
+          <div>
+            <div>柜体面积: {cabinetArea ? `${cabinetArea}㎡` : "-"}</div>
+            <div>墙板面积: {wallPanelArea ? `${wallPanelArea}㎡` : "-"}</div>
+          </div>
+        );
+      },
     },
     {
       title: "订单金额",
-      dataIndex: "orderAmount",
-      key: "orderAmount",
+      dataIndex: "order_amount",
+      key: "order_amount",
       render: (text: string) => (
         <div>
           {text
@@ -467,8 +533,8 @@ const DesignPage: React.FC = () => {
     },
     {
       title: "备注",
-      dataIndex: "remark",
-      key: "remark",
+      dataIndex: "remarks",
+      key: "remarks",
       render: (text: string) => (
         <div
           style={{
@@ -483,9 +549,9 @@ const DesignPage: React.FC = () => {
     },
     {
       title: "订单状态",
-      dataIndex: "state",
+      dataIndex: "order_status",
       fixed: "right",
-      key: "state",
+      key: "order_status",
       render: (text: string) => {
         if (text === "已下单") {
           return <Tag color="green">{text}</Tag>;
@@ -505,7 +571,7 @@ const DesignPage: React.FC = () => {
                 type="link"
                 size="small"
                 onClick={() => showEditModal(record)}
-                disabled={record.state === "已下单"}
+                disabled={record.order_status === "已下单"}
                 style={{ padding: "0 4px", width: "100%" }}
               >
                 编辑
@@ -515,19 +581,19 @@ const DesignPage: React.FC = () => {
               <Button
                 type="link"
                 size="small"
-                disabled={record.state === "已下单"}
+                disabled={record.order_status === "已下单"}
                 onClick={() => showProgressModal(record)}
                 style={{ padding: "0 4px", width: "100%" }}
               >
                 更新进度
               </Button>
             </Col>
-            {record.state === "已下单" && (
+            {record.order_status === "已下单" && (
               <Col span={12}>
                 <Button
                   type="link"
                   size="small"
-                  disabled={record.state !== "已下单"}
+                  disabled={record.order_status !== "已下单"}
                   onClick={() => handleCancelOrder(record)}
                   style={{ padding: "0 4px", width: "100%" }}
                 >
@@ -535,12 +601,12 @@ const DesignPage: React.FC = () => {
                 </Button>
               </Col>
             )}
-            {record.state !== "已下单" && (
+            {record.order_status !== "已下单" && (
               <Col span={12}>
                 <Button
                   type="link"
                   size="small"
-                  disabled={record.state === "已下单"}
+                  disabled={record.order_status === "已下单"}
                   onClick={() => handlePlaceOrder(record)}
                   style={{ padding: "0 4px", width: "100%" }}
                 >
@@ -558,7 +624,23 @@ const DesignPage: React.FC = () => {
     <div className="space-y-6">
       {/* 搜索Card */}
       <Card variant="outlined" style={{ marginBottom: 20 }}>
-        <Form form={searchForm} layout="inline">
+        <Form
+          form={searchForm}
+          layout="inline"
+          initialValues={{
+            orderStatus: [
+              "量尺",
+              "初稿",
+              "报价",
+              "打款",
+              "延期",
+              "等硬装",
+              "客户待打款",
+              "待客户确认",
+              "其他",
+            ],
+          }}
+        >
           <Row gutter={24}>
             <Col span={6} className="py-2">
               <Form.Item name="orderNumber" label="订单编号" className="mb-0">
@@ -616,17 +698,6 @@ const DesignPage: React.FC = () => {
                   className="rounded-md"
                   size="middle"
                   allowClear
-                  defaultValue={[
-                    "量尺",
-                    "初稿",
-                    "报价",
-                    "打款",
-                    "延期",
-                    "等硬装",
-                    "客户待打款",
-                    "待客户确认",
-                    "其他",
-                  ]}
                 >
                   <Option value="量尺">量尺</Option>
                   <Option value="初稿">初稿</Option>
@@ -657,20 +728,7 @@ const DesignPage: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={6} className="py-2">
-              <Form.Item name="designCycle" label="设计周期" className="mb-0">
-                <Select
-                  placeholder="请选择"
-                  className="rounded-md"
-                  size="middle"
-                  allowClear
-                >
-                  <Option value="小于20天">小于20天</Option>
-                  <Option value="大于20天">大于20天</Option>
-                  <Option value="大于50天">大于50天</Option>
-                </Select>
-              </Form.Item>
-            </Col>
+
             <Col span={6} className="py-2">
               <Form.Item name="orderCategory" label="下单类目" className="mb-0">
                 <Select
@@ -766,12 +824,22 @@ const DesignPage: React.FC = () => {
         {/* 表格区域 */}
         <Table
           columns={columns}
-          dataSource={filteredDesignData}
+          dataSource={designData}
           loading={loading}
           bordered={false}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
+            pageSizeOptions: ["10", "20", "50", "100"],
+            onChange: handlePageChange,
+            onShowSizeChange: handlePageChange,
+          }}
           rowClassName="hover:bg-blue-50"
-          rowKey={(record) => record.orderNumber}
+          rowKey={(record) => record.order_number}
           scroll={{ x: "max-content" }}
         />
       </Card>
@@ -784,20 +852,21 @@ const DesignPage: React.FC = () => {
         initialValues={
           editingRecord
             ? {
-                orderNumber: editingRecord.orderNumber as string,
-                customerName: editingRecord.customerName as string,
-                orderAddress: editingRecord.address as string,
-                orderType: editingRecord.orderType as string,
-                designer: editingRecord.designer as string,
-                salesperson: editingRecord.salesperson as string,
-                splitDate: editingRecord.splitTime as string,
-                orderStatus: editingRecord.state as string,
-                categories:
-                  (editingRecord.category as string)?.split(",") || [],
-                remark: editingRecord.remark as string,
-                designArea: editingRecord.designArea as string,
-                orderAmount: editingRecord.orderAmount as string,
-                isSetup: editingRecord.isSetup as boolean,
+                order_number: editingRecord.order_number,
+                customer_name: editingRecord.customer_name,
+                address: editingRecord.address,
+                order_type: editingRecord.order_type,
+                designer: editingRecord.designer,
+                salesperson: editingRecord.salesperson,
+                assignment_date: editingRecord.assignment_date,
+                category_name: editingRecord.category_name,
+                remarks: editingRecord.remarks,
+                order_amount: editingRecord.order_amount
+                  ? Number(editingRecord.order_amount)
+                  : undefined,
+                is_installation: editingRecord.is_installation,
+                cabinet_area: editingRecord.cabinet_area,
+                wall_panel_area: editingRecord.wall_panel_area,
               }
             : undefined
         }

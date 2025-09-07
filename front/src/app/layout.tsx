@@ -4,6 +4,8 @@ import "@ant-design/v5-patch-for-react-19";
 import "./globals.css";
 import { ConfigProvider } from "antd";
 import zhCN from "antd/locale/zh_CN";
+// 导入dayjs配置以确保时区设置生效
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

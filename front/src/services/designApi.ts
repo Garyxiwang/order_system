@@ -1,210 +1,172 @@
-// 设计页面模拟API服务
+import api from './api';
 
+// 设计订单接口
 export interface DesignOrder {
-  orderNumber: string;
-  customerName: string;
+  id?: number;
+  order_number: string;
+  customer_name: string;
   address: string;
   designer: string;
   salesperson: string;
-  splitTime: string;
-  progress: string;
-  category: string;
-  cycle: string;
-  state: string;
-  orderType: string;
-  remark: string;
-  isSetup: boolean;
-  finishTime?: string;
-  designArea?: string;
-  orderAmount?: string;
+  assignment_date: string;
+  design_process: string; // 后端字段名为design_process
+  progress?: string; // 兼容字段，用于显示
+  category_name: string;
+  order_type: string;
+  design_cycle: string;
+  order_date?: string;
+  remarks: string;
+  is_installation: boolean;
+  order_amount?: string;
+  cabinet_area?: number;
+  wall_panel_area?: number;
+  order_status: string;
 }
 
-// 模拟设计订单数据
-const mockDesignData: DesignOrder[] = [
-  {
-    orderNumber: "D2024-021",
-    customerName: "榆林古城店-段总别墅",
-    address: "西安",
-    designer: "张设计师",
-    salesperson: "王销售员",
-    splitTime: "2024-07-20",
-    progress: "",
-    category: "木门",
-    cycle: "1",
-    state: "进行中",
-    orderType: "设计单",
-    remark: "",
-    isSetup: false,
-    finishTime: "",
-    designArea: "120",
-    orderAmount: "50000",
-  },
-  {
-    orderNumber: "D2024-022",
-    customerName: "计翠艳-甘肃庆阳宏都雅居马小伟",
-    address: "西安",
-    designer: "张设计师",
-    salesperson: "王销售员",
-    splitTime: "2024-06-20",
-    progress: "量尺:2025/07/11,初稿,已报价未打款",
-    category: "木门,柜体,石材",
-    cycle: "70",
-    state: "进行中",
-    orderType: "设计单",
-    remark: "这个是一个备注",
-    isSetup: true,
-    finishTime: "",
-    designArea: "85",
-    orderAmount: "32000",
-  },
-  {
-    orderNumber: "D2024-023",
-    customerName: "县佳宁-天宝名都1号楼2108",
-    address: "西安",
-    designer: "张设计师",
-    salesperson: "王销售员",
-    splitTime: "2024-07-20",
-    progress: "量尺:2025/07/11,初稿:2025/07/20,已报价未打款:2025/08/20",
-    category: "木门,柜体,石材,板材",
-    cycle: "21",
-    state: "已下单",
-    isSetup: false,
-    orderType: "设计单",
-    remark:
-      "一个很长很长很长很长很很长很长很很长很长很很长很长很很长很长很很长很长很很长很长很长很长很长很长的备注",
-    finishTime: "2024-07-30",
-    designArea: "150",
-    orderAmount: "68000",
-  },
-  {
-    orderNumber: "D2024-024",
-    customerName: "计翠艳-甘肃庆阳宏都雅居马小伟",
-    address: "西安",
-    designer: "张设计师",
-    salesperson: "王销售员",
-    splitTime: "2024-06-20",
-    progress: "量尺,初稿,已报价未打款",
-    category: "木门,柜体,石材",
-    cycle: "70",
-    state: "暂停",
-    orderType: "设计单",
-    isSetup: false,
-    remark: "这个是一个备注",
-    finishTime: "2024-07-30",
-    designArea: "95",
-    orderAmount: "42000",
-  },
-];
+// 进度管理接口
+export interface Progress {
+  id?: number;
+  orderId: string;
+  status: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
-// 模拟API响应接口
+// API响应接口
 export interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
 }
 
-// 模拟网络延迟
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// 订单列表查询参数
+export interface OrderListParams {
+  page?: number;
+  pageSize?: number;
+  orderNumber?: string;
+  customerName?: string;
+  designer?: string;
+  salesperson?: string;
+  orderStatus?: string[];
+  orderType?: string;
+  designCycle?: string;
+  orderCategory?: string[];
+  startDate?: string;
+  endDate?: string;
+}
 
-// 获取设计订单列表
-export const getDesignOrders = async (): Promise<
-  ApiResponse<DesignOrder[]>
-> => {
-  await delay(300); // 模拟网络延迟
+// 订单列表响应
+export interface OrderListResponse {
+  items: DesignOrder[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
 
-  return {
-    code: 200,
-    message: "获取成功",
-    data: mockDesignData,
+// 1. 订单列表查询 - GET /api/v1/orders/list
+export const getDesignOrders = async (params?: OrderListParams): Promise<OrderListResponse> => {
+  // 后端接口是POST方法，需要在请求体中传递参数
+  const requestData = {
+    page: params?.page || 1,
+    page_size: params?.pageSize || 10,
+    order_number: params?.orderNumber,
+    customer_name: params?.customerName,
+    designer: params?.designer,
+    salesperson: params?.salesperson,
+    order_status: params?.orderStatus,
+    order_type: params?.orderType,
+    design_cycle: params?.designCycle,
+    category_names: params?.orderCategory,
+    assignment_date_start: params?.startDate,
+    assignment_date_end: params?.endDate,
   };
-};
-
-// 根据订单号获取单个设计订单
-export const getDesignOrderById = async (
-  orderNumber: string
-): Promise<ApiResponse<DesignOrder | null>> => {
-  await delay(200);
-
-  const order = mockDesignData.find((item) => item.orderNumber === orderNumber);
-
-  return {
-    code: 200,
-    message: order ? "获取成功" : "订单不存在",
-    data: order || null,
-  };
-};
-
-// 创建设计订单
-export const createDesignOrder = async (
-  order: Omit<DesignOrder, "orderNumber">
-): Promise<ApiResponse<DesignOrder>> => {
-  await delay(500);
-
-  const newOrder: DesignOrder = {
-    ...order,
-    orderNumber: `D2024-${String(mockDesignData.length + 1).padStart(3, "0")}`,
-  };
-
-  mockDesignData.push(newOrder);
-
-  return {
-    code: 200,
-    message: "创建成功",
-    data: newOrder,
-  };
-};
-
-// 更新设计订单
-export const updateDesignOrder = async (
-  orderNumber: string,
-  updates: Partial<DesignOrder>
-): Promise<ApiResponse<DesignOrder | null>> => {
-  await delay(400);
-
-  const index = mockDesignData.findIndex(
-    (item) => item.orderNumber === orderNumber
+  
+  // 过滤掉undefined的值
+  const filteredData = Object.fromEntries(
+    Object.entries(requestData).filter(([_, value]) => value !== undefined)
   );
-
-  if (index === -1) {
-    return {
-      code: 404,
-      message: "订单不存在",
-      data: null,
-    };
-  }
-
-  mockDesignData[index] = { ...mockDesignData[index], ...updates };
-
-  return {
-    code: 200,
-    message: "更新成功",
-    data: mockDesignData[index],
-  };
+  
+  return await api.post('/v1/orders/list', filteredData);
 };
 
-// 删除设计订单
-export const deleteDesignOrder = async (
-  orderNumber: string
-): Promise<ApiResponse<boolean>> => {
-  await delay(300);
+// 2. 新增订单 - POST /api/v1/orders/
+export const createDesignOrder = async (order: Omit<DesignOrder, 'orderNumber'>): Promise<ApiResponse<DesignOrder>> => {
+  return await api.post('/v1/orders/', order);
+};
 
-  const index = mockDesignData.findIndex(
-    (item) => item.orderNumber === orderNumber
-  );
+// 3. 获取订单详情 - GET /api/v1/orders/{order_id}
+export const getDesignOrderById = async (orderId: string): Promise<ApiResponse<DesignOrder>> => {
+  return await api.get(`/v1/orders/${orderId}`);
+};
 
-  if (index === -1) {
-    return {
-      code: 404,
-      message: "订单不存在",
-      data: false,
-    };
-  }
+// 4. 编辑订单 - PUT /api/v1/orders/{order_id}
+export const updateDesignOrder = async (orderId: string, updates: Partial<DesignOrder>): Promise<ApiResponse<DesignOrder>> => {
+  return await api.put(`/v1/orders/${orderId}`, updates);
+};
 
-  mockDesignData.splice(index, 1);
+// 5. 下单操作 - PUT /api/v1/orders/{order_id}/status
+export const updateOrderStatus = async (orderId: string, status: string): Promise<ApiResponse<DesignOrder>> => {
+  return await api.put(`/v1/orders/${orderId}/status`, { status });
+};
 
-  return {
-    code: 200,
-    message: "删除成功",
-    data: true,
-  };
+// 进度管理相关接口
+
+// 4.1 新增进度 - POST /api/v1/progress/
+export const createProgress = async (progress: Omit<Progress, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<Progress>> => {
+  return await api.post('/v1/progress/', progress);
+};
+
+// 4.2 进度列表 - GET /api/v1/progress/{order_id}
+export const getProgressList = async (orderId: string): Promise<ApiResponse<Progress[]>> => {
+  return await api.get(`/v1/progress/${orderId}`);
+};
+
+// 4.3 编辑进度 - PUT /api/v1/progress/{progress_id}
+export const updateProgress = async (progressId: number, updates: Partial<Progress>): Promise<ApiResponse<Progress>> => {
+  return await api.put(`/v1/progress/${progressId}`, updates);
+};
+
+// 删除进度 - DELETE /api/v1/progress/{progress_id}
+export const deleteProgress = async (progressId: number): Promise<ApiResponse<boolean>> => {
+  return await api.delete(`/v1/progress/${progressId}`);
+};
+
+// 删除订单 - DELETE /api/v1/orders/{order_id}
+export const deleteDesignOrder = async (orderId: string): Promise<ApiResponse<boolean>> => {
+  return await api.delete(`/v1/orders/${orderId}`);
+};
+
+// 批量操作接口
+
+// 批量更新订单状态
+export const batchUpdateOrderStatus = async (orderIds: string[], status: string): Promise<ApiResponse<boolean>> => {
+  return await api.put('/v1/orders/batch/status', { orderIds, status });
+};
+
+// 批量删除订单
+export const batchDeleteOrders = async (orderIds: string[]): Promise<ApiResponse<boolean>> => {
+  return await api.delete('/v1/orders/batch', { data: { orderIds } });
+};
+
+// 导出订单数据
+export const exportOrders = async (params?: OrderListParams): Promise<Blob> => {
+  return await api.get('/v1/orders/export', {
+    params,
+    responseType: 'blob'
+  });
+};
+
+// 统计数据接口
+export interface OrderStatistics {
+  totalOrders: number;
+  completedOrders: number;
+  pendingOrders: number;
+  cancelledOrders: number;
+}
+
+// 获取统计数据
+export const getOrderStatistics = async (): Promise<ApiResponse<OrderStatistics>> => {
+  return await api.get('/v1/orders/statistics');
 };

@@ -1,44 +1,42 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   Form,
   Input,
   Select,
   DatePicker,
-  Checkbox,
   Row,
   Col,
+  message,
+  Checkbox,
 } from "antd";
 import dayjs from "dayjs";
-import "dayjs/locale/zh-cn";
-
-// 确保客户端也设置中文语言
-dayjs.locale("zh-cn");
+import { UserService, UserData } from "../../services/userService";
+import { CategoryService, CategoryData } from "../../services/categoryService";
 
 const { Option } = Select;
 
 interface OrderFormValues {
-  orderNumber: string;
-  customerName: string;
-  orderAddress: string;
-  orderType: string;
+  order_number: string;
+  customer_name: string;
+  address: string;
   designer: string;
   salesperson: string;
-  categories: string[];
-  splitDate?: string;
-  orderStatus: string;
-  progressDetail: string;
-  isSetup: boolean;
-  remark?: string;
-  designArea?: string;
-  orderAmount?: string;
+  assignment_date: string;
+  category_name: string;
+  order_type: string;
+  cabinet_area?: number;
+  wall_panel_area?: number;
+  order_amount: number;
+  is_installation: boolean;
+  remarks?: string;
 }
 
 interface CreateOrderModalProps {
   visible: boolean;
-  onOk: (values: OrderFormValues) => void;
+  onOk: (values: OrderFormValues) => Promise<boolean>;
   onCancel: () => void;
   initialValues?: Partial<OrderFormValues>;
 }
@@ -50,15 +48,43 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   initialValues,
 }) => {
   const [form] = Form.useForm();
+  const [designers, setDesigners] = useState<UserData[]>([]);
+  const [salespersons, setSalespersons] = useState<UserData[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 加载基础数据
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [designersData, salespersonsData, categoriesData] =
+        await Promise.all([
+          UserService.getDesigners(),
+          UserService.getSalespersons(),
+          CategoryService.getCategoryList(),
+        ]);
+      setDesigners(designersData);
+      setSalespersons(salespersonsData);
+      setCategories(categoriesData);
+    } catch (error) {
+      message.error("加载数据失败，请重试");
+      console.error("加载数据失败:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (visible) {
+      // 加载基础数据
+      loadData();
+
       if (initialValues) {
         // 编辑模式，设置编辑数据
         const formValues = {
           ...initialValues,
-          splitDate: initialValues.splitDate
-            ? dayjs(initialValues.splitDate)
+          assignment_date: initialValues.assignment_date && dayjs(initialValues.assignment_date).isValid()
+            ? dayjs(initialValues.assignment_date)
             : undefined,
         };
         form.setFieldsValue(formValues);
@@ -66,24 +92,30 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         // 新增模式，重置为默认值并清空所有字段
         form.resetFields();
         form.setFieldsValue({
-          orderType: "设计单",
-          progressDetail: "正常进行中",
-          categories: [],
+          order_type: "设计单",
+          is_installation: false,
         });
       }
     }
   }, [visible, initialValues, form]);
 
-  const handleOk = () => {
-    form
-      .validateFields()
-      .then((values) => {
-        onOk(values);
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      // 将category_name数组转换为逗号分隔的字符串
+      const processedValues = {
+        ...values,
+        category_name: Array.isArray(values.category_name)
+          ? values.category_name.join(",")
+          : values.category_name,
+      };
+      const success = await onOk(processedValues);
+      if (success) {
         form.resetFields();
-      })
-      .catch((info) => {
-        console.log("验证失败:", info);
-      });
+      }
+    } catch (info) {
+      console.log("验证失败:", info);
+    }
   };
 
   const handleCancel = () => {
@@ -106,12 +138,15 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         layout="horizontal"
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
+        initialValues={{
+          assignment_date: dayjs(),
+        }}
       >
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               label="订单编号"
-              name="orderNumber"
+              name="order_number"
               rules={[{ required: true, message: "请输入订单编号" }]}
             >
               <Input placeholder="请输入" />
@@ -120,7 +155,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <Col span={12}>
             <Form.Item
               label="客户名称"
-              name="customerName"
+              name="customer_name"
               rules={[{ required: true, message: "请输入客户名称" }]}
             >
               <Input placeholder="请输入" />
@@ -132,7 +167,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <Col span={12}>
             <Form.Item
               label="订单地址"
-              name="orderAddress"
+              name="address"
               rules={[{ required: true, message: "请输入订单地址" }]}
             >
               <Input placeholder="请输入" />
@@ -141,7 +176,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <Col span={12}>
             <Form.Item
               label="订单类型"
-              name="orderType"
+              name="order_type"
               rules={[{ required: true, message: "请选择订单类型" }]}
             >
               <Select placeholder="设计单">
@@ -158,20 +193,22 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             <Form.Item
               label="设计师"
               name="designer"
-              dependencies={["orderType"]}
+              dependencies={["order_type"]}
               rules={[
                 ({ getFieldValue }) => ({
                   required:
-                    getFieldValue("orderType") !== "生产单" &&
-                    getFieldValue("orderType") !== "成品单",
+                    getFieldValue("order_type") !== "生产单" &&
+                    getFieldValue("order_type") !== "成品单",
                   message: "请选择设计师",
                 }),
               ]}
             >
-              <Select placeholder="设计师A">
-                <Option value="设计师A">设计师A</Option>
-                <Option value="设计师B">设计师B</Option>
-                <Option value="设计师C">设计师C</Option>
+              <Select placeholder="请选择设计师" loading={loading}>
+                {designers.map((designer) => (
+                  <Option key={designer.username} value={designer.username}>
+                    {designer.username}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>
@@ -179,12 +216,25 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             <Form.Item
               label="销售员"
               name="salesperson"
-              rules={[{ required: true, message: "请选择销售员" }]}
+              dependencies={["order_type"]}
+              rules={[
+                ({ getFieldValue }) => ({
+                  required:
+                    getFieldValue("order_type") !== "生产单" &&
+                    getFieldValue("order_type") !== "成品单",
+                  message: "请选择销售员",
+                }),
+              ]}
             >
-              <Select placeholder="销售A">
-                <Option value="销售A">销售A</Option>
-                <Option value="销售B">销售B</Option>
-                <Option value="销售C">销售C</Option>
+              <Select placeholder="请选择销售员" loading={loading}>
+                {salespersons.map((salesperson) => (
+                  <Option
+                    key={salesperson.username}
+                    value={salesperson.username}
+                  >
+                    {salesperson.username}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>
@@ -194,23 +244,16 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <Col span={12}>
             <Form.Item
               label="下单类目"
-              name="categories"
+              name="category_name"
               rules={[{ required: true, message: "请选择下单类目" }]}
             >
               <Checkbox.Group>
                 <Row>
-                  <Col span={6}>
-                    <Checkbox value="木门">木门</Checkbox>
-                  </Col>
-                  <Col span={6}>
-                    <Checkbox value="柜体">柜体</Checkbox>
-                  </Col>
-                  <Col span={6}>
-                    <Checkbox value="石材">石材</Checkbox>
-                  </Col>
-                  <Col span={6}>
-                    <Checkbox value="板材">板材</Checkbox>
-                  </Col>
+                  {categories.map((category) => (
+                    <Col span={8} key={category.id}>
+                      <Checkbox value={category.name}>{category.name}</Checkbox>
+                    </Col>
+                  ))}
                 </Row>
               </Checkbox.Group>
             </Form.Item>
@@ -218,41 +261,47 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <Col span={12}>
             <Form.Item
               label="是否安装"
-              name="isSetup"
+              name="is_installation"
               rules={[{ required: true, message: "请选择是否安装" }]}
             >
               <Select placeholder="请选择是否安装" allowClear>
-                <Option value="true">是</Option>
-                <Option value="false">否</Option>
+                <Option value={true}>是</Option>
+                <Option value={false}>否</Option>
               </Select>
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="分单日期" name="splitDate">
+            <Form.Item
+              label="分单日期"
+              name="assignment_date"
+              rules={[{ required: true, message: "请选择分单日期" }]}
+            >
               <DatePicker
-                placeholder="请选择日期"
+                placeholder="请选择分单日期"
                 style={{ width: "100%" }}
-                defaultValue={dayjs()}
+                showTime
+                showNow={false}
               />
             </Form.Item>
           </Col>
+
           <Col span={12}>
-            <Form.Item label="订单金额" name="orderAmount">
+            <Form.Item label="订单金额" name="order_amount">
               <Input placeholder="请输入" addonAfter="元" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="柜体面积" name="designArea">
+            <Form.Item label="柜体面积" name="cabinet_area">
               <Input placeholder="请输入" addonAfter="㎡" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="墙板面积" name="designArea">
+            <Form.Item label="墙板面积" name="wall_panel_area">
               <Input placeholder="请输入" addonAfter="㎡" />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="备注" name="remark">
+            <Form.Item label="备注" name="remarks">
               <Input.TextArea placeholder="请输入" rows={3} />
             </Form.Item>
           </Col>

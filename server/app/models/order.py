@@ -42,14 +42,14 @@ class Order(Base):
     address = Column(Text, nullable=False, comment="地址")
     designer = Column(String(50), nullable=False, comment="设计师")
     salesperson = Column(String(50), nullable=False, comment="销售员")
-    assignment_date = Column(DateTime, nullable=False, comment="分单日期")
-    order_date = Column(DateTime, nullable=False, comment="下单日期")
+    assignment_date = Column(String(50), nullable=False, comment="分单日期")
+    order_date = Column(DateTime, nullable=True, comment="下单日期")
     
     # 类目名称
     category_name = Column(String(100), nullable=False, comment="类目名称")
     
-    order_type = Column(Enum(OrderType), nullable=False, comment="订单类型")
-    design_cycle = Column(Enum(DesignCycle), nullable=False, comment="设计周期")
+    order_type = Column(String(50), nullable=False, comment="订单类型")
+    design_cycle = Column(String(50), nullable=False, default="0", comment="设计周期")
     
     # 面积和金额
     cabinet_area = Column(Numeric(10, 2), nullable=True, comment="柜体面积")

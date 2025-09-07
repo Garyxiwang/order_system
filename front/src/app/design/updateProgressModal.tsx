@@ -15,11 +15,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
-import "dayjs/locale/zh-cn";
 import styles from "./updateProgressModal.module.css";
-
-// 确保客户端也设置中文语言
-dayjs.locale("zh-cn");
 
 const { Option } = Select;
 const { TextArea } = Input;

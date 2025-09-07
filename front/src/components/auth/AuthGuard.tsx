@@ -47,7 +47,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Spin size="large" tip="验证登录状态..." />
+        <Spin size="large" spinning={true} tip="验证登录状态...">
+          <div style={{ minHeight: 200 }} />
+        </Spin>
       </div>
     );
   }
