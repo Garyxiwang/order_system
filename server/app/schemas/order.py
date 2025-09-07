@@ -75,7 +75,7 @@ class OrderResponse(OrderBase):
             'address': obj.address,
             'designer': obj.designer,
             'salesperson': obj.salesperson,
-            'assignment_date': obj.assignment_date.strftime('%Y-%m-%d %H:%M:%S') if obj.assignment_date else None,
+            'assignment_date': obj.assignment_date,
             'order_date': obj.order_date,
             'category_name': obj.category_name,
             'order_type': obj.order_type,

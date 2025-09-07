@@ -108,7 +108,7 @@ async def get_orders(
                 address=order.address,
                 designer=order.designer,
                 salesperson=order.salesperson,
-                assignment_date=order.assignment_date.strftime('%Y-%m-%d %H:%M:%S') if order.assignment_date else None,
+                assignment_date=order.assignment_date,
                 design_process=design_process,
                 category_name=order.category_name,
                 design_cycle=order.design_cycle,
