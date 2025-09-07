@@ -1,15 +1,17 @@
 "use client";
 
-import React from "react";
-import { Form, Input, Button, Typography } from "antd";
+import React, { useState } from "react";
+import { Form, Input, Button, Typography, message } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import AuthService from "../../services/authService";
 
 const { Title, Text } = Typography;
 
 const LoginPage: React.FC = () => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   interface LoginFormValues {
     username: string;
@@ -17,10 +19,28 @@ const LoginPage: React.FC = () => {
     remember?: boolean;
   }
 
-  const onFinish = (values: LoginFormValues) => {
-    console.log("登录信息:", values);
-    // 模拟登录成功，实际项目中应该调用API
-    router.push("/design");
+  const onFinish = async (values: LoginFormValues) => {
+    setLoading(true);
+    try {
+      // 调用登录API
+      const userInfo = await AuthService.login({
+        username: values.username,
+        password: values.password,
+      });
+
+      // 存储用户信息到localStorage
+      AuthService.setUserInfo(userInfo);
+
+      // 跳转到设计页面
+      router.push("/design");
+    } catch (error) {
+      // 显示错误消息
+      const errorMessage =
+        error instanceof Error ? error.message : "登录失败，请检查用户名和密码";
+      message.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,9 +106,10 @@ const LoginPage: React.FC = () => {
                 type="primary"
                 htmlType="submit"
                 block
+                loading={loading}
                 className="h-12 text-base font-medium bg-blue-500 hover:bg-blue-600 rounded-lg shadow-md border-0"
               >
-                登录
+                {loading ? "登录中..." : "登录"}
               </Button>
             </Form.Item>
           </Form>

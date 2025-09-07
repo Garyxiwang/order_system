@@ -38,6 +38,7 @@ interface CategoryData {
 interface StaffFormValues {
   username: string;
   role: string;
+  password?: string;
 }
 
 interface CategoryFormValues {
@@ -260,7 +261,12 @@ const ConfigPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const newStaff = await StaffService.createStaff(values);
+      // 设置默认密码为123456
+      const staffDataWithPassword = {
+        ...values,
+        password: values.password || '123456'
+      };
+      const newStaff = await StaffService.createStaff(staffDataWithPassword);
       console.log("newStaff", newStaff);
       setStaffData([newStaff, ...staffData]);
       setStaffModalVisible(false);
@@ -379,6 +385,7 @@ const ConfigPage: React.FC = () => {
           labelCol={{ span: 6 }}
           wrapperCol={{ span: 18 }}
           onFinish={handleAddStaff}
+          initialValues={{ password: '123456' }}
         >
           <Form.Item
             name="username"
@@ -386,6 +393,13 @@ const ConfigPage: React.FC = () => {
             rules={[{ required: true, message: "请输入用户名" }]}
           >
             <Input placeholder="请输入用户名" />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="密码"
+            rules={[{ required: true, message: "请输入密码" }]}
+          >
+            <Input placeholder="请输入密码" />
           </Form.Item>
           <Form.Item
             name="role"
