@@ -17,14 +17,6 @@ class OrderStatus(enum.Enum):
     CANCELLED = "已撤销"  # 已撤销
 
 
-class OrderType(enum.Enum):
-    """订单类型枚举"""
-    CUSTOM = "定制"  # 定制
-    STANDARD = "标准"  # 标准
-    REPAIR = "维修"  # 维修
-    UPGRADE = "升级"  # 升级
-
-
 class DesignCycle(enum.Enum):
     """设计周期枚举"""
     URGENT = "加急"  # 加急（1-3天）
