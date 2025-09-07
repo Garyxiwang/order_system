@@ -83,10 +83,22 @@ export const getDesignOrders = async (params?: OrderListParams): Promise<OrderLi
     assignment_date_end: params?.endDate,
   };
   
-  // 过滤掉undefined的值
-  const filteredData = Object.fromEntries(
-    Object.entries(requestData).filter(([_, value]) => value !== undefined)
-  );
+  // 过滤掉undefined的值，但保留page和page_size
+  const filteredData: {
+    page: number;
+    page_size: number;
+    [key: string]: string | number | string[] | undefined;
+  } = {
+    page: requestData.page,
+    page_size: requestData.page_size
+  };
+  
+  // 只添加非undefined的其他字段
+  Object.entries(requestData).forEach(([key, value]) => {
+    if (key !== 'page' && key !== 'page_size' && value !== undefined) {
+      filteredData[key] = value;
+    }
+  });
   
   return await api.post('/v1/orders/list', filteredData);
 };
