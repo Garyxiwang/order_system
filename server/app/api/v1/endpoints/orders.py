@@ -164,10 +164,9 @@ async def create_order(
             category_name=order_data.category_name,
             order_type=order_data.order_type,
             design_cycle=order_data.design_cycle or "0",
-            cabinet_area=getattr(order_data, 'cabinet_area', 0) or 0,
-            wall_panel_area=getattr(order_data, 'wall_panel_area', 0) or 0,
-            design_area=(getattr(order_data, 'cabinet_area', 0) or 0) +
-            (getattr(order_data, 'wall_panel_area', 0) or 0),
+            cabinet_area=order_data.cabinet_area,
+            wall_panel_area=order_data.wall_panel_area,
+            design_area=(order_data.cabinet_area or 0) + (order_data.wall_panel_area or 0) if (order_data.cabinet_area or order_data.wall_panel_area) else None,
             order_amount=order_data.order_amount,
             is_installation=getattr(order_data, 'is_installation', False),
             remarks=getattr(order_data, 'remarks', None),
@@ -201,8 +200,10 @@ async def update_order(
         if not order:
             return error_response(message="订单不存在")
 
-        # 获取更新数据
-        update_data = order_data.dict(exclude_unset=True)
+        # 获取更新数据，保留None值以支持字段清空
+        update_data = order_data.dict(exclude_none=False)
+        # 只保留实际传递的字段
+        update_data = {k: v for k, v in update_data.items() if k in order_data.__fields_set__ or v is None}
         
         # 如果更新了订单编号，检查是否重复
         if 'order_number' in update_data and update_data['order_number'] != order.order_number:
@@ -220,7 +221,10 @@ async def update_order(
             cabinet_area = update_data.get('cabinet_area', order.cabinet_area)
             wall_panel_area = update_data.get(
                 'wall_panel_area', order.wall_panel_area)
-            update_data['design_area'] = cabinet_area + wall_panel_area
+            if cabinet_area or wall_panel_area:
+                update_data['design_area'] = (cabinet_area or 0) + (wall_panel_area or 0)
+            else:
+                update_data['design_area'] = None
 
         for field, value in update_data.items():
             setattr(order, field, value)

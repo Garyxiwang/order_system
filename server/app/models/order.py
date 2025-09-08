@@ -41,13 +41,13 @@ class Order(Base):
     category_name = Column(String(100), nullable=False, comment="类目名称")
     
     order_type = Column(String(50), nullable=False, comment="订单类型")
-    design_cycle = Column(String(50), nullable=False, default="0", comment="设计周期")
+    design_cycle = Column(String(50), nullable=True, comment="设计周期")
     
     # 面积和金额
     cabinet_area = Column(Numeric(10, 2), nullable=True, comment="柜体面积")
     wall_panel_area = Column(Numeric(10, 2), nullable=True, comment="墙板面积")
     design_area = Column(Numeric(10, 2), nullable=True, comment="设计面积")
-    order_amount = Column(Numeric(12, 2), nullable=False, comment="订单金额")
+    order_amount = Column(Numeric(12, 2), nullable=True, comment="订单金额")
     
     is_installation = Column(Boolean, default=False, comment="是否安装")
     remarks = Column(Text, nullable=True, comment="备注")
