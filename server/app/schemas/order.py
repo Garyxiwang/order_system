@@ -79,7 +79,7 @@ class OrderResponse(OrderBase):
             'order_date': obj.order_date,
             'category_name': obj.category_name,
             'order_type': obj.order_type,
-            'design_cycle': obj.design_cycle,
+            'design_cycle': obj.design_cycle or "0",
             'cabinet_area': obj.cabinet_area,
             'wall_panel_area': obj.wall_panel_area,
             'order_amount': obj.order_amount,

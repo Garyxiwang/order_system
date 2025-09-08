@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@ant-design/v5-patch-for-react-19";
 import "./globals.css";
-import { ConfigProvider } from "antd";
-import zhCN from "antd/locale/zh_CN";
-// 导入dayjs配置以确保时区设置生效
+import LocaleProvider from "@/components/LocaleProvider";
 
 
 const geistSans = Geist({
@@ -39,9 +37,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ConfigProvider locale={zhCN}>
+        <LocaleProvider>
           <AppLayout>{children}</AppLayout>
-        </ConfigProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

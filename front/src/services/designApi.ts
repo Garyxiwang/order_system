@@ -54,6 +54,8 @@ export interface OrderListParams {
   orderCategory?: string[];
   startDate?: string;
   endDate?: string;
+  orderDateStart?: string;
+  orderDateEnd?: string;
 }
 
 // 订单列表响应
@@ -81,6 +83,8 @@ export const getDesignOrders = async (params?: OrderListParams): Promise<OrderLi
     category_names: params?.orderCategory,
     assignment_date_start: params?.startDate,
     assignment_date_end: params?.endDate,
+    order_date_start: params?.orderDateStart,
+    order_date_end: params?.orderDateEnd,
   };
   
   // 过滤掉undefined的值，但保留page和page_size

@@ -1,9 +1,9 @@
 /**
  * 日期时间工具函数
  */
-import dayjs from 'dayjs';
-import timezone from 'dayjs/plugin/timezone';
-import utc from 'dayjs/plugin/utc';
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 
 // 配置dayjs插件
 dayjs.extend(utc);
@@ -14,15 +14,17 @@ dayjs.extend(timezone);
  * @param dateString - 日期字符串或Date对象
  * @returns 格式化后的日期时间字符串，如果输入无效则返回 '-'
  */
-export const formatDateTime = (dateString: string | Date | null | undefined): string => {
-  if (!dateString) return '-';
-  
+export const formatDateTime = (
+  dateString: string | Date | null | undefined
+): string => {
+  if (!dateString) return "-";
+
   try {
     // 使用dayjs处理时区转换
-    return dayjs(dateString).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+    return dayjs(dateString).tz("Asia/Shanghai").format("YYYY-MM-DD");
   } catch (error) {
-    console.error('日期格式化错误:', error);
-    return '-';
+    console.error("日期格式化错误:", error);
+    return "-";
   }
 };
 
@@ -31,15 +33,17 @@ export const formatDateTime = (dateString: string | Date | null | undefined): st
  * @param dateString - 日期字符串或Date对象
  * @returns 格式化后的日期字符串，如果输入无效则返回 '-'
  */
-export const formatDate = (dateString: string | Date | null | undefined): string => {
-  if (!dateString) return '-';
-  
+export const formatDate = (
+  dateString: string | Date | null | undefined
+): string => {
+  if (!dateString) return "-";
+
   try {
     // 使用dayjs处理时区转换
-    return dayjs(dateString).tz('Asia/Shanghai').format('YYYY-MM-DD');
+    return dayjs(dateString).tz("Asia/Shanghai").format("YYYY-MM-DD");
   } catch (error) {
-    console.error('日期格式化错误:', error);
-    return '-';
+    console.error("日期格式化错误:", error);
+    return "-";
   }
 };
 
@@ -48,15 +52,17 @@ export const formatDate = (dateString: string | Date | null | undefined): string
  * @param dateString - 日期字符串或Date对象
  * @returns 格式化后的时间字符串，如果输入无效则返回 '-'
  */
-export const formatTime = (dateString: string | Date | null | undefined): string => {
-  if (!dateString) return '-';
-  
+export const formatTime = (
+  dateString: string | Date | null | undefined
+): string => {
+  if (!dateString) return "-";
+
   try {
     // 使用dayjs处理时区转换
-    return dayjs(dateString).tz('Asia/Shanghai').format('HH:mm:ss');
+    return dayjs(dateString).tz("Asia/Shanghai").format("HH:mm:ss");
   } catch (error) {
-    console.error('时间格式化错误:', error);
-    return '-';
+    console.error("时间格式化错误:", error);
+    return "-";
   }
 };
 
@@ -65,7 +71,7 @@ export const formatTime = (dateString: string | Date | null | undefined): string
  * @returns 当前北京时间的dayjs对象
  */
 export const getCurrentBeijingTime = () => {
-  return dayjs().tz('Asia/Shanghai');
+  return dayjs().tz("Asia/Shanghai");
 };
 
 /**
@@ -73,13 +79,18 @@ export const getCurrentBeijingTime = () => {
  * @param utcDateString - UTC时间字符串
  * @returns 北京时间格式的字符串
  */
-export const utcToBeijingDisplay = (utcDateString: string | null | undefined): string => {
-  if (!utcDateString) return '-';
-  
+export const utcToBeijingDisplay = (
+  utcDateString: string | null | undefined
+): string => {
+  if (!utcDateString) return "-";
+
   try {
-    return dayjs.utc(utcDateString).tz('Asia/Shanghai').format('YYYY-MM-DD HH:mm:ss');
+    return dayjs
+      .utc(utcDateString)
+      .tz("Asia/Shanghai")
+      .format("YYYY-MM-DD HH:mm:ss");
   } catch (error) {
-    console.error('UTC转北京时间错误:', error);
-    return '-';
+    console.error("UTC转北京时间错误:", error);
+    return "-";
   }
 };

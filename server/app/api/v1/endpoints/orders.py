@@ -53,8 +53,30 @@ async def get_orders(
                 f"%{query_data.salesperson}%"))
 
         if query_data.order_status:
-            query = query.filter(
-                Order.order_status.in_(query_data.order_status))
+            # 定义所有已知的订单状态
+            defined_statuses = [
+                "量尺", "初稿", "报价", "打款", "延期", "暂停", 
+                "等硬装", "客户待打款", "待客户确认", "待下单", "已下单", "已撤销"
+            ]
+            
+            # 检查是否包含"其他"状态
+            if "其他" in query_data.order_status:
+                # 如果只选择了"其他"，则筛选出不在已定义状态中的订单
+                if len(query_data.order_status) == 1:
+                    query = query.filter(~Order.order_status.in_(defined_statuses))
+                else:
+                    # 如果同时选择了"其他"和其他状态，则包含其他状态和不在已定义状态中的订单
+                    other_selected_statuses = [s for s in query_data.order_status if s != "其他"]
+                    query = query.filter(
+                        or_(
+                            Order.order_status.in_(other_selected_statuses),
+                            ~Order.order_status.in_(defined_statuses)
+                        )
+                    )
+            else:
+                # 如果没有选择"其他"，则按原逻辑筛选
+                query = query.filter(
+                    Order.order_status.in_(query_data.order_status))
 
         if query_data.order_type:
             query = query.filter(Order.order_type == query_data.order_type)
@@ -63,8 +85,11 @@ async def get_orders(
             query = query.filter(Order.design_cycle == query_data.design_cycle)
 
         if query_data.category_names:
-            query = query.filter(
-                Order.category_name.in_(query_data.category_names))
+            # 使用包含关系查询，只要订单中包含任一选中的类目就匹配
+            category_conditions = []
+            for category in query_data.category_names:
+                category_conditions.append(Order.category_name.like(f"%{category}%"))
+            query = query.filter(or_(*category_conditions))
 
         if query_data.assignment_date_start:
             query = query.filter(Order.assignment_date >=
@@ -101,7 +126,7 @@ async def get_orders(
                 for p in order.progresses:
                     if p.actual_date:
                         design_process_items.append(
-                            f"{p.task_item}:{p.actual_date}")
+                            f"{p.task_item}:{p.actual_date.strftime('%Y-%m-%d')}")
                     else:
                         design_process_items.append(f"{p.task_item}:-")
                 design_process = ",".join(design_process_items)
@@ -203,14 +228,8 @@ async def update_order(
 ):
     """编辑订单"""
     try:
-        # 查找订单 - 支持通过ID或订单编号查找
-        if order_id.isdigit():
-            # 如果是数字，按ID查找
-            order = db.query(Order).filter(Order.id == int(order_id)).first()
-        else:
-            # 如果不是数字，按订单编号查找
-            order = db.query(Order).filter(
-                Order.order_number == order_id).first()
+        # 查找订单 - 按ID查找
+        order = db.query(Order).filter(Order.id == order_id).first()
 
         if not order:
             return error_response(message="订单不存在")
@@ -225,7 +244,7 @@ async def update_order(
         if 'order_number' in update_data and update_data['order_number'] != order.order_number:
             existing_order = db.query(Order).filter(
                 Order.order_number == update_data['order_number'],
-                Order.id != order_id
+                Order.id != order.id
             ).first()
             if existing_order:
                 return error_response(message="订单编号已存在")
@@ -296,6 +315,15 @@ async def update_order_status(
             # 设置下单时间
             order.order_date = datetime.now().strftime('%Y-%m-%d')
             print("---=-=-=-,", datetime.now().strftime('%Y-%m-%d'))
+            
+            # 更新进度表中下单事项的实际时间
+            order_progress = db.query(Progress).filter(
+                Progress.order_id == order.id,
+                Progress.task_item == "下单"
+            ).first()
+            if order_progress:
+                order_progress.actual_date = datetime.strptime(order.order_date, '%Y-%m-%d').date()
+                print(f"更新下单进度实际时间: {order_progress.actual_date}")
             # 检查是否已存在拆单记录
             existing_split = db.query(Split).filter(
                 Split.order_number == order.order_number
@@ -347,7 +375,7 @@ async def update_order_status(
             "order_date": order.order_date,
             "category_name": order.category_name,
             "order_type": order.order_type,
-            "design_cycle": order.design_cycle,
+            "design_cycle": order.design_cycle or "0",
             "cabinet_area": order.cabinet_area,
             "wall_panel_area": order.wall_panel_area,
             "order_amount": order.order_amount,
@@ -409,7 +437,7 @@ async def get_order(
             "order_date": order.order_date,
             "category_name": order.category_name,
             "order_type": order.order_type,
-            "design_cycle": order.design_cycle,
+            "design_cycle": order.design_cycle or "0",
             "cabinet_area": order.cabinet_area,
             "wall_panel_area": order.wall_panel_area,
             "order_amount": order.order_amount,

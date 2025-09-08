@@ -36,6 +36,8 @@ import {
   type OrderListParams,
 } from "../../services/designApi";
 import { formatDateTime } from "../../utils/dateUtils";
+import { UserService, UserData } from "../../services/userService";
+import { CategoryService, CategoryData } from "../../services/categoryService";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -57,7 +59,9 @@ const DesignPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
+  const [designers, setDesigners] = useState<UserData[]>([]);
+  const [salespersons, setSalespersons] = useState<UserData[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
 
   const showModal = () => {
     setEditingRecord(null);
@@ -213,7 +217,7 @@ const DesignPage: React.FC = () => {
           designer: values.designer,
           salesperson: values.salesperson,
           assignment_date: values.assignment_date
-            ? dayjs(values.assignment_date).format("YYYY-MM-DD HH:mm:ss")
+            ? dayjs(values.assignment_date).format("YYYY-MM-DD")
             : "",
           category_name: values.category_name,
           order_type: values.order_type,
@@ -239,7 +243,7 @@ const DesignPage: React.FC = () => {
           designer: values.designer,
           salesperson: values.salesperson,
           assignment_date: values.assignment_date
-            ? dayjs(values.assignment_date).format("YYYY-MM-DD HH:mm:ss")
+            ? dayjs(values.assignment_date).format("YYYY-MM-DD")
             : "",
           design_process: "",
           category_name: values.category_name,
@@ -293,6 +297,7 @@ const DesignPage: React.FC = () => {
         page: page || currentPage,
         pageSize: size || pageSize,
       };
+      console.log("searchParams", searchParams);
       const response = await getDesignOrders(params);
       // 后端直接返回OrderListResponse对象，不是包装在ApiResponse中
       setDesignData(response.items || []);
@@ -315,11 +320,19 @@ const DesignPage: React.FC = () => {
       customerName: formValues.customerName,
       designer: formValues.designer,
       salesperson: formValues.salesperson,
-      orderStatus: filterStatuses.length > 0 ? filterStatuses : undefined,
+      orderStatus:
+        formValues.orderStatus && formValues.orderStatus.length > 0
+          ? formValues.orderStatus
+          : undefined,
       orderType: formValues.orderType,
-      orderCategory: formValues.category ? [formValues.category] : undefined,
-      startDate: formValues.dateRange?.[0]?.format("YYYY-MM-DD"),
-      endDate: formValues.dateRange?.[1]?.format("YYYY-MM-DD"),
+      orderCategory:
+        formValues.orderCategory && formValues.orderCategory.length > 0
+          ? formValues.orderCategory
+          : undefined,
+      startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
+      endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
+      orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
+      orderDateEnd: formValues.orderDateRange?.[1]?.format("YYYY-MM-DD"),
     };
 
     // 过滤掉空值
@@ -338,11 +351,11 @@ const DesignPage: React.FC = () => {
   const handleReset = async () => {
     // 重置表单
     searchForm.resetFields();
-    setFilterStatuses([]);
+
     // 重置分页状态
     setCurrentPage(1);
     // 重新加载所有数据
-    await loadDesignData({}, 1, pageSize);
+    await handleSearch();
   };
 
   // 处理分页变化
@@ -366,11 +379,19 @@ const DesignPage: React.FC = () => {
       customerName: formValues.customerName,
       designer: formValues.designer,
       salesperson: formValues.salesperson,
-      orderStatus: filterStatuses.length > 0 ? filterStatuses : undefined,
+      orderStatus:
+        formValues.orderStatus && formValues.orderStatus.length > 0
+          ? formValues.orderStatus
+          : undefined,
       orderType: formValues.orderType,
-      orderCategory: formValues.category ? [formValues.category] : undefined,
-      startDate: formValues.dateRange?.[0]?.format("YYYY-MM-DD"),
-      endDate: formValues.dateRange?.[1]?.format("YYYY-MM-DD"),
+      orderCategory:
+        formValues.orderCategory && formValues.orderCategory.length > 0
+          ? formValues.orderCategory
+          : undefined,
+      startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
+      endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
+      orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
+      orderDateEnd: formValues.orderDateRange?.[1]?.format("YYYY-MM-DD"),
     };
 
     // 过滤掉空值
@@ -383,9 +404,37 @@ const DesignPage: React.FC = () => {
     await loadDesignData(filteredParams, newPage, newPageSize);
   };
 
+  // 加载用户数据
+  const loadUserData = async () => {
+    try {
+      const [designerList, salespersonList] = await Promise.all([
+        UserService.getDesigners(),
+        UserService.getSalespersons(),
+      ]);
+      setDesigners(designerList);
+      setSalespersons(salespersonList);
+    } catch (error) {
+      console.error("加载用户数据失败:", error);
+      message.error("加载用户数据失败");
+    }
+  };
+
+  // 加载类目数据
+  const loadCategoryData = async () => {
+    try {
+      const categoryList = await CategoryService.getCategoryList();
+      setCategories(categoryList);
+    } catch (error) {
+      console.error("加载类目数据失败:", error);
+      message.error("加载类目数据失败");
+    }
+  };
+
   // 组件挂载时加载数据
   useEffect(() => {
-    loadDesignData();
+    handleSearch();
+    loadUserData();
+    loadCategoryData();
   }, []);
 
   const columns: ColumnsType<DesignOrder> = [
@@ -587,7 +636,7 @@ const DesignPage: React.FC = () => {
         if (text === "已下单") {
           return <Tag color="green">{text}</Tag>;
         }
-         if (text === "已撤销") {
+        if (text === "已撤销") {
           return <Tag color="red">{text}</Tag>;
         }
 
@@ -674,6 +723,7 @@ const DesignPage: React.FC = () => {
               "等硬装",
               "客户待打款",
               "待客户确认",
+              "下单",
               "其他",
             ],
           }}
@@ -708,8 +758,11 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="designer1">设计师1</Option>
-                  <Option value="designer2">设计师2</Option>
+                  {designers.map((designer) => (
+                    <Option key={designer.username} value={designer.username}>
+                      {designer.username}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -721,9 +774,14 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="1">销售员1</Option>
-                  <Option value="2">销售员2</Option>
-                  <Option value="3">销售员3</Option>
+                  {salespersons.map((salesperson) => (
+                    <Option
+                      key={salesperson.username}
+                      value={salesperson.username}
+                    >
+                      {salesperson.username}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -735,6 +793,58 @@ const DesignPage: React.FC = () => {
                   className="rounded-md"
                   size="middle"
                   allowClear
+                  maxTagCount="responsive"
+                  dropdownRender={(menu) => {
+                    const allStatusOptions = [
+                      "量尺",
+                      "初稿",
+                      "报价",
+                      "打款",
+                      "延期",
+                      "暂停",
+                      "等硬装",
+                      "客户待打款",
+                      "待客户确认",
+                      "下单",
+                      "已下单",
+                      "已撤销",
+                      "其他",
+                    ];
+                    const currentValues =
+                      searchForm.getFieldValue("orderStatus") || [];
+                    const isAllSelected = allStatusOptions.every((status) =>
+                      currentValues.includes(status)
+                    );
+
+                    return (
+                      <>
+                        <div
+                          style={{
+                            padding: "8px",
+                            borderBottom: "1px solid #f0f0f0",
+                          }}
+                        >
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => {
+                              if (isAllSelected) {
+                                searchForm.setFieldsValue({ orderStatus: [] });
+                              } else {
+                                searchForm.setFieldsValue({
+                                  orderStatus: allStatusOptions,
+                                });
+                              }
+                            }}
+                            style={{ padding: 0, height: "auto" }}
+                          >
+                            {isAllSelected ? "取消全选" : "全选"}
+                          </Button>
+                        </div>
+                        {menu}
+                      </>
+                    );
+                  }}
                 >
                   <Option value="量尺">量尺</Option>
                   <Option value="初稿">初稿</Option>
@@ -745,7 +855,9 @@ const DesignPage: React.FC = () => {
                   <Option value="等硬装">等硬装</Option>
                   <Option value="客户待打款">客户待打款</Option>
                   <Option value="待客户确认">待客户确认</Option>
-                  <Option value="下单">下单</Option>
+                  <Option value="下单">待下单</Option>
+                  <Option value="已下单">已下单</Option>
+                  <Option value="已撤销">已撤销</Option>
                   <Option value="其他">其他</Option>
                 </Select>
               </Form.Item>
@@ -759,9 +871,9 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="design">设计单</Option>
-                  <Option value="development">生成单</Option>
-                  <Option value="production">成品单</Option>
+                  <Option value="设计单">设计单</Option>
+                  <Option value="生成单">生成单</Option>
+                  <Option value="成品单">成品单</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -775,11 +887,11 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="1">木门</Option>
-                  <Option value="2">柜体</Option>
-                  <Option value="3">石材</Option>
-                  <Option value="4">板材</Option>
-                  <Option value="5">铝合金门</Option>
+                  {categories.map((category) => (
+                    <Option key={category.id} value={category.name}>
+                      {category.name}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>

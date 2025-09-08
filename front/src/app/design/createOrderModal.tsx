@@ -294,7 +294,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               <DatePicker
                 placeholder="请选择分单日期"
                 style={{ width: "100%" }}
-                showTime
                 showNow={false}
               />
             </Form.Item>
