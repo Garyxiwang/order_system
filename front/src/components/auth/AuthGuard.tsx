@@ -46,10 +46,14 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // 显示加载状态
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spin size="large" spinning={true} tip="验证登录状态...">
-          <div style={{ minHeight: 200 }} />
-        </Spin>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
+          <Spin size="large" spinning={true} />
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">验证登录状态</h3>
+            <p className="text-sm text-gray-500">正在为您准备系统...</p>
+          </div>
+        </div>
       </div>
     );
   }

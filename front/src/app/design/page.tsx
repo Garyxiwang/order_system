@@ -180,9 +180,9 @@ const DesignPage: React.FC = () => {
     assignment_date?: string;
     remarks?: string;
     is_installation: boolean;
-    cabinet_area?: number;
-    wall_panel_area?: number;
-    order_amount?: number;
+    cabinet_area?: string;
+    wall_panel_area?: string;
+    order_amount?: string;
   }): Promise<boolean> => {
     try {
       setLoading(true);
@@ -200,7 +200,9 @@ const DesignPage: React.FC = () => {
           order_type: values.order_type,
           remarks: values.remarks || "",
           is_installation: values.is_installation,
-          order_amount: values.order_amount?.toString() || "0",
+          order_amount: values.order_amount || undefined,
+          cabinet_area: values.cabinet_area || undefined,
+          wall_panel_area: values.wall_panel_area || undefined,
         });
 
         if (response.code === 200) {
@@ -225,7 +227,9 @@ const DesignPage: React.FC = () => {
           design_cycle: "0",
           remarks: values.remarks || "",
           is_installation: values.is_installation,
-          order_amount: values.order_amount?.toString() || "0",
+          order_amount: values.order_amount || undefined,
+          cabinet_area: values.cabinet_area || undefined,
+          wall_panel_area: values.wall_panel_area || undefined,
         });
 
         if (response.code === 200) {
@@ -861,12 +865,10 @@ const DesignPage: React.FC = () => {
                 assignment_date: editingRecord.assignment_date,
                 category_name: editingRecord.category_name,
                 remarks: editingRecord.remarks,
-                order_amount: editingRecord.order_amount
-                  ? Number(editingRecord.order_amount)
-                  : undefined,
+                order_amount: editingRecord.order_amount && editingRecord.order_amount !== "0.00" ? editingRecord.order_amount : undefined,
                 is_installation: editingRecord.is_installation,
-                cabinet_area: editingRecord.cabinet_area,
-                wall_panel_area: editingRecord.wall_panel_area,
+                cabinet_area: editingRecord.cabinet_area && editingRecord.cabinet_area !== "0.00" ? editingRecord.cabinet_area : undefined,
+                wall_panel_area: editingRecord.wall_panel_area && editingRecord.wall_panel_area !== "0.00" ? editingRecord.wall_panel_area : undefined,
               }
             : undefined
         }

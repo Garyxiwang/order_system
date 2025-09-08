@@ -18,8 +18,8 @@ export interface DesignOrder {
   remarks: string;
   is_installation: boolean;
   order_amount?: string;
-  cabinet_area?: number;
-  wall_panel_area?: number;
+  cabinet_area?: string;
+  wall_panel_area?: string;
   order_status: string;
 }
 

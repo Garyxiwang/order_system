@@ -27,9 +27,9 @@ interface OrderFormValues {
   assignment_date: string;
   category_name: string;
   order_type: string;
-  cabinet_area?: number;
-  wall_panel_area?: number;
-  order_amount: number;
+  cabinet_area?: string;
+  wall_panel_area?: string;
+  order_amount?: string;
   is_installation: boolean;
   remarks?: string;
 }
@@ -83,9 +83,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         // 编辑模式，设置编辑数据
         const formValues = {
           ...initialValues,
-          assignment_date: initialValues.assignment_date && dayjs(initialValues.assignment_date).isValid()
-            ? dayjs(initialValues.assignment_date)
-            : undefined,
+          assignment_date:
+            initialValues.assignment_date &&
+            dayjs(initialValues.assignment_date).isValid()
+              ? dayjs(initialValues.assignment_date)
+              : undefined,
         };
         form.setFieldsValue(formValues);
       } else {
@@ -103,11 +105,24 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     try {
       const values = await form.validateFields();
       // 将category_name数组转换为逗号分隔的字符串
+      // 处理数字字段，空字符串转为undefined而不是0
       const processedValues = {
         ...values,
         category_name: Array.isArray(values.category_name)
           ? values.category_name.join(",")
           : values.category_name,
+        order_amount:
+          values.order_amount && values.order_amount !== ""
+            ? values.order_amount
+            : undefined,
+        cabinet_area:
+          values.cabinet_area && values.cabinet_area !== ""
+            ? values.cabinet_area
+            : undefined,
+        wall_panel_area:
+          values.wall_panel_area && values.wall_panel_area !== ""
+            ? values.wall_panel_area
+            : undefined,
       };
       const success = await onOk(processedValues);
       if (success) {
