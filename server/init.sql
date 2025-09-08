@@ -34,12 +34,8 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- 创建订单状态枚举类型（如果不存在）
-DO $$ BEGIN
-    CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'processing', 'completed', 'cancelled');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+-- 订单状态枚举类型已废弃，现在使用VARCHAR类型
+-- 支持的状态值：量尺、初稿、报价、打款、延期、暂停、等硬装、客户待打款、待客户确认、待下单、已下单、已撤销等
 
 -- 创建拆单状态枚举类型（如果不存在）
 DO $$ BEGIN
