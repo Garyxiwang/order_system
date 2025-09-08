@@ -118,9 +118,9 @@ export const updateDesignOrder = async (orderId: string, updates: Partial<Design
   return await api.put(`/v1/orders/${orderId}`, updates);
 };
 
-// 5. 下单操作 - PUT /api/v1/orders/{order_id}/status
+// 5. 下单操作 - PATCH /api/v1/orders/{order_id}/status
 export const updateOrderStatus = async (orderId: string, status: string): Promise<ApiResponse<DesignOrder>> => {
-  return await api.put(`/v1/orders/${orderId}/status`, { status });
+  return await api.patch(`/v1/orders/${orderId}/status`, { order_status: status });
 };
 
 // 进度管理相关接口

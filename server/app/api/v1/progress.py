@@ -24,26 +24,41 @@ async def create_progress(
 ):
     """新增进度"""
     try:
-        # 检查订单是否存在
-        order = db.query(Order).filter(Order.id == progress_data.order_id).first()
+        # 检查订单是否存在（根据订单编号查找）
+        order = db.query(Order).filter(Order.order_number == progress_data.order_id).first()
         if not order:
             return error_response(message="指定的订单不存在")
         
-        # 创建进度
+        # 创建进度（使用订单的数据库ID）
         progress = Progress(
-            order_id=progress_data.order_id,
+            order_id=order.id,
             task_item=progress_data.task_item,
             planned_date=progress_data.planned_date,
             actual_date=progress_data.actual_date,
             remarks=progress_data.remarks
         )
         
+        # 直接使用进度事项作为订单状态
+        order.order_status = progress_data.task_item
+        
         db.add(progress)
         db.commit()
         db.refresh(progress)
         
+        # 手动构建响应数据，确保日期字段类型正确并包含order_number
+        progress_dict = {
+            "id": progress.id,
+            "task_item": progress.task_item,
+            "planned_date": progress.planned_date.strftime("%Y-%m-%d") if hasattr(progress.planned_date, 'strftime') else progress.planned_date,
+            "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date and hasattr(progress.actual_date, 'strftime') else progress.actual_date,
+            "remarks": progress.remarks,
+            "order_id": progress.order_id,
+            "order_number": order.order_number,
+            "created_at": progress.created_at,
+            "updated_at": progress.updated_at
+        }
         return success_response(
-            data=ProgressResponse.from_orm(progress),
+            data=ProgressResponse(**progress_dict),
             message="进度创建成功"
         )
     
@@ -52,22 +67,28 @@ async def create_progress(
         return error_response(message=f"创建进度失败: {str(e)}")
 
 
-@router.get("/list", summary="获取进度列表")
+@router.post("/list", summary="获取进度列表")
 async def get_progress_list(
-    order_id: int = Query(..., description="订单ID"),
-    page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(10, ge=1, le=100, description="每页数量"),
+    request_data: dict,
     db: Session = Depends(get_db)
 ):
     """获取指定订单的进度列表"""
     try:
-        # 检查订单是否存在
-        order = db.query(Order).filter(Order.id == order_id).first()
+        # 从请求数据中提取参数
+        order_id = request_data.get("order_id")
+        page = request_data.get("page", 1)
+        page_size = request_data.get("page_size", 10)
+        
+        if not order_id:
+            return error_response(message="订单ID不能为空")
+        
+        # 检查订单是否存在（根据订单编号查找）
+        order = db.query(Order).filter(Order.order_number == order_id).first()
         if not order:
             return error_response(message="指定的订单不存在")
         
-        # 构建查询
-        query = db.query(Progress).filter(Progress.order_id == order_id)
+        # 查询进度列表（使用订单的数据库ID）
+        query = db.query(Progress).filter(Progress.order_id == order.id)
         
         # 获取总数
         total = query.count()
@@ -76,8 +97,21 @@ async def get_progress_list(
         offset = (page - 1) * page_size
         progresses = query.order_by(Progress.created_at.desc()).offset(offset).limit(page_size).all()
         
-        # 转换为响应格式
-        progress_items = [ProgressResponse.from_orm(progress) for progress in progresses]
+        # 转换为响应格式，包含订单编号
+        progress_items = []
+        for progress in progresses:
+            progress_dict = {
+                "id": progress.id,
+                "task_item": progress.task_item,
+                "planned_date": progress.planned_date.strftime("%Y-%m-%d") if hasattr(progress.planned_date, 'strftime') else progress.planned_date,
+                "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date and hasattr(progress.actual_date, 'strftime') else progress.actual_date,
+                "remarks": progress.remarks,
+                "order_id": progress.order_id,
+                "order_number": order.order_number,
+                "created_at": progress.created_at,
+                "updated_at": progress.updated_at
+            }
+            progress_items.append(ProgressResponse(**progress_dict))
         
         # 计算总页数
         total_pages = (total + page_size - 1) // page_size
@@ -114,11 +148,31 @@ async def update_progress(
         for field, value in update_data.items():
             setattr(progress, field, value)
         
+        # 获取订单信息
+        order = db.query(Order).filter(Order.id == progress.order_id).first()
+        
+        # 如果更新了task_item，直接使用进度事项作为订单状态
+        if 'task_item' in update_data:
+            order.order_status = progress.task_item
+        
         db.commit()
         db.refresh(progress)
         
+        # 手动构建响应数据，确保日期字段类型正确并包含order_number
+        progress_dict = {
+            "id": progress.id,
+            "task_item": progress.task_item,
+            "planned_date": progress.planned_date.strftime("%Y-%m-%d") if hasattr(progress.planned_date, 'strftime') else progress.planned_date,
+            "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date and hasattr(progress.actual_date, 'strftime') else progress.actual_date,
+            "remarks": progress.remarks,
+            "order_id": progress.order_id,
+            "order_number": order.order_number if order else None,
+            "created_at": progress.created_at,
+            "updated_at": progress.updated_at
+        }
+        
         return success_response(
-            data=ProgressResponse.from_orm(progress),
+            data=ProgressResponse(**progress_dict),
             message="进度更新成功"
         )
     
@@ -139,7 +193,18 @@ async def get_progress(
         if not progress:
             return error_response(message="进度不存在")
         
-        return success_response(data=ProgressResponse.from_orm(progress))
+        # 手动构建响应数据，确保日期字段类型正确
+        progress_dict = {
+            "id": progress.id,
+            "task_item": progress.task_item,
+            "planned_date": progress.planned_date.strftime("%Y-%m-%d") if hasattr(progress.planned_date, 'strftime') else progress.planned_date,
+            "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date and hasattr(progress.actual_date, 'strftime') else progress.actual_date,
+            "remarks": progress.remarks,
+            "order_id": progress.order_id,
+            "created_at": progress.created_at,
+            "updated_at": progress.updated_at
+        }
+        return success_response(data=ProgressResponse(**progress_dict))
     
     except Exception as e:
         return error_response(message=f"获取进度详情失败: {str(e)}")

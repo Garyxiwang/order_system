@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from app.models.split import QuoteStatus
 
 
 class ProductionItem(BaseModel):
@@ -19,7 +18,7 @@ class SplitBase(BaseModel):
     splitter: Optional[str] = Field(None, description="拆单员")
     internal_production_items: Optional[List[ProductionItem]] = Field(None, description="厂内生产项")
     external_purchase_items: Optional[List[ProductionItem]] = Field(None, description="外购项")
-    quote_status: Optional[QuoteStatus] = Field(QuoteStatus.PENDING, description="报价状态")
+    quote_status: Optional[str] = Field("未打款", description="报价状态")
     completion_date: Optional[datetime] = Field(None, description="完成日期")
     remarks: Optional[str] = Field(None, description="备注")
 
@@ -50,7 +49,7 @@ class SplitProgressUpdate(BaseModel):
 class SplitStatusUpdate(BaseModel):
     """拆单状态更新模型"""
     order_status: Optional[str] = Field(None, description="订单状态")
-    quote_status: Optional[QuoteStatus] = Field(None, description="报价状态")
+    quote_status: Optional[str] = Field(None, description="报价状态")
 
 
 class SplitListQuery(BaseModel):
@@ -64,7 +63,7 @@ class SplitListQuery(BaseModel):
     splitter: Optional[str] = Field(None, description="拆单员")
     order_status: Optional[List[str]] = Field(None, description="订单状态（多选）")
     order_type: Optional[str] = Field(None, description="订单类型")
-    quote_status: Optional[List[QuoteStatus]] = Field(None, description="报价状态（多选）")
+    quote_status: Optional[List[str]] = Field(None, description="报价状态（多选）")
     category_names: Optional[List[str]] = Field(None, description="下单类目（多选）")
     order_date_start: Optional[datetime] = Field(None, description="下单日期开始")
     order_date_end: Optional[datetime] = Field(None, description="下单日期结束")
@@ -88,7 +87,7 @@ class SplitResponse(BaseModel):
     splitter: Optional[str]
     internal_production_items: Optional[List[ProductionItem]]
     external_purchase_items: Optional[List[ProductionItem]]
-    quote_status: QuoteStatus
+    quote_status: str
     completion_date: Optional[datetime]
     remarks: Optional[str]
     created_at: datetime

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
-from app.models.order import OrderStatus
+
 # from app.schemas.category import CategoryResponse  # 不再需要
 from app.schemas.progress import ProgressResponse
 
@@ -52,14 +52,14 @@ class OrderUpdate(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     """订单状态更新模型"""
-    order_status: OrderStatus = Field(..., description="订单状态")
+    order_status: str = Field(..., description="订单状态")
 
 
 class OrderResponse(OrderBase):
     """订单响应模型"""
     id: int = Field(..., description="订单ID")
     design_area: Optional[Decimal] = Field(None, description="设计面积")
-    order_status: OrderStatus = Field(..., description="订单状态")
+    order_status: str = Field(..., description="订单状态")
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="更新时间")
     # category: Optional[CategoryResponse] = Field(None, description="类目信息")  # 不再需要，直接使用category_name
@@ -114,7 +114,7 @@ class OrderListItem(BaseModel):
     wall_panel_area: Optional[Decimal] = Field(None, description="墙板面积")
     order_amount: Optional[Decimal] = Field(None, description="订单金额")
     remarks: Optional[str] = Field(None, description="备注")
-    order_status: OrderStatus = Field(..., description="订单状态")
+    order_status: str = Field(..., description="订单状态")
     category_name: Optional[str] = Field(None, description="类目名称")
     design_process: Optional[str] = Field(None, description="设计过程")
     
@@ -130,7 +130,7 @@ class OrderListQuery(BaseModel):
     customer_name: Optional[str] = Field(None, description="客户名称")
     designer: Optional[str] = Field(None, description="设计师")
     salesperson: Optional[str] = Field(None, description="销售员")
-    order_status: Optional[List[OrderStatus]] = Field(None, description="订单状态（多选）")
+    order_status: Optional[List[str]] = Field(None, description="订单状态（多选）")
     order_type: Optional[str] = Field(None, description="订单类型")
     design_cycle: Optional[str] = Field(None, description="设计周期")
     category_names: Optional[List[str]] = Field(None, description="类目名称（多选）")

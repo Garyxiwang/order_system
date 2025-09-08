@@ -7,8 +7,8 @@ import json
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.split import Split, QuoteStatus
-from app.models.order import Order, OrderStatus
+from app.models.split import Split
+from app.models.order import Order
 from app.models.production import Production, PurchaseStatus
 from app.schemas.split import (
     SplitListQuery,
@@ -261,11 +261,8 @@ async def update_split_status(
             # 同时更新关联的订单状态
             order = db.query(Order).filter(Order.order_number == split.order_number).first()
             if order:
-                # 将字符串转换为枚举
-                for status_enum in OrderStatus:
-                    if status_enum.value == status_data.order_status:
-                        order.order_status = status_enum
-                        break
+                # 直接设置字符串状态
+                order.order_status = status_data.order_status
                         
         if status_data.quote_status is not None:
             split.quote_status = status_data.quote_status
@@ -303,12 +300,12 @@ async def place_split_order(
             )
             
         # 更新拆单状态
-        split.order_status = OrderStatus.CONFIRMED.value
+        split.order_status = "已下单"
         
         # 更新关联的订单状态
         order = db.query(Order).filter(Order.order_number == split.order_number).first()
         if order:
-            order.order_status = OrderStatus.CONFIRMED
+            order.order_status = "已下单"
             
         # 检查是否已存在生产记录，如果不存在则创建
         existing_production = db.query(Production).filter(
@@ -331,7 +328,7 @@ async def place_split_order(
                 internal_production_items=json.dumps(split.internal_production_items or []),
                 external_purchase_items=json.dumps(split.external_purchase_items or []),
                 remarks=getattr(split, 'remarks', ''),
-                order_status=OrderStatus.CONFIRMED.value
+                order_status="已下单"
             )
             db.add(production)
             

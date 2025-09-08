@@ -6,19 +6,19 @@ from datetime import datetime
 class ProgressBase(BaseModel):
     """进度基础模型"""
     task_item: str = Field(..., description="进行事项")
-    planned_date: datetime = Field(..., description="计划日期")
-    actual_date: Optional[datetime] = Field(None, description="实际日期")
+    planned_date: str = Field(..., description="计划日期")
+    actual_date: Optional[str] = Field(None, description="实际日期")
     remarks: Optional[str] = Field(None, description="备注")
 
 
 class ProgressCreate(ProgressBase):
     """创建进度模型"""
-    order_id: int = Field(..., description="订单ID")
+    order_id: str = Field(..., description="订单编号")
 
 
 class ProgressUpdate(BaseModel):
     """更新进度模型"""
-    actual_date: Optional[datetime] = Field(None, description="实际日期")
+    actual_date: Optional[str] = Field(None, description="实际日期")
     remarks: Optional[str] = Field(None, description="备注")
 
 
@@ -26,6 +26,7 @@ class ProgressResponse(ProgressBase):
     """进度响应模型"""
     id: int = Field(..., description="进度ID")
     order_id: int = Field(..., description="订单ID")
+    order_number: str = Field(..., description="订单编号")
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="更新时间")
     

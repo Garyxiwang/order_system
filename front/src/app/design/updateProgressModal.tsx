@@ -16,6 +16,12 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import styles from "./updateProgressModal.module.css";
+import {
+  createProgress,
+  getProgressByOrderId,
+  updateProgress,
+  type ProgressData,
+} from "../../services/progressService";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -67,41 +73,39 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
     "其他",
   ];
 
-  // 模拟获取进度数据
+  // 获取进度数据
   const fetchProgressData = async () => {
+    if (!orderNumber) return;
+
     setLoading(true);
     try {
-      // 模拟API调用
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      console.log("开始获取进度数据，订单号:", orderNumber);
+      const response = await getProgressByOrderId(orderNumber);
 
-      // 模拟数据
-      const mockData: ProgressItem[] = [
-        {
-          id: "1",
-          item: "量尺",
-          plannedDate: "2025-06-01",
-          actualDate: "2025-06-01",
-          note: "这是个备注1这是个备注1这是个备注1这是个备注1",
-        },
-        {
-          id: "2",
-          item: "初稿",
-          plannedDate: "2025-06-02",
-          actualDate: "2025-06-02",
-          note: "这是个备注2",
-        },
-        {
-          id: "3",
-          item: "下单",
-          plannedDate: "2025-06-03",
-          actualDate: "2025-06-05",
-          note: "",
-        },
-      ];
-
-      setProgressList(mockData);
+      if (
+        response.code === 200 &&
+        response?.data?.items &&
+        Array.isArray(response.data.items)
+      ) {
+        // 将API数据转换为表格数据格式
+        const progressData: ProgressItem[] = response.data.items.map(
+          (item: ProgressData, index: number) => ({
+            id: item.id?.toString() || (index + 1).toString(),
+            item: item.task_item,
+            plannedDate: item.planned_date || "-",
+            actualDate: item.actual_date || "-",
+            note: item.remarks || "",
+          })
+        );
+        setProgressList(progressData);
+      } else {
+        message.warning(response.message || "暂无进度数据");
+        setProgressList([]);
+      }
     } catch (error) {
-      message.error("获取进度数据失败");
+      const errorMessage = error instanceof Error ? error.message : "未知错误";
+      message.error(`获取进度数据失败: ${errorMessage}`);
+      setProgressList([]);
     } finally {
       setLoading(false);
     }
@@ -109,29 +113,48 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
 
   // 添加进度事项
   const handleAddProgress = async (values: ProgressFormValues) => {
+    if (!orderNumber) {
+      message.error("订单编号不能为空");
+      return;
+    }
+
     setLoading(true);
     try {
-      // 模拟API调用
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const progressType =
+        values.progressType === "其他"
+          ? values.customContent
+          : values.progressType;
+      const plannedDate = values.plannedDate.format("YYYY-MM-DD");
+      const actualDate = values.actualDate
+        ? values.actualDate.format("YYYY-MM-DD")
+        : undefined;
 
-      const newProgress: ProgressItem = {
-        id: Date.now().toString(),
-        item:
-          values.progressType === "其他"
-            ? values.customContent || ""
-            : values.progressType,
-        plannedDate: values.plannedDate.format("YYYY-MM-DD"),
-        actualDate: values.actualDate
-          ? values.actualDate.format("YYYY-MM-DD")
-          : "",
-        note: values.note || "",
+      const progressData: Omit<
+        ProgressData,
+        "id" | "created_at" | "updated_at"
+      > = {
+        task_item: progressType!,
+        planned_date: plannedDate,
+        actual_date: actualDate,
+        remarks: values.note || "",
+        order_id: orderNumber,
       };
 
-      setProgressList([...progressList, newProgress]);
-      form.resetFields();
-      setShowCustomContent(false);
-      message.success("进度事项添加成功");
+      const response = await createProgress(
+        progressData as Omit<ProgressData, "id" | "created_at" | "updated_at">
+      );
+
+      if (response.code === 200) {
+        message.success("进度事项添加成功");
+        form.resetFields();
+        setShowCustomContent(false);
+        // 重新获取进度数据
+        await fetchProgressData();
+      } else {
+        message.error(response.message || "添加进度事项失败");
+      }
     } catch (error) {
+      console.error("添加进度事项失败:", error);
       message.error("添加进度事项失败");
     } finally {
       setLoading(false);
@@ -154,27 +177,51 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
   // 处理编辑实际日期
   const handleEditActualDate = (record: ProgressItem) => {
     setEditingId(record.id);
-    setTempDate(record.actualDate ? dayjs(record.actualDate) : null);
+    // 验证日期有效性，避免显示Invalid Date
+    if (record.actualDate && record.actualDate !== 'Invalid Date') {
+      const date = dayjs(record.actualDate);
+      setTempDate(date.isValid() ? date : null);
+    } else {
+      setTempDate(null);
+    }
     setTempNote(record.note || "");
   };
 
   // 保存实际日期
-  const handleSaveActualDate = () => {
-    if (editingId) {
-      setProgressList((prevList) =>
-        prevList.map((item) =>
-          item.id === editingId
-            ? {
-                ...item,
-                actualDate: tempDate ? tempDate.format("YYYY-MM-DD") : "",
-                note: tempNote,
-              }
-            : item
-        )
-      );
+  const handleSaveActualDate = async () => {
+    if (!editingId || !orderNumber) return;
+
+    setLoading(true);
+    try {
+      const currentItem = progressList.find((item) => item.id === editingId);
+      if (!currentItem) return;
+
+      const actualDate = tempDate ? tempDate.format("YYYY-MM-DD") : undefined;
+      const updateData: Partial<ProgressData> = {
+        actual_date: actualDate,
+        remarks: tempNote,
+      };
+
+      // 找到对应的进度记录ID
+      const progressId = parseInt(currentItem.id);
+      const updateResponse = await updateProgress(progressId, updateData);
+
+      if (updateResponse.code === 200) {
+        message.success("进度更新成功");
+        // 重新获取进度数据
+        await fetchProgressData();
+      } else {
+        message.error(updateResponse.message || "进度更新失败");
+      }
+
       setEditingId(null);
       setTempDate(null);
       setTempNote("");
+    } catch (error) {
+      console.error("保存进度失败:", error);
+      message.error("保存进度失败");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -278,10 +325,10 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
 
   // 组件挂载时获取数据
   useEffect(() => {
-    if (visible) {
+    if (visible && orderNumber) {
       fetchProgressData();
     }
-  }, [visible]);
+  }, [visible, orderNumber]);
 
   // 关闭弹窗时重置表单
   const handleCancel = () => {
@@ -357,12 +404,12 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
             />
           </Form.Item>
 
-          <Form.Item label="实际日期" name="actualDate">
+          {/* <Form.Item label="实际日期" name="actualDate">
             <DatePicker
               className={styles.fullWidth}
               placeholder="请选择实际日期"
             />
-          </Form.Item>
+          </Form.Item> */}
           <Form.Item label="备注" name="note">
             <Input.TextArea
               className={styles.fullWidth}

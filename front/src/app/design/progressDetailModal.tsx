@@ -1,15 +1,20 @@
 "use client";
 
-import React from "react";
-import { Modal, Table, Card } from "antd";
+import React, { useState, useEffect } from "react";
+import { Modal, Table, Card, message, Spin } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import styles from "./progressDetailModal.module.css";
+import {
+  getProgressByOrderId,
+  type ProgressData,
+} from "../../services/progressService";
 
 interface ProgressDetailItem {
   id: string;
   item: string;
   estimatedTime?: string;
   actualTime?: string;
+  note?: string;
 }
 
 interface ProgressDetailModalProps {
@@ -25,36 +30,53 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
   onCancel,
   orderNumber,
   orderName,
-  progressData,
 }) => {
-  const parseProgressData = (data: string[]): ProgressDetailItem[] => {
-    const tempData = [
-      {
-        id: "1",
-        item: "量尺",
-        estimatedTime: "2025-07-01",
-        actualTime: "2025-07-01",
-        note: "这是个备注1",
-      },
-      {
-        id: "2",
-        item: "初稿",
-        estimatedTime: "2025-07-03",
-        actualTime: "2025-07-04",
-        note: "",
-      },
-      {
-        id: "3",
-        item: "已报价未打款",
-        estimatedTime: "2025-07-05",
-        actualTime: "2025-07-05",
-        note: "",
-      },
-    ];
-    return tempData;
+  const [progressList, setProgressList] = useState<ProgressDetailItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 获取进度数据
+  const fetchProgressData = async () => {
+    if (!orderNumber) return;
+
+    setLoading(true);
+    try {
+      const response = await getProgressByOrderId(orderNumber);
+
+      if (
+        response.code === 200 &&
+        response?.data?.items &&
+        Array.isArray(response.data.items)
+      ) {
+        // 将API数据转换为表格数据格式
+        const progressData: ProgressDetailItem[] = response.data.items.map(
+          (item: ProgressData, index: number) => ({
+            id: item.id?.toString() || (index + 1).toString(),
+            item: item.task_item,
+            estimatedTime: item.planned_date || "-",
+            actualTime: item.actual_date || "-",
+            note: item.remarks || "",
+          })
+        );
+        setProgressList(progressData);
+      } else {
+        message.warning(response.message || "暂无进度数据");
+        setProgressList([]);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "未知错误";
+      message.error(`获取进度数据失败: ${errorMessage}`);
+      setProgressList([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const progressList = parseProgressData(progressData);
+  // 当弹窗打开且有订单号时获取数据
+  useEffect(() => {
+    if (visible && orderNumber) {
+      fetchProgressData();
+    }
+  }, [visible, orderNumber]);
 
   // 表格列定义
   const columns: ColumnsType<ProgressDetailItem> = [
@@ -63,9 +85,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       dataIndex: "item",
       key: "item",
       width: 150,
-      render: (text: string) => (
-        <span className={styles.itemText}>{text}</span>
-      ),
+      render: (text: string) => <span className={styles.itemText}>{text}</span>,
     },
     {
       title: "计划时间",
@@ -82,7 +102,13 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       key: "actualTime",
       width: 150,
       render: (time: string) => (
-        <span className={time ? styles.actualTimeCompleted : styles.actualTimePending}>{time || "-"}</span>
+        <span
+          className={
+            time ? styles.actualTimeCompleted : styles.actualTimePending
+          }
+        >
+          {time || "-"}
+        </span>
       ),
     },
     {
@@ -104,15 +130,11 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       <div className={styles.infoContainer}>
         <Card size="small" className={styles.infoCard}>
           <div className={styles.infoText}>
-            <span className={styles.label}>
-              订单编号：
-            </span>
+            <span className={styles.label}>订单编号：</span>
             {orderNumber}
             {orderName && (
               <span className={styles.customerName}>
-                <span className={styles.label}>
-                  客户名称：
-                </span>
+                <span className={styles.label}>客户名称：</span>
                 {orderName}
               </span>
             )}
@@ -120,14 +142,17 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
         </Card>
       </div>
       <Card title="设计进度明细" size="small">
-        <Table
-          columns={columns}
-          dataSource={progressList}
-          rowKey="id"
-          pagination={false}
-          size="small"
-          bordered
-        />
+        <Spin spinning={loading}>
+          <Table
+            columns={columns}
+            dataSource={progressList}
+            rowKey="id"
+            pagination={false}
+            size="small"
+            bordered
+            locale={{ emptyText: loading ? "加载中..." : "暂无数据" }}
+          />
+        </Spin>
       </Card>
     </Modal>
   );

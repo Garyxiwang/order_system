@@ -5,9 +5,9 @@ from typing import List, Optional
 from datetime import datetime, date
 
 from app.core.database import get_db
-from app.models.order import Order, OrderStatus
+from app.models.order import Order
 from app.models.progress import Progress
-from app.models.split import Split, QuoteStatus
+from app.models.split import Split
 # from app.models.category import Category  # 不再需要
 from app.schemas.order import (
     OrderCreate,
@@ -95,11 +95,18 @@ async def get_orders(
         # 转换为响应格式
         order_items = []
         for order in orders:
-            # 获取设计过程（进度信息）
-            design_process = ", ".join([
-                f"{p.task_item}({p.actual_date.strftime('%Y-%m-%d') if p.actual_date else '未完成'})"
-                for p in order.progresses
-            ]) if order.progresses else "暂无进度"
+            # 获取设计过程（进度信息）- 格式化为"事件名：实际时间"
+            design_process_items = []
+            if order.progresses:
+                for p in order.progresses:
+                    if p.actual_date:
+                        design_process_items.append(
+                            f"{p.task_item}:{p.actual_date}")
+                    else:
+                        design_process_items.append(f"{p.task_item}:-")
+                design_process = ",".join(design_process_items)
+            else:
+                design_process = "暂无进度"
 
             order_item = OrderListItem(
                 id=order.id,
@@ -112,7 +119,7 @@ async def get_orders(
                 design_process=design_process,
                 category_name=order.category_name,
                 design_cycle=order.design_cycle,
-                order_date=order.order_date.date() if order.order_date else None,
+                order_date=order.order_date,
                 order_type=order.order_type,
                 is_installation=order.is_installation,
                 cabinet_area=order.cabinet_area,
@@ -166,11 +173,12 @@ async def create_order(
             design_cycle=order_data.design_cycle or "0",
             cabinet_area=order_data.cabinet_area,
             wall_panel_area=order_data.wall_panel_area,
-            design_area=(order_data.cabinet_area or 0) + (order_data.wall_panel_area or 0) if (order_data.cabinet_area or order_data.wall_panel_area) else None,
+            design_area=(order_data.cabinet_area or 0) + (order_data.wall_panel_area or 0) if (
+                order_data.cabinet_area or order_data.wall_panel_area) else None,
             order_amount=order_data.order_amount,
             is_installation=getattr(order_data, 'is_installation', False),
             remarks=getattr(order_data, 'remarks', None),
-            order_status=OrderStatus.PENDING
+            order_status="进行中"
         )
 
         db.add(order)
@@ -195,16 +203,24 @@ async def update_order(
 ):
     """编辑订单"""
     try:
-        # 查找订单
-        order = db.query(Order).filter(Order.id == order_id).first()
+        # 查找订单 - 支持通过ID或订单编号查找
+        if order_id.isdigit():
+            # 如果是数字，按ID查找
+            order = db.query(Order).filter(Order.id == int(order_id)).first()
+        else:
+            # 如果不是数字，按订单编号查找
+            order = db.query(Order).filter(
+                Order.order_number == order_id).first()
+
         if not order:
             return error_response(message="订单不存在")
 
         # 获取更新数据，保留None值以支持字段清空
         update_data = order_data.dict(exclude_none=False)
         # 只保留实际传递的字段
-        update_data = {k: v for k, v in update_data.items() if k in order_data.__fields_set__ or v is None}
-        
+        update_data = {k: v for k, v in update_data.items(
+        ) if k in order_data.__fields_set__ or v is None}
+
         # 如果更新了订单编号，检查是否重复
         if 'order_number' in update_data and update_data['order_number'] != order.order_number:
             existing_order = db.query(Order).filter(
@@ -222,7 +238,8 @@ async def update_order(
             wall_panel_area = update_data.get(
                 'wall_panel_area', order.wall_panel_area)
             if cabinet_area or wall_panel_area:
-                update_data['design_area'] = (cabinet_area or 0) + (wall_panel_area or 0)
+                update_data['design_area'] = (
+                    cabinet_area or 0) + (wall_panel_area or 0)
             else:
                 update_data['design_area'] = None
 
@@ -242,31 +259,43 @@ async def update_order(
         return error_response(message=f"更新订单失败: {str(e)}")
 
 
-@router.patch("/{order_id}/status", response_model=OrderResponse, summary="更新订单状态")
+@router.patch("/{order_id}/status", summary="更新订单状态")
 async def update_order_status(
-    order_id: int,
+    order_id: str,
     status_data: OrderStatusUpdate,
     db: Session = Depends(get_db)
 ):
     """更新订单状态"""
     try:
-        # 查找订单
-        order = db.query(Order).filter(Order.id == order_id).first()
+        # 查找订单 - 支持通过ID或订单编号查找
+        if order_id.isdigit():
+            # 如果是数字，按ID查找
+            order = db.query(Order).filter(Order.id == int(order_id)).first()
+        else:
+            # 如果不是数字，按订单编号查找
+            order = db.query(Order).filter(
+                Order.order_number == order_id).first()
+
         if not order:
             return error_response(message="订单不存在")
 
         # 记录原状态
         old_status = order.order_status
 
+        # 如果要下单，检查是否存在下单进度事项
+        if status_data.order_status == "已下单":
+            if not order.has_order_progress():
+                return error_response(message="订单中不存在下单进度事项，无法下单")
+
         # 更新状态
         order.order_status = status_data.order_status
 
         # 如果订单状态变更为下单，设置下单时间并自动创建拆单记录
-        if (old_status != OrderStatus.CONFIRMED and
-                status_data.order_status == OrderStatus.CONFIRMED):
+        if (old_status != "已下单" and
+                status_data.order_status == "已下单"):
             # 设置下单时间
-            order.order_date = datetime.now()
-
+            order.order_date = datetime.now().strftime('%Y-%m-%d')
+            print("---=-=-=-,", datetime.now().strftime('%Y-%m-%d'))
             # 检查是否已存在拆单记录
             existing_split = db.query(Split).filter(
                 Split.order_number == order.order_number
@@ -283,9 +312,9 @@ async def update_order_status(
                     salesperson=order.salesperson,
                     order_amount=order.order_amount,
                     design_area=getattr(order, 'design_area', None),
-                    order_status=status_data.order_status.value,
-                    order_type=order.order_type.value if order.order_type else None,
-                    quote_status=QuoteStatus.PENDING,
+                    order_status=status_data.order_status,
+                    order_type=order.order_type,
+                    quote_status="未打款",
                     remarks=getattr(order, 'remarks', None),
                     # 根据订单类目创建生产项
                     internal_production_items=[
@@ -306,7 +335,48 @@ async def update_order_status(
         db.commit()
         db.refresh(order)
 
-        return OrderResponse.from_orm(order)
+        # 手动构建响应数据，确保progresses包含order_number
+        order_dict = {
+            "id": order.id,
+            "order_number": order.order_number,
+            "customer_name": order.customer_name,
+            "address": order.address,
+            "designer": order.designer,
+            "salesperson": order.salesperson,
+            "assignment_date": order.assignment_date,
+            "order_date": order.order_date,
+            "category_name": order.category_name,
+            "order_type": order.order_type,
+            "design_cycle": order.design_cycle,
+            "cabinet_area": order.cabinet_area,
+            "wall_panel_area": order.wall_panel_area,
+            "order_amount": order.order_amount,
+            "is_installation": order.is_installation,
+            "remarks": order.remarks,
+            "design_area": order.design_area,
+            "order_status": order.order_status,
+            "created_at": order.created_at,
+            "updated_at": order.updated_at,
+            "progresses": [
+                {
+                    "id": progress.id,
+                    "task_item": progress.task_item,
+                    "planned_date": progress.planned_date.strftime("%Y-%m-%d") if progress.planned_date else None,
+                    "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date else None,
+                    "remarks": progress.remarks,
+                    "order_id": progress.order_id,
+                    "order_number": order.order_number,
+                    "created_at": progress.created_at,
+                    "updated_at": progress.updated_at
+                }
+                for progress in order.progresses
+            ]
+        }
+
+        return success_response(
+            data=OrderResponse(**order_dict),
+            message="订单状态更新成功"
+        )
 
     except Exception as e:
         db.rollback()
@@ -327,7 +397,45 @@ async def get_order(
         if not order:
             raise HTTPException(status_code=404, detail="订单不存在")
 
-        return OrderResponse.from_orm(order)
+        # 手动构建响应数据，确保progresses包含order_number
+        order_dict = {
+            "id": order.id,
+            "order_number": order.order_number,
+            "customer_name": order.customer_name,
+            "address": order.address,
+            "designer": order.designer,
+            "salesperson": order.salesperson,
+            "assignment_date": order.assignment_date,
+            "order_date": order.order_date,
+            "category_name": order.category_name,
+            "order_type": order.order_type,
+            "design_cycle": order.design_cycle,
+            "cabinet_area": order.cabinet_area,
+            "wall_panel_area": order.wall_panel_area,
+            "order_amount": order.order_amount,
+            "is_installation": order.is_installation,
+            "remarks": order.remarks,
+            "design_area": order.design_area,
+            "order_status": order.order_status,
+            "created_at": order.created_at,
+            "updated_at": order.updated_at,
+            "progresses": [
+                {
+                    "id": progress.id,
+                    "task_item": progress.task_item,
+                    "planned_date": progress.planned_date.strftime("%Y-%m-%d") if progress.planned_date else None,
+                    "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date else None,
+                    "remarks": progress.remarks,
+                    "order_id": progress.order_id,
+                    "order_number": order.order_number,
+                    "created_at": progress.created_at,
+                    "updated_at": progress.updated_at
+                }
+                for progress in order.progresses
+            ]
+        }
+
+        return OrderResponse(**order_dict)
 
     except HTTPException:
         raise

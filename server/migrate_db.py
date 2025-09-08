@@ -183,6 +183,58 @@ class DatabaseMigrator:
         
         self.record_migration(version, description)
     
+    def run_migration_v1_0_4(self):
+        """迁移 v1.0.4: 修改order_status字段类型"""
+        version = "v1.0.4"
+        description = "修改order_status字段从ENUM类型改为VARCHAR(200)类型"
+        
+        if self.is_migration_applied(version):
+            logger.info(f"⏭️  迁移 {version} 已应用")
+            return
+        
+        logger.info(f"🔄 应用迁移 {version}: {description}")
+        
+        if self.table_exists('orders'):
+            try:
+                # 修改 order_status 为VARCHAR类型 (MySQL语法)
+                self.db.execute(text("ALTER TABLE orders MODIFY COLUMN order_status VARCHAR(200) NOT NULL DEFAULT '待处理'"))
+                logger.info("✅ order_status 字段改为VARCHAR(200)类型")
+                
+                self.db.commit()
+                
+            except Exception as e:
+                logger.error(f"❌ 修改order_status字段失败: {e}")
+                self.db.rollback()
+                raise
+        
+        self.record_migration(version, description)
+    
+    def run_migration_v1_0_5(self):
+        """迁移 v1.0.5: 修改splits表quote_status字段类型"""
+        version = "v1.0.5"
+        description = "修改splits表quote_status字段从ENUM类型改为VARCHAR(20)类型"
+        
+        if self.is_migration_applied(version):
+            logger.info(f"⏭️  迁移 {version} 已应用")
+            return
+        
+        logger.info(f"🔄 应用迁移 {version}: {description}")
+        
+        if self.table_exists('splits'):
+            try:
+                # 修改 quote_status 为VARCHAR类型 (MySQL语法)
+                self.db.execute(text("ALTER TABLE splits MODIFY COLUMN quote_status VARCHAR(20) NOT NULL DEFAULT '未打款'"))
+                logger.info("✅ quote_status 字段改为VARCHAR(20)类型")
+                
+                self.db.commit()
+                
+            except Exception as e:
+                logger.error(f"❌ 修改quote_status字段失败: {e}")
+                self.db.rollback()
+                raise
+        
+        self.record_migration(version, description)
+    
     def run_all_migrations(self):
         """运行所有迁移"""
         logger.info("🚀 开始数据库迁移...")
@@ -195,6 +247,8 @@ class DatabaseMigrator:
             self.run_migration_v1_0_1,
             self.run_migration_v1_0_2,
             self.run_migration_v1_0_3,
+            self.run_migration_v1_0_4,
+            self.run_migration_v1_0_5,
             # 在这里添加新的迁移方法
         ]
         

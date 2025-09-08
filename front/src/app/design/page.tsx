@@ -70,6 +70,23 @@ const DesignPage: React.FC = () => {
     setIsModalVisible(true);
   };
 
+  // 检查是否可以下单（设计进度中是否包含下单事项）
+  const canPlaceOrder = (record: DesignOrder) => {
+    if (!record.design_process || record.design_process === "暂无进度") {
+      return false;
+    }
+    // 检查设计进度中是否包含"下单"相关的事项
+    const progressItems = record.design_process
+      .split(",")
+      .map((item) => item.trim());
+    return progressItems.some((item) => {
+      const [taskName] = item.split(":");
+      return (
+        taskName && (taskName.includes("下单") || taskName.includes("订单"))
+      );
+    });
+  };
+
   // 处理下单操作
   const handlePlaceOrder = (record: DesignOrder) => {
     Modal.confirm({
@@ -81,7 +98,7 @@ const DesignPage: React.FC = () => {
         try {
           setLoading(true);
           const response = await updateOrderStatus(
-            record.order_number,
+            record.id?.toString() || record.order_number,
             "已下单"
           );
 
@@ -104,7 +121,7 @@ const DesignPage: React.FC = () => {
   // 处理撤销操作
   const handleCancelOrder = (record: DesignOrder) => {
     // 检查订单状态
-    if (record.order_type !== "已下单") {
+    if (record.order_status !== "已下单") {
       message.warning("只有已下单的订单才能撤销");
       return;
     }
@@ -119,9 +136,9 @@ const DesignPage: React.FC = () => {
           setLoading(true);
           const response = await updateOrderStatus(
             record.order_number,
-            "未下单"
+            "已撤销"
           );
-
+          console.log("response", response);
           if (response.code === 200) {
             message.success("撤销成功");
             await loadDesignData(); // 重新加载数据
@@ -195,7 +212,9 @@ const DesignPage: React.FC = () => {
           address: values.address,
           designer: values.designer,
           salesperson: values.salesperson,
-          assignment_date: values.assignment_date ? dayjs(values.assignment_date).format('YYYY-MM-DD HH:mm:ss') : "",
+          assignment_date: values.assignment_date
+            ? dayjs(values.assignment_date).format("YYYY-MM-DD HH:mm:ss")
+            : "",
           category_name: values.category_name,
           order_type: values.order_type,
           remarks: values.remarks || "",
@@ -219,7 +238,9 @@ const DesignPage: React.FC = () => {
           address: values.address,
           designer: values.designer,
           salesperson: values.salesperson,
-          assignment_date: values.assignment_date ? dayjs(values.assignment_date).format('YYYY-MM-DD HH:mm:ss') : "",
+          assignment_date: values.assignment_date
+            ? dayjs(values.assignment_date).format("YYYY-MM-DD HH:mm:ss")
+            : "",
           design_process: "",
           category_name: values.category_name,
           order_status: "未下单",
@@ -406,15 +427,13 @@ const DesignPage: React.FC = () => {
       key: "design_process",
       width: 250,
       render: (text: string, record: DesignOrder) => {
-        if (!text) return "-";
+        if (!text || text === "暂无进度") return "-";
         const items = text
           .split(",")
           .map((item) => item.trim())
           .filter((item) => item);
 
-        const displayItems = items;
-
-        // 解析进度项目，分离状态和时间
+        // 解析进度项目，分离事件名和实际时间
         const parseProgressItem = (item: string) => {
           if (item.includes(":")) {
             const [status, time] = item.split(":");
@@ -425,28 +444,32 @@ const DesignPage: React.FC = () => {
 
         return (
           <div>
-            {displayItems.slice(0, 3).map((item, itemIndex) => {
+            {items.map((item, itemIndex) => {
               const { status, time } = parseProgressItem(item);
 
               return (
                 <div key={itemIndex}>
-                  {time ? (
+                  {time && time !== "-" ? (
                     <span>
                       <CheckOutlined
                         style={{ color: "green", marginRight: "4px" }}
                       />
                       {status}：
                       <span style={{ fontSize: "12px", color: "#666" }}>
-                        ({time})
+                        {time}
                       </span>
                     </span>
                   ) : (
-                    <span>{status}：-</span>
+                    <span
+                      style={{ display: "inline-block", marginLeft: "15px" }}
+                    >
+                      {status}：-
+                    </span>
                   )}
                 </div>
               );
             })}
-            {displayItems.length >= 3 && (
+            {items.length > 0 && (
               <div style={{ textAlign: "right", marginTop: "4px" }}>
                 <Button
                   type="link"
@@ -557,10 +580,18 @@ const DesignPage: React.FC = () => {
       fixed: "right",
       key: "order_status",
       render: (text: string) => {
+        // 如果已下单，显示已完成
+        if (text === "下单") {
+          return <Tag color="blue">待下单</Tag>;
+        }
         if (text === "已下单") {
           return <Tag color="green">{text}</Tag>;
         }
-        return text;
+         if (text === "已撤销") {
+          return <Tag color="red">{text}</Tag>;
+        }
+
+        return <Tag color="default">{text}</Tag>;
       },
     },
     {
@@ -568,9 +599,9 @@ const DesignPage: React.FC = () => {
       key: "action",
       fixed: "right",
       render: (_: unknown, record: DesignOrder) => (
-        <div style={{ width: "120px" }}>
+        <div style={{ width: "50px" }}>
           <Row gutter={[4, 4]}>
-            <Col span={12}>
+            <Col span={14}>
               <Button
                 type="link"
                 size="small"
@@ -578,10 +609,10 @@ const DesignPage: React.FC = () => {
                 disabled={record.order_status === "已下单"}
                 style={{ padding: "0 4px", width: "100%" }}
               >
-                编辑
+                编辑订单
               </Button>
             </Col>
-            <Col span={12}>
+            <Col span={14}>
               <Button
                 type="link"
                 size="small"
@@ -593,7 +624,7 @@ const DesignPage: React.FC = () => {
               </Button>
             </Col>
             {record.order_status === "已下单" && (
-              <Col span={12}>
+              <Col span={14}>
                 <Button
                   type="link"
                   size="small"
@@ -606,11 +637,13 @@ const DesignPage: React.FC = () => {
               </Col>
             )}
             {record.order_status !== "已下单" && (
-              <Col span={12}>
+              <Col span={14}>
                 <Button
                   type="link"
                   size="small"
-                  disabled={record.order_status === "已下单"}
+                  disabled={
+                    record.order_status === "已下单" || !canPlaceOrder(record)
+                  }
                   onClick={() => handlePlaceOrder(record)}
                   style={{ padding: "0 4px", width: "100%" }}
                 >
@@ -865,10 +898,22 @@ const DesignPage: React.FC = () => {
                 assignment_date: editingRecord.assignment_date,
                 category_name: editingRecord.category_name,
                 remarks: editingRecord.remarks,
-                order_amount: editingRecord.order_amount && editingRecord.order_amount !== "0.00" ? editingRecord.order_amount : undefined,
+                order_amount:
+                  editingRecord.order_amount &&
+                  editingRecord.order_amount !== "0.00"
+                    ? editingRecord.order_amount
+                    : undefined,
                 is_installation: editingRecord.is_installation,
-                cabinet_area: editingRecord.cabinet_area && editingRecord.cabinet_area !== "0.00" ? editingRecord.cabinet_area : undefined,
-                wall_panel_area: editingRecord.wall_panel_area && editingRecord.wall_panel_area !== "0.00" ? editingRecord.wall_panel_area : undefined,
+                cabinet_area:
+                  editingRecord.cabinet_area &&
+                  editingRecord.cabinet_area !== "0.00"
+                    ? editingRecord.cabinet_area
+                    : undefined,
+                wall_panel_area:
+                  editingRecord.wall_panel_area &&
+                  editingRecord.wall_panel_area !== "0.00"
+                    ? editingRecord.wall_panel_area
+                    : undefined,
               }
             : undefined
         }
