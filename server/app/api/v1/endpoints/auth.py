@@ -20,16 +20,18 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
     ).first()
     
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
+        return LoginResponse(
+            code=401,
+            message="用户名或密码错误",
+            data={}
         )
     
     # 验证密码
     if not verify_password(user_data.password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
+        return LoginResponse(
+            code=401,
+            message="用户名或密码错误",
+            data={}
         )
     
     # 返回登录成功信息

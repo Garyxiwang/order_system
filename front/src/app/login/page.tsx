@@ -37,7 +37,7 @@ const LoginPage: React.FC = () => {
       // 显示错误消息
       const errorMessage =
         error instanceof Error ? error.message : "登录失败，请检查用户名和密码";
-      message.error(errorMessage);
+      message.error( errorMessage);
     } finally {
       setLoading(false);
     }

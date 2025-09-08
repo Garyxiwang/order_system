@@ -35,10 +35,34 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   // 获取用户信息
   useEffect(() => {
     const userInfo = AuthService.getUserInfo();
-    if (userInfo) {
-      setCurrentUser(userInfo);
-    }
+    setCurrentUser(userInfo);
   }, []);
+
+  // 监听用户信息变化
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'userInfo') {
+        const userInfo = AuthService.getUserInfo();
+        setCurrentUser(userInfo);
+      }
+    };
+
+    // 监听localStorage变化
+    window.addEventListener('storage', handleStorageChange);
+
+    // 监听自定义用户信息更新事件
+    const handleUserInfoUpdate = () => {
+      const userInfo = AuthService.getUserInfo();
+      setCurrentUser(userInfo);
+    };
+
+    window.addEventListener('userInfoUpdated', handleUserInfoUpdate);
+
+    return () => {
+       window.removeEventListener('storage', handleStorageChange);
+       window.removeEventListener('userInfoUpdated', handleUserInfoUpdate);
+     };
+   }, []);
 
   // 切换侧边栏收起状态
   const toggleCollapsed = () => {

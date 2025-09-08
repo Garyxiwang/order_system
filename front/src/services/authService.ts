@@ -36,7 +36,11 @@ export class AuthService {
           role: response.data.role
         };
       } else {
-        throw new Error(response.message || '登录失败');
+        // 登录失败，抛出包含后端错误信息的错误
+        const error = new Error(response.message || '登录失败') as Error & { response?: { data: LoginResponse } };
+        // 添加响应数据到错误对象，方便前端处理
+        error.response = { data: response };
+        throw error;
       }
     } catch (error) {
       console.error('登录失败:', error);
@@ -49,6 +53,11 @@ export class AuthService {
     localStorage.setItem('userInfo', JSON.stringify(userInfo));
     localStorage.setItem('username', userInfo.username);
     localStorage.setItem('role', userInfo.role);
+    
+    // 触发自定义事件，通知其他组件用户信息已更新
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('userInfoUpdated'));
+    }
   }
 
   // 从localStorage获取用户信息
@@ -78,6 +87,11 @@ export class AuthService {
     localStorage.removeItem('userInfo');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
+    
+    // 触发自定义事件，通知其他组件用户信息已清除
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('userInfoUpdated'));
+    }
   }
 
   // 检查是否已登录
