@@ -19,7 +19,7 @@ class SplitBase(BaseModel):
     internal_production_items: Optional[List[ProductionItem]] = Field(None, description="厂内生产项")
     external_purchase_items: Optional[List[ProductionItem]] = Field(None, description="外购项")
     quote_status: Optional[str] = Field("未打款", description="报价状态")
-    completion_date: Optional[datetime] = Field(None, description="完成日期")
+    completion_date: Optional[str] = Field(None, description="完成日期")
     remarks: Optional[str] = Field(None, description="备注")
 
 
@@ -66,10 +66,10 @@ class SplitListQuery(BaseModel):
     order_type: Optional[str] = Field(None, description="订单类型")
     quote_status: Optional[List[str]] = Field(None, description="报价状态（多选）")
     category_names: Optional[List[str]] = Field(None, description="下单类目（多选）")
-    order_date_start: Optional[datetime] = Field(None, description="下单日期开始")
-    order_date_end: Optional[datetime] = Field(None, description="下单日期结束")
-    completion_date_start: Optional[datetime] = Field(None, description="完成日期开始")
-    completion_date_end: Optional[datetime] = Field(None, description="完成日期结束")
+    order_date_start: Optional[str] = Field(None, description="下单日期开始")
+    order_date_end: Optional[str] = Field(None, description="下单日期结束")
+    completion_date_start: Optional[str] = Field(None, description="完成日期开始")
+    completion_date_end: Optional[str] = Field(None, description="完成日期结束")
 
 
 class SplitResponse(BaseModel):
@@ -78,7 +78,7 @@ class SplitResponse(BaseModel):
     order_number: str
     customer_name: str
     address: str
-    order_date: Optional[datetime]
+    order_date: Optional[str]
     designer: Optional[str]
     salesperson: Optional[str]
     order_amount: Optional[float]
@@ -90,7 +90,7 @@ class SplitResponse(BaseModel):
     internal_production_items: Optional[List[ProductionItem]]
     external_purchase_items: Optional[List[ProductionItem]]
     quote_status: str
-    completion_date: Optional[datetime]
+    completion_date: Optional[str]
     remarks: Optional[str]
     created_at: datetime
     updated_at: datetime

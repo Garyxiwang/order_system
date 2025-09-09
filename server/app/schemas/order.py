@@ -15,7 +15,7 @@ class OrderBase(BaseModel):
     designer: Optional[str] = Field(None, description="设计师")
     salesperson: Optional[str] = Field(None, description="销售员")
     assignment_date: str = Field(..., description="分单日期")
-    order_date: Optional[datetime] = Field(None, description="下单日期")
+    order_date: Optional[str] = Field(None, description="下单日期")
     category_name: str = Field(..., description="类目名称")
     order_type: str = Field(..., description="订单类型")
     design_cycle: str = Field("0", description="设计周期")
@@ -39,7 +39,7 @@ class OrderUpdate(BaseModel):
     designer: Optional[str] = Field(None, description="设计师")
     salesperson: Optional[str] = Field(None, description="销售员")
     assignment_date: Optional[str] = Field(None, description="分单日期")
-    order_date: Optional[datetime] = Field(None, description="下单日期")
+    order_date: Optional[str] = Field(None, description="下单日期")
     category_name: Optional[str] = Field(None, description="类目名称")
     order_type: Optional[str] = Field(None, description="订单类型")
     design_cycle: Optional[str] = Field(None, description="设计周期")
@@ -105,7 +105,7 @@ class OrderListItem(BaseModel):
     designer: Optional[str] = Field(None, description="设计师")
     salesperson: Optional[str] = Field(None, description="销售员")
     assignment_date: str = Field(..., description="分单日期")
-    order_date: Optional[datetime] = Field(None, description="下单日期")
+    order_date: Optional[str] = Field(None, description="下单日期")
     design_cycle: Optional[str] = Field(None, description="设计周期")
     order_type: str = Field(..., description="订单类型")
     is_installation: bool = Field(..., description="是否安装")
@@ -135,8 +135,8 @@ class OrderListQuery(BaseModel):
     category_names: Optional[List[str]] = Field(None, description="类目名称（多选）")
     assignment_date_start: Optional[str] = Field(None, description="分单日期开始")
     assignment_date_end: Optional[str] = Field(None, description="分单日期结束")
-    order_date_start: Optional[datetime] = Field(None, description="下单日期开始")
-    order_date_end: Optional[datetime] = Field(None, description="下单日期结束")
+    order_date_start: Optional[str] = Field(None, description="下单日期开始")
+    order_date_end: Optional[str] = Field(None, description="下单日期结束")
 
 
 class OrderListResponse(BaseModel):

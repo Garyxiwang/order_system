@@ -23,14 +23,14 @@ class ProductionListQuery(BaseModel):
     order_status: Optional[List[str]] = Field(default=None, description="订单状态（多选）")
     
     # 日期区间搜索
-    expected_delivery_start: Optional[datetime] = Field(default=None, description="预计交货日期开始")
-    expected_delivery_end: Optional[datetime] = Field(default=None, description="预计交货日期结束")
-    cutting_date_start: Optional[datetime] = Field(default=None, description="下料日期开始")
-    cutting_date_end: Optional[datetime] = Field(default=None, description="下料日期结束")
-    expected_shipment_start: Optional[datetime] = Field(default=None, description="预计出货日期开始")
-    expected_shipment_end: Optional[datetime] = Field(default=None, description="预计出货日期结束")
-    actual_shipment_start: Optional[datetime] = Field(default=None, description="实际出货日期开始")
-    actual_shipment_end: Optional[datetime] = Field(default=None, description="实际出货日期结束")
+    expected_delivery_start: Optional[str] = Field(default=None, description="预计交货日期开始")
+    expected_delivery_end: Optional[str] = Field(default=None, description="预计交货日期结束")
+    cutting_date_start: Optional[str] = Field(default=None, description="下料日期开始")
+    cutting_date_end: Optional[str] = Field(default=None, description="下料日期结束")
+    expected_shipment_start: Optional[str] = Field(default=None, description="预计出货日期开始")
+    expected_shipment_end: Optional[str] = Field(default=None, description="预计出货日期结束")
+    actual_shipment_start: Optional[str] = Field(default=None, description="实际出货日期开始")
+    actual_shipment_end: Optional[str] = Field(default=None, description="实际出货日期结束")
 
 
 class ProductionListItem(BaseModel):
@@ -40,19 +40,19 @@ class ProductionListItem(BaseModel):
     customer_name: str
     address: str
     is_installation: bool
-    customer_payment_date: Optional[datetime]
-    split_order_date: Optional[datetime]
+    customer_payment_date: Optional[str]
+    split_order_date: Optional[str]
     order_days: Optional[int]  # 下单天数
-    expected_delivery_date: Optional[datetime]
+    expected_delivery_date: Optional[str]
     purchase_status: str
     board_18_quantity: int  # 18板数量
     board_09_quantity: int  # 09板数量
     
     # 生产进度
-    cutting_date: Optional[datetime]
-    finished_storage_date: Optional[datetime]
-    expected_shipment_date: Optional[datetime]
-    actual_shipment_date: Optional[datetime]
+    cutting_date: Optional[str]
+    finished_storage_date: Optional[str]
+    expected_shipment_date: Optional[str]
+    actual_shipment_date: Optional[str]
     
     internal_production_items: Optional[str]
     external_purchase_items: Optional[str]
@@ -80,17 +80,17 @@ class ProductionEdit(BaseModel):
     """生产管理编辑"""
     board_18_quantity: Optional[int] = Field(default=None, ge=0, description="18板数量")
     board_09_quantity: Optional[int] = Field(default=None, ge=0, description="09板数量")
-    expected_delivery_date: Optional[datetime] = Field(default=None, description="预计交货日期")
+    expected_delivery_date: Optional[str] = Field(default=None, description="预计交货日期")
     order_status: Optional[str] = Field(default=None, description="订单状态")
-    actual_shipment_date: Optional[datetime] = Field(default=None, description="实际出货日期")
+    actual_shipment_date: Optional[str] = Field(default=None, description="实际出货日期")
     remarks: Optional[str] = Field(default=None, description="备注")
 
 
 class ProductionProgressUpdate(BaseModel):
     """生产进度更新"""
-    cutting_date: Optional[datetime] = Field(default=None, description="下料日期")
-    finished_storage_date: Optional[datetime] = Field(default=None, description="成品入库日期")
-    expected_shipment_date: Optional[datetime] = Field(default=None, description="预计出货日期")
+    cutting_date: Optional[str] = Field(default=None, description="下料日期")
+    finished_storage_date: Optional[str] = Field(default=None, description="成品入库日期")
+    expected_shipment_date: Optional[str] = Field(default=None, description="预计出货日期")
 
 
 class ProductionResponse(BaseModel):
@@ -100,16 +100,16 @@ class ProductionResponse(BaseModel):
     customer_name: str
     address: str
     is_installation: bool
-    customer_payment_date: Optional[datetime]
-    split_order_date: Optional[datetime]
-    expected_delivery_date: Optional[datetime]
+    customer_payment_date: Optional[str]
+    split_order_date: Optional[str]
+    expected_delivery_date: Optional[str]
     purchase_status: str
     board_18_quantity: int
     board_09_quantity: int
-    cutting_date: Optional[datetime]
-    finished_storage_date: Optional[datetime]
-    expected_shipment_date: Optional[datetime]
-    actual_shipment_date: Optional[datetime]
+    cutting_date: Optional[str]
+    finished_storage_date: Optional[str]
+    expected_shipment_date: Optional[str]
+    actual_shipment_date: Optional[str]
     internal_production_items: Optional[str]
     external_purchase_items: Optional[str]
     order_status: str
