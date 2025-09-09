@@ -15,7 +15,7 @@ class Split(Base):
     # 基本信息（从订单复制）
     customer_name = Column(String(100), nullable=False, comment="客户名称")
     address = Column(Text, nullable=False, comment="地址")
-    order_date = Column(DateTime, nullable=True, comment="下单日期")
+    order_date = Column(String(50), nullable=True, comment="下单日期")
     designer = Column(String(50), nullable=True, comment="设计师")
     salesperson = Column(String(50), nullable=True, comment="销售员")
     order_amount = Column(Numeric(12, 2), nullable=True, comment="订单金额")
@@ -29,7 +29,7 @@ class Split(Base):
     internal_production_items = Column(JSON, nullable=True, comment="厂内生产项")
     external_purchase_items = Column(JSON, nullable=True, comment="外购项")
     quote_status = Column(String(20), default="未打款", comment="报价状态")
-    completion_date = Column(DateTime, nullable=True, comment="完成日期")
+    completion_date = Column(String(50), nullable=True, comment="完成日期")
     remarks = Column(Text, nullable=True, comment="备注")
     
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")

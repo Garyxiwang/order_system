@@ -218,7 +218,7 @@ async def create_order(
         # 如果是生产单，自动创建拆单数据
         if order_data.order_type == "生产单":
             # 生产单的下单日期和分单日期一致
-            split_order_date = datetime.strptime(order.assignment_date, "%Y-%m-%d").date() if order.assignment_date else None
+            split_order_date = order.assignment_date
             
             split = Split(
                 order_number=order.order_number,
