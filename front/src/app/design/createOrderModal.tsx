@@ -164,7 +164,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               name="order_number"
               rules={[{ required: true, message: "请输入订单编号" }]}
             >
-              <Input placeholder="请输入" />
+              <Input placeholder="请输入" disabled={!!initialValues} />
             </Form.Item>
           </Col>
           <Col span={12}>

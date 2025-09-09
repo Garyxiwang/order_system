@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.models.split import Split
 from app.models.order import Order
 from app.models.production import Production, PurchaseStatus
+from app.models.progress import Progress
 from app.schemas.split import (
     SplitListQuery,
     SplitListResponse,
@@ -258,14 +259,36 @@ async def update_split_status(
         # 更新状态
         if status_data.order_status is not None:
             split.order_status = status_data.order_status
-            # 同时更新关联的订单状态
-            order = db.query(Order).filter(Order.order_number == split.order_number).first()
-            if order:
-                # 直接设置字符串状态
-                order.order_status = status_data.order_status
+            # 拆单状态和设计管理状态是独立的，不需要同步
                         
         if status_data.quote_status is not None:
             split.quote_status = status_data.quote_status
+            
+            # 如果更新为已打款状态且提供了实际打款日期，更新设计单中的打款进度
+            if status_data.quote_status == "已打款" and status_data.actual_payment_date:
+                # 查找对应的订单
+                order = db.query(Order).filter(Order.order_number == split.order_number).first()
+                if order:
+                    # 查找打款进度事项
+                    payment_progress = db.query(Progress).filter(
+                        Progress.order_id == order.id,
+                        Progress.task_item == "报价"
+                    ).first()
+                    
+                    if payment_progress:
+                        # 更新实际打款日期
+                        payment_progress.actual_date = status_data.actual_payment_date
+                        payment_progress.updated_at = datetime.utcnow()
+                    else:
+                        # 如果没找到报价事项，创建一个新的进度事项
+                        new_progress = Progress(
+                            order_id=order.id,
+                            task_item="报价",
+                            planned_date=status_data.actual_payment_date,
+                            actual_date=status_data.actual_payment_date,
+                            remarks="系统自动创建"
+                        )
+                        db.add(new_progress)
             
         split.updated_at = datetime.utcnow()
         db.commit()

@@ -15,11 +15,12 @@ class Split(Base):
     # 基本信息（从订单复制）
     customer_name = Column(String(100), nullable=False, comment="客户名称")
     address = Column(Text, nullable=False, comment="地址")
-    order_date = Column(DateTime, nullable=False, comment="下单日期")
-    designer = Column(String(50), nullable=False, comment="设计师")
-    salesperson = Column(String(50), nullable=False, comment="销售员")
+    order_date = Column(DateTime, nullable=True, comment="下单日期")
+    designer = Column(String(50), nullable=True, comment="设计师")
+    salesperson = Column(String(50), nullable=True, comment="销售员")
     order_amount = Column(Numeric(12, 2), nullable=True, comment="订单金额")
-    design_area = Column(Numeric(10, 2), nullable=True, comment="设计面积")
+    cabinet_area = Column(Numeric(10, 2), nullable=True, comment="柜体面积")
+    wall_panel_area = Column(Numeric(10, 2), nullable=True, comment="墙板面积")
     order_type = Column(String(20), nullable=False, comment="订单类型")
     order_status = Column(String(20), nullable=False, comment="订单状态")
     

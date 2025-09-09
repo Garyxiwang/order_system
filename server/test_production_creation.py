@@ -34,7 +34,7 @@ def test_production_auto_creation():
         "designer": "设计师A",
         "salesperson": "销售员B",
         "category_name": "全屋定制",
-        "design_area": 120.5,
+
         "unit_price": 800.0,
         "total_amount": 96400.0,
         "order_amount": 96400.0,

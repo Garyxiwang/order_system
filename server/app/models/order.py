@@ -24,8 +24,8 @@ class Order(Base):
     order_number = Column(String(50), unique=True, index=True, nullable=False, comment="订单编号")
     customer_name = Column(String(100), nullable=False, comment="客户名称")
     address = Column(Text, nullable=False, comment="地址")
-    designer = Column(String(50), nullable=False, comment="设计师")
-    salesperson = Column(String(50), nullable=False, comment="销售员")
+    designer = Column(String(50), nullable=True, comment="设计师")
+    salesperson = Column(String(50), nullable=True, comment="销售员")
     assignment_date = Column(String(50), nullable=False, comment="分单日期")
     order_date = Column(String(50), nullable=True, comment="下单日期")
     
@@ -38,7 +38,6 @@ class Order(Base):
     # 面积和金额
     cabinet_area = Column(Numeric(10, 2), nullable=True, comment="柜体面积")
     wall_panel_area = Column(Numeric(10, 2), nullable=True, comment="墙板面积")
-    design_area = Column(Numeric(10, 2), nullable=True, comment="设计面积")
     order_amount = Column(Numeric(12, 2), nullable=True, comment="订单金额")
     
     is_installation = Column(Boolean, default=False, comment="是否安装")

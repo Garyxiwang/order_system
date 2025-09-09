@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_, or_, func, text
 from typing import List, Optional
 from datetime import datetime, date
 
@@ -55,18 +55,20 @@ async def get_orders(
         if query_data.order_status:
             # 定义所有已知的订单状态
             defined_statuses = [
-                "量尺", "初稿", "报价", "打款", "延期", "暂停", 
+                "量尺", "初稿", "报价", "打款", "延期", "暂停",
                 "等硬装", "客户待打款", "待客户确认", "待下单", "已下单", "已撤销"
             ]
-            
+
             # 检查是否包含"其他"状态
             if "其他" in query_data.order_status:
                 # 如果只选择了"其他"，则筛选出不在已定义状态中的订单
                 if len(query_data.order_status) == 1:
-                    query = query.filter(~Order.order_status.in_(defined_statuses))
+                    query = query.filter(
+                        ~Order.order_status.in_(defined_statuses))
                 else:
                     # 如果同时选择了"其他"和其他状态，则包含其他状态和不在已定义状态中的订单
-                    other_selected_statuses = [s for s in query_data.order_status if s != "其他"]
+                    other_selected_statuses = [
+                        s for s in query_data.order_status if s != "其他"]
                     query = query.filter(
                         or_(
                             Order.order_status.in_(other_selected_statuses),
@@ -88,7 +90,8 @@ async def get_orders(
             # 使用包含关系查询，只要订单中包含任一选中的类目就匹配
             category_conditions = []
             for category in query_data.category_names:
-                category_conditions.append(Order.category_name.like(f"%{category}%"))
+                category_conditions.append(
+                    Order.category_name.like(f"%{category}%"))
             query = query.filter(or_(*category_conditions))
 
         if query_data.assignment_date_start:
@@ -126,7 +129,7 @@ async def get_orders(
                 for p in order.progresses:
                     if p.actual_date:
                         design_process_items.append(
-                            f"{p.task_item}:{p.actual_date.strftime('%Y-%m-%d')}")
+                            f"{p.task_item}:{p.actual_date}")
                     else:
                         design_process_items.append(f"{p.task_item}:-")
                 design_process = ",".join(design_process_items)
@@ -184,6 +187,9 @@ async def create_order(
         if existing_order:
             return error_response(message="订单编号已存在")
 
+        # 根据订单类型设置初始状态
+        initial_status = "已下单" if order_data.order_type == "生产单" else "进行中"
+        
         # 创建订单
         order = Order(
             order_number=order_data.order_number,
@@ -198,17 +204,38 @@ async def create_order(
             design_cycle=order_data.design_cycle or "0",
             cabinet_area=order_data.cabinet_area,
             wall_panel_area=order_data.wall_panel_area,
-            design_area=(order_data.cabinet_area or 0) + (order_data.wall_panel_area or 0) if (
-                order_data.cabinet_area or order_data.wall_panel_area) else None,
+
             order_amount=order_data.order_amount,
             is_installation=getattr(order_data, 'is_installation', False),
             remarks=getattr(order_data, 'remarks', None),
-            order_status="进行中"
+            order_status=initial_status
         )
 
         db.add(order)
         db.commit()
         db.refresh(order)
+        
+        # 如果是生产单，自动创建拆单数据
+        if order_data.order_type == "生产单":
+            # 生产单的下单日期和分单日期一致
+            split_order_date = datetime.strptime(order.assignment_date, "%Y-%m-%d").date() if order.assignment_date else None
+            
+            split = Split(
+                order_number=order.order_number,
+                customer_name=order.customer_name,
+                address=order.address,
+                order_date=split_order_date,
+                designer=order.designer,
+                salesperson=order.salesperson,
+                order_amount=order.order_amount,
+                cabinet_area=order.cabinet_area,
+                wall_panel_area=order.wall_panel_area,
+                order_type=order.order_type,
+                order_status="拆单中",
+                quote_status="未打款"
+            )
+            db.add(split)
+            db.commit()
 
         return success_response(
             data=OrderResponse.from_orm(order),
@@ -228,40 +255,47 @@ async def update_order(
 ):
     """编辑订单"""
     try:
-        # 查找订单 - 按ID查找
-        order = db.query(Order).filter(Order.id == order_id).first()
+        # 查找订单 - 按ID查找，预加载进度数据
+        order = db.query(Order).options(
+            joinedload(Order.progresses)
+        ).filter(Order.id == order_id).first()
 
         if not order:
             return error_response(message="订单不存在")
 
-        # 获取更新数据，保留None值以支持字段清空
-        update_data = order_data.dict(exclude_none=False)
-        # 只保留实际传递的字段
-        update_data = {k: v for k, v in update_data.items(
-        ) if k in order_data.__fields_set__ or v is None}
+        # 获取更新数据，只包含实际传递的字段
+        update_data = order_data.dict(exclude_unset=True)
 
-        # 如果更新了订单编号，检查是否重复
-        if 'order_number' in update_data and update_data['order_number'] != order.order_number:
-            existing_order = db.query(Order).filter(
-                Order.order_number == update_data['order_number'],
-                Order.id != order.id
-            ).first()
-            if existing_order:
-                return error_response(message="订单编号已存在")
+        # 不允许修改订单编号
+        if 'order_number' in update_data:
+            return error_response(message="不允许修改订单编号")
 
         # 更新订单字段
-
-        # 如果更新了面积，重新计算设计面积
-        if 'cabinet_area' in update_data or 'wall_panel_area' in update_data:
-            cabinet_area = update_data.get('cabinet_area', order.cabinet_area)
-            wall_panel_area = update_data.get(
-                'wall_panel_area', order.wall_panel_area)
-            if cabinet_area or wall_panel_area:
-                update_data['design_area'] = (
-                    cabinet_area or 0) + (wall_panel_area or 0)
-            else:
-                update_data['design_area'] = None
-
+        # 如果更新了订单相关字段，同步更新拆单表中的数据
+        split_update_fields = {
+            'customer_name': 'customer_name',
+            'address': 'address', 
+            'order_date': 'order_date',
+            'designer': 'designer',
+            'salesperson': 'salesperson',
+            'order_amount': 'order_amount',
+            'cabinet_area': 'cabinet_area',
+            'wall_panel_area': 'wall_panel_area',
+            'order_type': 'order_type',
+            'order_status': 'order_status'
+        }
+        
+        # 检查是否有需要同步到拆单表的字段更新
+        split_updates = {}
+        for order_field, split_field in split_update_fields.items():
+            if order_field in update_data:
+                split_updates[split_field] = update_data[order_field]
+        
+        # 如果有字段需要同步更新，更新拆单表
+        if split_updates:
+            db.query(Split).filter(Split.order_number == order.order_number).update(split_updates)
+        
+        # 更新订单表字段
         for field, value in update_data.items():
             setattr(order, field, value)
 
@@ -314,22 +348,31 @@ async def update_order_status(
                 status_data.order_status == "已下单"):
             # 设置下单时间
             order.order_date = datetime.now().strftime('%Y-%m-%d')
-            print("---=-=-=-,", datetime.now().strftime('%Y-%m-%d'))
-            
+
             # 更新进度表中下单事项的实际时间
             order_progress = db.query(Progress).filter(
                 Progress.order_id == order.id,
                 Progress.task_item == "下单"
             ).first()
             if order_progress:
-                order_progress.actual_date = datetime.strptime(order.order_date, '%Y-%m-%d').date()
-                print(f"更新下单进度实际时间: {order_progress.actual_date}")
+                order_progress.actual_date = datetime.strptime(
+                    order.order_date, '%Y-%m-%d').date()
             # 检查是否已存在拆单记录
             existing_split = db.query(Split).filter(
                 Split.order_number == order.order_number
             ).first()
 
             if not existing_split:
+                # 检查打款状态
+                payment_progress = db.query(Progress).filter(
+                    Progress.order_id == order.id,
+                    Progress.task_item == "打款"
+                ).first()
+
+                # 如果存在打款事项且已填写实际日期，则为已打款，否则为未打款
+                quote_status = "已打款" if (
+                    payment_progress and payment_progress.actual_date) else "未打款"
+
                 # 创建拆单记录
                 split = Split(
                     order_number=order.order_number,
@@ -339,11 +382,12 @@ async def update_order_status(
                     designer=order.designer,
                     salesperson=order.salesperson,
                     order_amount=order.order_amount,
-                    design_area=getattr(order, 'design_area', None),
-                    order_status=status_data.order_status,
+                    cabinet_area=getattr(order, 'cabinet_area', None),
+                    wall_panel_area=getattr(order, 'wall_panel_area', None),
+                    order_status="未开始",
                     order_type=order.order_type,
-                    quote_status="未打款",
-                    remarks=getattr(order, 'remarks', None),
+                    quote_status=quote_status,
+                    remarks="",
                     # 根据订单类目创建生产项
                     internal_production_items=[
                         {
@@ -359,6 +403,22 @@ async def update_order_status(
                     updated_at=datetime.utcnow()
                 )
                 db.add(split)
+
+        # 如果订单状态变更为已撤销，同步更新拆单管理中相同订单的状态为撤销中
+        if status_data.order_status == "已撤销":
+            existing_split = db.query(Split).filter(
+                Split.order_number == order.order_number
+            ).first()
+            if existing_split:
+                existing_split.order_status = "撤销中"
+
+        # 如果订单状态变更为已下单，检查拆单管理中相同订单是否为撤销中，如果是则改为进行中
+        if status_data.order_status == "已下单":
+            existing_split = db.query(Split).filter(
+                Split.order_number == order.order_number
+            ).first()
+            if existing_split and existing_split.order_status == "撤销中":
+                existing_split.order_status = "拆单中"
 
         db.commit()
         db.refresh(order)
@@ -381,7 +441,6 @@ async def update_order_status(
             "order_amount": order.order_amount,
             "is_installation": order.is_installation,
             "remarks": order.remarks,
-            "design_area": order.design_area,
             "order_status": order.order_status,
             "created_at": order.created_at,
             "updated_at": order.updated_at,
@@ -389,8 +448,8 @@ async def update_order_status(
                 {
                     "id": progress.id,
                     "task_item": progress.task_item,
-                    "planned_date": progress.planned_date.strftime("%Y-%m-%d") if progress.planned_date else None,
-                    "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date else None,
+                    "planned_date": progress.planned_date,
+                    "actual_date": progress.actual_date,
                     "remarks": progress.remarks,
                     "order_id": progress.order_id,
                     "order_number": order.order_number,
@@ -443,7 +502,6 @@ async def get_order(
             "order_amount": order.order_amount,
             "is_installation": order.is_installation,
             "remarks": order.remarks,
-            "design_area": order.design_area,
             "order_status": order.order_status,
             "created_at": order.created_at,
             "updated_at": order.updated_at,
@@ -451,8 +509,8 @@ async def get_order(
                 {
                     "id": progress.id,
                     "task_item": progress.task_item,
-                    "planned_date": progress.planned_date.strftime("%Y-%m-%d") if progress.planned_date else None,
-                    "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date else None,
+                    "planned_date": progress.planned_date if progress.planned_date else None,
+                    "actual_date": progress.actual_date if progress.actual_date else None,
                     "remarks": progress.remarks,
                     "order_id": progress.order_id,
                     "order_number": order.order_number,

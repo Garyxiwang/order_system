@@ -50,6 +50,7 @@ class SplitStatusUpdate(BaseModel):
     """拆单状态更新模型"""
     order_status: Optional[str] = Field(None, description="订单状态")
     quote_status: Optional[str] = Field(None, description="报价状态")
+    actual_payment_date: Optional[str] = Field(None, description="实际打款日期")
 
 
 class SplitListQuery(BaseModel):
@@ -77,11 +78,12 @@ class SplitResponse(BaseModel):
     order_number: str
     customer_name: str
     address: str
-    order_date: datetime
-    designer: str
-    salesperson: str
-    order_amount: float
-    design_area: Optional[float]
+    order_date: Optional[datetime]
+    designer: Optional[str]
+    salesperson: Optional[str]
+    order_amount: Optional[float]
+    cabinet_area: Optional[float]
+    wall_panel_area: Optional[float]
     order_type: str
     order_status: str
     splitter: Optional[str]

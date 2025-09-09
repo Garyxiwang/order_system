@@ -209,9 +209,8 @@ const DesignPage: React.FC = () => {
       setLoading(true);
 
       if (editingRecord) {
-        // 编辑模式
+        // 编辑模式 - 不传递order_number字段，因为后端不允许修改订单编号
         const response = await updateDesignOrder(editingRecord.id!.toString(), {
-          order_number: values.order_number,
           customer_name: values.customer_name,
           address: values.address,
           designer: values.designer,
@@ -266,7 +265,7 @@ const DesignPage: React.FC = () => {
       }
 
       // 重新加载数据
-      await loadDesignData();
+      await handleSearch();
       setIsModalVisible(false);
       setEditingRecord(null);
       return true;
@@ -636,7 +635,8 @@ const DesignPage: React.FC = () => {
         if (text === "已下单") {
           return <Tag color="green">{text}</Tag>;
         }
-        if (text === "已撤销") {
+        if (text === "已撤销" || text === "暂停"
+        ) {
           return <Tag color="red">{text}</Tag>;
         }
 
@@ -723,6 +723,7 @@ const DesignPage: React.FC = () => {
               "等硬装",
               "客户待打款",
               "待客户确认",
+              "已撤销",
               "下单",
               "其他",
             ],
@@ -794,7 +795,7 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                   maxTagCount="responsive"
-                  dropdownRender={(menu) => {
+                  popupRender={(menu) => {
                     const allStatusOptions = [
                       "量尺",
                       "初稿",

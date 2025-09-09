@@ -1,85 +1,33 @@
 // 拆单页面相关的API接口
 
 export interface SplitOrder {
-  designNumber: string;
-  customerName: string;
+  id: number;
+  order_number: string; // 对应 designNumber
+  customer_name: string; // 对应 customerName
   address: string;
-  createTime: string;
+  order_date: string; // 对应 createTime
   designer: string;
-  salesPerson: string;
-  splitPerson: string;
-  doorBody: string;
-  external: string;
-  priceState: string;
-  fixedTime: string;
-  finishTime: string;
-  orderType: string;
-  states: string;
-  remark: string;
-  designArea?: string;
-  orderAmount?: string;
+  salesperson: string; // 对应 salesPerson
+  splitter?: string; // 对应 splitPerson
+  internal_production_items?: ProductionItem[]; // 对应 doorBody
+  external_purchase_items?: ProductionItem[]; // 对应 external
+  quote_status: string; // 对应 priceState
+  completion_date?: string; // 对应 finishTime
+  order_type: string; // 对应 orderType
+  order_status: string; // 对应 states
+  remarks?: string; // 对应 remark
+  cabinet_area?: number; // 柜体面积
+  wall_panel_area?: number; // 墙板面积
+  order_amount?: number; // 对应 orderAmount
+  created_at: string;
+  updated_at: string;
 }
 
-// 模拟拆单数据
-const mockSplitData: SplitOrder[] = [
-  {
-    designNumber: "D2024-022",
-    customerName: "西安钻石店-济人名仕苑2-1-2101",
-    address: "西安",
-    createTime: "2024-07-20",
-    designer: "张三",
-    salesPerson: "李四",
-    splitPerson: "",
-    doorBody: "木门:2025/07/01:3,柜体",
-    external: "石材:2025/07/01:3,板材:2025/07/01:2",
-    priceState: "已打款",
-    fixedTime: "2024-07-20",
-    finishTime: "2024-07-30",
-    orderType: "设计单",
-    states: "已完成",
-    remark: "这个是一个备注",
-    designArea: "120",
-    orderAmount: "45000",
-  },
-  {
-    designNumber: "D2024-023",
-    customerName: "潘朝龙-白桦林悦8-2-1501",
-    address: "西安",
-    createTime: "2024-07-20",
-    designer: "张三",
-    salesPerson: "李四",
-    splitPerson: "拆单员A",
-    doorBody: "木门:2025/07/01:3,柜体:2025/07/03:10",
-    external: "石材:2025/07/01:3,板材:2025/07/01:2",
-    priceState: "已打款",
-    fixedTime: "2024-07-20",
-    finishTime: "2024-07-30",
-    orderType: "设计单",
-    states: "已完成",
-    remark: "这个是一个备注",
-    designArea: "",
-    orderAmount: "",
-  },
-  {
-    designNumber: "D2024-024",
-    customerName: "计翠艳-甘肃庆阳长兴苑张先生",
-    address: "西安",
-    createTime: "2024-07-20",
-    designer: "张三",
-    salesPerson: "李四",
-    splitPerson: "",
-    doorBody: "木门:,柜体:",
-    external: "石材:,板材:",
-    priceState: "",
-    fixedTime: "",
-    finishTime: "",
-    orderType: "设计单",
-    states: "撤销中",
-    remark: "",
-    designArea: "95",
-    orderAmount: "28000",
-  },
-];
+export interface ProductionItem {
+  category_name: string;
+  planned_date?: string;
+  actual_date?: string;
+}
 
 // API响应接口
 interface ApiResponse<T> {
@@ -90,79 +38,115 @@ interface ApiResponse<T> {
 
 // 获取拆单列表
 export const getSplitOrders = async (): Promise<ApiResponse<SplitOrder[]>> => {
-  // 模拟API调用延迟
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  return {
-    code: 200,
-    message: "获取成功",
-    data: mockSplitData,
-  };
-};
+  try {
+    const requestData = {
+      page: 1,
+      page_size: 100, // 暂时获取所有数据
+    };
 
-// 创建拆单
-export const createSplitOrder = async (order: Omit<SplitOrder, 'designNumber'>): Promise<ApiResponse<SplitOrder>> => {
-  // 模拟API调用延迟
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  const newOrder: SplitOrder = {
-    ...order,
-    designNumber: `D2024-${String(Date.now()).slice(-3)}`,
-  };
-  
-  mockSplitData.push(newOrder);
-  
-  return {
-    code: 200,
-    message: "创建成功",
-    data: newOrder,
-  };
-};
+    const response = await fetch("/api/v1/splits/list", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestData),
+    });
 
-// 更新拆单
-export const updateSplitOrder = async (designNumber: string, updates: Partial<SplitOrder>): Promise<ApiResponse<SplitOrder>> => {
-  // 模拟API调用延迟
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  const index = mockSplitData.findIndex(order => order.designNumber === designNumber);
-  
-  if (index === -1) {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    // 转换后端数据格式为前端期望的格式
+    const transformedData = {
+      code: 200,
+      message: "获取成功",
+      data: result.items || [],
+    };
+
+    return transformedData;
+  } catch (error) {
+    console.error("获取拆单列表失败:", error);
     return {
-      code: 404,
-      message: "订单不存在",
+      code: 500,
+      message: "获取拆单列表失败",
+      data: [],
+    };
+  }
+};
+
+// 更新拆单状态
+export const updateSplitStatus = async (
+  splitId: number,
+  updates: { order_status?: string; quote_status?: string; actual_payment_date?: string }
+): Promise<ApiResponse<SplitOrder>> => {
+  try {
+    const response = await fetch(`/api/v1/splits/${splitId}/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    return {
+      code: 200,
+      message: "更新成功",
+      data: result,
+    };
+  } catch (error) {
+    console.error("更新拆单状态失败:", error);
+    return {
+      code: 500,
+      message: "更新拆单状态失败",
       data: {} as SplitOrder,
     };
   }
-  
-  mockSplitData[index] = { ...mockSplitData[index], ...updates };
-  
-  return {
-    code: 200,
-    message: "更新成功",
-    data: mockSplitData[index],
-  };
 };
 
-// 删除拆单
-export const deleteSplitOrder = async (designNumber: string): Promise<ApiResponse<null>> => {
-  // 模拟API调用延迟
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  
-  const index = mockSplitData.findIndex(order => order.designNumber === designNumber);
-  
-  if (index === -1) {
+// 更新拆单信息
+export const updateSplitOrder = async (
+  splitId: number,
+  updates: {
+    splitter?: string;
+    internal_production_items?: ProductionItem[];
+    external_purchase_items?: ProductionItem[];
+    remarks?: string;
+  }
+): Promise<ApiResponse<SplitOrder>> => {
+  try {
+    const response = await fetch(`/api/v1/splits/${splitId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
     return {
-      code: 404,
-      message: "订单不存在",
-      data: null,
+      code: 200,
+      message: "更新成功",
+      data: result,
+    };
+  } catch (error) {
+    console.error("更新拆单信息失败:", error);
+    return {
+      code: 500,
+      message: "更新拆单信息失败",
+      data: {} as SplitOrder,
     };
   }
-  
-  mockSplitData.splice(index, 1);
-  
-  return {
-    code: 200,
-    message: "删除成功",
-    data: null,
-  };
 };

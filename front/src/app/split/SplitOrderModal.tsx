@@ -56,12 +56,12 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
     if (orderData) {
       form.setFieldsValue({
         doorSplitDate: undefined,
-        doorFixedDate: orderData.fixedTime
-          ? dayjs(orderData.fixedTime)
+        doorFixedDate: orderData.completion_date
+          ? dayjs(orderData.completion_date)
           : undefined,
         cabinetSplitDate: undefined,
-        cabinetFixedDate: orderData.fixedTime
-          ? dayjs(orderData.fixedTime)
+        cabinetFixedDate: orderData.completion_date
+          ? dayjs(orderData.completion_date)
           : undefined,
         stoneSplitDate: undefined,
         stoneFixedDate: undefined,
@@ -69,7 +69,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
         boardFixedDate: undefined,
         aluminumSplitDate: undefined,
         aluminumFixedDate: undefined,
-        remarks: orderData.remark || "",
+        remarks: orderData.remarks || "",
       });
     }
   }, [orderData, form]);
@@ -130,14 +130,14 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           size="small"
           items={[
             {
-              key: "designNumber",
+              key: "order_number",
               label: "订单编号",
-              children: orderData.designNumber || "-",
+              children: orderData.order_number || "-",
             },
             {
-              key: "customerName",
+              key: "customer_name",
               label: "客户名称",
-              children: orderData.customerName || "-",
+              children: orderData.customer_name || "-",
             },
             {
               key: "address",
@@ -150,14 +150,14 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
               children: orderData.designer || "-",
             },
             {
-              key: "salesPerson",
+              key: "salesperson",
               label: "销售员",
-              children: orderData.salesPerson || "-",
+              children: orderData.salesperson || "-",
             },
             {
-              key: "createTime",
+              key: "order_date",
               label: "下单日期",
-              children: orderData.createTime || "-",
+              children: orderData.order_date || "-",
             },
           ]}
         />

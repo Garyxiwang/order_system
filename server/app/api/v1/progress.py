@@ -49,8 +49,8 @@ async def create_progress(
         progress_dict = {
             "id": progress.id,
             "task_item": progress.task_item,
-            "planned_date": progress.planned_date.strftime("%Y-%m-%d") if hasattr(progress.planned_date, 'strftime') else progress.planned_date,
-            "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date and hasattr(progress.actual_date, 'strftime') else progress.actual_date,
+            "planned_date": progress.planned_date,
+            "actual_date": progress.actual_date,
             "remarks": progress.remarks,
             "order_id": progress.order_id,
             "order_number": order.order_number,
@@ -103,8 +103,8 @@ async def get_progress_list(
             progress_dict = {
                 "id": progress.id,
                 "task_item": progress.task_item,
-                "planned_date": progress.planned_date.strftime("%Y-%m-%d") if hasattr(progress.planned_date, 'strftime') else progress.planned_date,
-                "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date and hasattr(progress.actual_date, 'strftime') else progress.actual_date,
+                "planned_date": progress.planned_date,
+                "actual_date": progress.actual_date,
                 "remarks": progress.remarks,
                 "order_id": progress.order_id,
                 "order_number": order.order_number,
@@ -143,17 +143,14 @@ async def update_progress(
         if not progress:
             return error_response(message="进度不存在")
         
-        # 更新进度字段
-        update_data = progress_data.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(progress, field, value)
+        # 更新进度字段（只更新ProgressUpdate模型中存在的字段）
+        if progress_data.actual_date is not None:
+            progress.actual_date = progress_data.actual_date
+        if progress_data.remarks is not None:
+            progress.remarks = progress_data.remarks
         
         # 获取订单信息
         order = db.query(Order).filter(Order.id == progress.order_id).first()
-        
-        # 如果更新了task_item，直接使用进度事项作为订单状态
-        if 'task_item' in update_data:
-            order.order_status = progress.task_item
         
         db.commit()
         db.refresh(progress)
@@ -162,8 +159,8 @@ async def update_progress(
         progress_dict = {
             "id": progress.id,
             "task_item": progress.task_item,
-            "planned_date": progress.planned_date.strftime("%Y-%m-%d") if hasattr(progress.planned_date, 'strftime') else progress.planned_date,
-            "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date and hasattr(progress.actual_date, 'strftime') else progress.actual_date,
+            "planned_date": progress.planned_date,
+            "actual_date": progress.actual_date,
             "remarks": progress.remarks,
             "order_id": progress.order_id,
             "order_number": order.order_number if order else None,
@@ -197,8 +194,8 @@ async def get_progress(
         progress_dict = {
             "id": progress.id,
             "task_item": progress.task_item,
-            "planned_date": progress.planned_date.strftime("%Y-%m-%d") if hasattr(progress.planned_date, 'strftime') else progress.planned_date,
-            "actual_date": progress.actual_date.strftime("%Y-%m-%d") if progress.actual_date and hasattr(progress.actual_date, 'strftime') else progress.actual_date,
+            "planned_date": progress.planned_date,
+            "actual_date": progress.actual_date,
             "remarks": progress.remarks,
             "order_id": progress.order_id,
             "created_at": progress.created_at,

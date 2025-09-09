@@ -22,7 +22,13 @@ import {
   CheckOutlined,
   ExportOutlined,
 } from "@ant-design/icons";
-import { getSplitOrders, type SplitOrder } from "../../services/splitApi";
+import {
+  getSplitOrders,
+  updateSplitStatus,
+  type SplitOrder,
+  type ProductionItem,
+} from "../../services/splitApi";
+import { formatDateTime } from "../../utils/dateUtils";
 import EditOrderModal from "./editOrderModal";
 import type { EditFormValues } from "./editOrderModal";
 import SplitOrderModal from "./SplitOrderModal";
@@ -144,7 +150,7 @@ const DesignPage: React.FC = () => {
   // 显示订单状态修改弹窗
   const showOrderStatusModal = (record: SplitOrder) => {
     setOrderStatusEditingRecord(record);
-    setSelectedOrderStatus(record.states || "");
+    setSelectedOrderStatus(record.order_status || "");
     setIsOrderStatusModalVisible(true);
   };
 
@@ -163,23 +169,19 @@ const DesignPage: React.FC = () => {
     }
     try {
       setLoading(true);
-      // 这里可以调用实际的API
-      // const updateData = {
-      //   ...orderStatusEditingRecord,
-      //   states: selectedOrderStatus,
-      //   ...(selectedOrderStatus === "已完成" && {
-      //     cabinetArea: cabinetArea,
-      //     wallPanelArea: wallPanelArea
-      //   })
-      // };
-      // const response = await updateSplitOrder(
-      //   orderStatusEditingRecord.designNumber,
-      //   updateData
-      // );
 
-      message.success(`订单状态修改成功`);
-      await loadSplitData(); // 重新加载数据
-      handleOrderStatusModalCancel();
+      // 调用API更新订单状态
+      const response = await updateSplitStatus(orderStatusEditingRecord.id, {
+        order_status: selectedOrderStatus,
+      });
+
+      if (response.code === 200) {
+        message.success(`订单状态修改成功`);
+        await loadSplitData(); // 重新加载数据
+        handleOrderStatusModalCancel();
+      } else {
+        message.error(response.message || "订单状态修改失败");
+      }
     } catch (error) {
       message.error("订单状态修改失败，请稍后重试");
       console.error("订单状态修改失败:", error);
@@ -191,7 +193,7 @@ const DesignPage: React.FC = () => {
   // 显示报价状态修改弹窗
   const showPriceStatusModal = (record: SplitOrder) => {
     setPriceStatusEditingRecord(record);
-    setSelectedPriceStatus(record.priceState || "");
+    setSelectedPriceStatus(record.quote_status || "");
     setIsPriceStatusModalVisible(true);
   };
 
@@ -222,27 +224,30 @@ const DesignPage: React.FC = () => {
 
     try {
       setLoading(true);
-      // 这里可以调用实际的API
-      // const updateData = {
-      //   ...priceStatusEditingRecord,
-      //   priceState: selectedPriceStatus,
-      //   ...(selectedPriceStatus === "已打款" && actualPaymentDate && {
-      //     actualPaymentDate: actualPaymentDate.format("YYYY-MM-DD")
-      //   })
-      // };
-      // const response = await updateSplitOrder(
-      //   priceStatusEditingRecord.designNumber,
-      //   updateData
-      // );
 
-      // 模拟成功响应
-      const dateInfo =
-        selectedPriceStatus === "已打款" && actualPaymentDate
-          ? `，实际打款日期：${actualPaymentDate.format("YYYY-MM-DD")}`
-          : "";
-      message.success(`报价状态修改成功${dateInfo}`);
-      await loadSplitData(); // 重新加载数据
-      handlePriceStatusModalCancel();
+      // 调用API更新报价状态
+      const statusData: { quote_status: string; actual_payment_date?: string } =
+        { quote_status: selectedPriceStatus };
+      if (selectedPriceStatus === "已打款" && actualPaymentDate) {
+        statusData.actual_payment_date = actualPaymentDate.format("YYYY-MM-DD");
+      }
+
+      const response = await updateSplitStatus(
+        priceStatusEditingRecord.id,
+        statusData
+      );
+
+      if (response.code === 200) {
+        const dateInfo =
+          selectedPriceStatus === "已打款" && actualPaymentDate
+            ? `，实际打款日期：${actualPaymentDate.format("YYYY-MM-DD")}`
+            : "";
+        message.success(`报价状态修改成功${dateInfo}`);
+        await loadSplitData(); // 重新加载数据
+        handlePriceStatusModalCancel();
+      } else {
+        message.error(response.message || "报价状态修改失败");
+      }
     } catch (error) {
       message.error("报价状态修改失败，请稍后重试");
       console.error("报价状态修改失败:", error);
@@ -253,28 +258,31 @@ const DesignPage: React.FC = () => {
 
   // 处理下单操作
   const handlePlaceOrder = (record: SplitOrder) => {
-    if (!record.designArea || !record.orderAmount) {
-      // message.warning("请输入设计面积和订单金额");
+    if (
+      (!record.cabinet_area && !record.wall_panel_area) ||
+      !record.order_amount
+    ) {
+      // message.warning("请输入面积和订单金额");
       Modal.error({
         title: "订单错误",
         content: (
           <div>
-            <p>当前订单缺少设计面积和订单金额</p>
-            <p>请先补后，再下单！</p>
+            <p>当前订单缺少面积信息和订单金额</p>
+            <p>请先补充，再下单！</p>
           </div>
         ),
       });
       return;
     }
     // 检查打款状态
-    if (record.priceState !== "已打款") {
+    if (record.quote_status !== "已打款") {
       message.warning("只有已打款的订单才能下单");
       return;
     }
 
     Modal.confirm({
       title: "确认下单",
-      content: `确定要为订单 ${record.designNumber} 下单吗？`,
+      content: `确定要为订单 ${record.order_number} 下单吗？`,
       okText: "确认",
       cancelText: "取消",
       onOk: async () => {
@@ -302,13 +310,13 @@ const DesignPage: React.FC = () => {
   const columns: ColumnsType<SplitOrder> = [
     {
       title: "订单编号",
-      dataIndex: "designNumber",
-      key: "designNumber",
+      dataIndex: "order_number",
+      key: "order_number",
     },
     {
       title: "客户名称",
-      dataIndex: "customerName",
-      key: "customerName",
+      dataIndex: "customer_name",
+      key: "customer_name",
       width: 150,
     },
     {
@@ -319,53 +327,65 @@ const DesignPage: React.FC = () => {
 
     {
       title: "下单日期",
-      dataIndex: "createTime",
-      key: "createTime",
+      dataIndex: "order_date",
+      key: "order_date",
+      render: (date: string) => formatDateTime(date),
     },
     {
       title: "拆单员",
-      dataIndex: "splitPerson",
-      key: "splitPerson",
-      render: (text: string) => {
-        if (!text) return "-";
-        return text;
-      },
+      dataIndex: "splitter",
+      key: "splitter",
+      render: (text: string) => text || "-",
     },
     {
       title: "厂内生产项",
-      dataIndex: "doorBody",
-      key: "doorBody",
-      render: (text: string) => {
-        if (!text) return null;
+      dataIndex: "internal_production_items",
+      key: "internal_production_items",
+      render: (items: ProductionItem[], record: SplitOrder) => {
+        // 向后兼容旧的字符串格式
+        let productionItems = items;
+        if (!productionItems && record.internal_production_items) {
+          // 解析旧格式的字符串数据
+          const itemStrings: string[] =
+            typeof record.internal_production_items === "string"
+              ? (record.internal_production_items as string).split(",")
+              : [];
+          productionItems = itemStrings.map((item: string) => {
+            const parts: string[] = item.split(":");
+            return {
+              category_name: parts[0] || "",
+              planned_date: parts[1] || undefined,
+              actual_date: undefined,
+            };
+          });
+        }
 
-        const items = text.split(",");
+        if (!productionItems || productionItems.length === 0) return null;
+
         return (
           <div>
-            {items.map((item, index) => {
-              const parts = item.split(":");
-              const name = parts[0];
-              const time = parts[1];
-              const days = parts[2];
+            {productionItems.map((item: ProductionItem, index: number) => {
+              const name = item.category_name || "";
+              const plannedDate = item.planned_date;
+              const actualDate = item.actual_date;
 
-              if (parts.length === 3 && name && time && days) {
-                const dayCount = parseInt(days);
-                const dayColor = dayCount >= 3 ? "red" : "-";
+              if (actualDate) {
                 return (
                   <div key={index}>
                     <CheckOutlined
                       style={{ color: "green", marginRight: "4px" }}
                     />
-                    {name}:{time}{" "}
-                    <span style={{ color: dayColor }}>{days}天</span>
+                    {name}: {new Date(actualDate).toLocaleDateString("zh-CN")}
                   </div>
                 );
-              } else if (parts.length >= 2 && name && time) {
+              } else if (plannedDate) {
                 return (
                   <div key={index}>
                     <CheckOutlined
-                      style={{ color: "green", marginRight: "4px" }}
+                      style={{ color: "orange", marginRight: "4px" }}
                     />
-                    {name}:{time}
+                    {name}: {new Date(plannedDate).toLocaleDateString("zh-CN")}{" "}
+                    (计划)
                   </div>
                 );
               } else {
@@ -382,39 +402,53 @@ const DesignPage: React.FC = () => {
     },
     {
       title: "外购项",
-      dataIndex: "external",
-      key: "external",
-      render: (text: string) => {
-        if (!text) return null;
+      dataIndex: "external_purchase_items",
+      key: "external_purchase_items",
+      render: (items: ProductionItem[], record: SplitOrder) => {
+        // 向后兼容旧的字符串格式
+        let purchaseItems = items;
+        if (!purchaseItems && record.external_purchase_items) {
+          // 解析旧格式的字符串数据
+          const itemStrings: string[] =
+            typeof record.external_purchase_items === "string"
+              ? (record.external_purchase_items as string).split(",")
+              : [];
+          purchaseItems = itemStrings.map((item: string) => {
+            const parts: string[] = item.split(":");
+            return {
+              category_name: parts[0] || "",
+              planned_date: parts[1] || undefined,
+              actual_date: undefined,
+            };
+          });
+        }
 
-        const items = text.split(",");
+        if (!purchaseItems || purchaseItems.length === 0) return null;
+
         return (
           <div>
-            {items.map((item, index) => {
-              const parts = item.split(":");
-              const name = parts[0];
-              const time = parts[1];
-              const days = parts[2];
+            {purchaseItems.map((item: ProductionItem, index: number) => {
+              const name = item.category_name || "";
+              const plannedDate = item.planned_date;
+              const actualDate = item.actual_date;
 
-              if (parts.length === 3 && name && time && days) {
-                const dayCount = parseInt(days);
-                const dayColor = dayCount >= 3 ? "red" : "";
+              if (actualDate) {
                 return (
                   <div key={index}>
                     <CheckOutlined
                       style={{ color: "green", marginRight: "4px" }}
                     />
-                    {name}:{time}{" "}
-                    <span style={{ color: dayColor }}>{days}天</span>
+                    {name}: {new Date(actualDate).toLocaleDateString("zh-CN")}
                   </div>
                 );
-              } else if (parts.length >= 2 && name && time) {
+              } else if (plannedDate) {
                 return (
                   <div key={index}>
                     <CheckOutlined
-                      style={{ color: "green", marginRight: "4px" }}
+                      style={{ color: "orange", marginRight: "4px" }}
                     />
-                    {name}:{time}
+                    {name}: {new Date(plannedDate).toLocaleDateString("zh-CN")}{" "}
+                    (计划)
                   </div>
                 );
               } else {
@@ -431,83 +465,114 @@ const DesignPage: React.FC = () => {
     },
     {
       title: "报价状态",
-      dataIndex: "priceState",
-      key: "priceState",
+      dataIndex: "quote_status",
+      key: "quote_status",
       render: (text: string) => {
-        if (!text) return "-";
-        return text;
+        // 向后兼容旧字段
+        const status = text || "";
+        let color = "";
+        if (status === "已打款") {
+          color = "green";
+        } else if (status === "未打款") {
+          color = "red";
+        }
+        return <span style={{ color }}>{status || "-"}</span>;
       },
     },
 
     {
       title: "完成日期",
-      dataIndex: "finishTime",
-      key: "finishTime",
-      render: (text: string) => {
-        if (!text) return "-";
-        return text;
-      },
+      dataIndex: "completion_date",
+      key: "completion_date",
+      render: (date: string) => formatDateTime(date),
     },
     {
       title: "订单类型",
-      dataIndex: "orderType",
-      key: "orderType",
+      dataIndex: "order_type",
+      key: "order_type",
     },
 
     {
       title: "设计师",
       dataIndex: "designer",
       key: "designer",
+      render: (text: string) => text || "-",
     },
     {
       title: "销售员",
-      dataIndex: "salesPerson",
-      key: "salesPerson",
+      dataIndex: "salesperson",
+      key: "salesperson",
+      render: (text: string) => {
+        // 向后兼容旧字段
+        return text || "-";
+      },
     },
+
     {
       title: "订单金额",
-      dataIndex: "orderAmount",
-      key: "orderAmount",
-      render: (text: string) => {
-        if (!text) return "-";
-        return `¥${text}`;
-      },
-    },
-    {
-      title: "设计面积",
-      dataIndex: "designArea",
-      key: "designArea",
-      render: (text: string) => {
-        if (!text) return "-";
-        return `${text}㎡`;
-      },
-    },
-    {
-      title: "备注",
-      dataIndex: "remark",
-      key: "remark",
+      dataIndex: "order_amount",
+      key: "order_amount",
       render: (text: string) => (
-        <div
-          style={{
-            maxWidth: "150px",
-            wordWrap: "break-word",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {text || "-"}
+        <div>
+          {text
+            ? `¥${Number(text).toLocaleString("zh-CN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`
+            : "-"}
         </div>
       ),
     },
     {
-      title: "订单状态",
-      dataIndex: "states",
-      key: "states",
-      fixed: "right",
+      title: "面积信息",
+      key: "area_info",
+      render: (text: string, record: SplitOrder) => {
+        const cabinetArea = record.cabinet_area;
+        const wallPanelArea = record.wall_panel_area;
+        return (
+          <div>
+            <div>柜体面积: {cabinetArea ? `${cabinetArea}㎡` : "-"}</div>
+            <div>墙板面积: {wallPanelArea ? `${wallPanelArea}㎡` : "-"}</div>
+          </div>
+        );
+      },
+    },
+    {
+      title: "备注",
+      dataIndex: "remarks",
+      key: "remarks",
       render: (text: string) => {
-        if (text === "已完成") {
-          return <Tag color="green">{text}</Tag>;
+        const remark = text;
+        return (
+          <div
+            style={{
+              maxWidth: "150px",
+              wordWrap: "break-word",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {remark || "-"}
+          </div>
+        );
+      },
+    },
+    {
+      title: "订单状态",
+      dataIndex: "order_status",
+      key: "order_status",
+      fixed: "right",
+      render: (text: string, record: SplitOrder) => {
+        // 向后兼容旧字段
+        const status = text || record.order_status || "";
+        let color = "";
+        if (status === "已完成") {
+          return <Tag color="green">{status}</Tag>;
+        } else if (status === "进行中") {
+          color = "blue";
+        } else if (status === "撤销中") {
+          color = "red";
         }
-        return text;
+        return color ? <span style={{ color }}>{status}</span> : status;
       },
     },
     {
@@ -515,53 +580,60 @@ const DesignPage: React.FC = () => {
       key: "action",
       fixed: "right",
       width: 145,
-      render: (_: unknown, record: SplitOrder) => (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            width: "145px",
-          }}
-        >
-          <Button
-            type="link"
-            size="small"
-            onClick={() => showEditModal(record)}
+      render: (_: unknown, record: SplitOrder) => {
+        const isRevoked = record.order_status === "撤销中";
+        return (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              width: "145px",
+            }}
           >
-            编辑
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => showSplitModal(record)}
-          >
-            更新进度
-          </Button>
+            <Button
+              type="link"
+              size="small"
+              disabled={isRevoked}
+              onClick={() => showEditModal(record)}
+            >
+              编辑
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              disabled={isRevoked}
+              onClick={() => showSplitModal(record)}
+            >
+              更新进度
+            </Button>
 
-          <Button
-            type="link"
-            size="small"
-            onClick={() => showOrderStatusModal(record)}
-          >
-            订单状态
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            onClick={() => showPriceStatusModal(record)}
-          >
-            报价状态
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            disabled={record.priceState !== "已打款"}
-            onClick={() => handlePlaceOrder(record)}
-          >
-            下单
-          </Button>
-        </div>
-      ),
+            <Button
+              type="link"
+              size="small"
+              disabled={isRevoked}
+              onClick={() => showOrderStatusModal(record)}
+            >
+              订单状态
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              disabled={isRevoked || record.quote_status === "已打款"}
+              onClick={() => showPriceStatusModal(record)}
+            >
+              报价状态
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              disabled={isRevoked || record.quote_status !== "已打款"}
+              onClick={() => handlePlaceOrder(record)}
+            >
+              下单
+            </Button>
+          </div>
+        );
+       },
     },
   ];
 
@@ -770,7 +842,9 @@ const DesignPage: React.FC = () => {
           bordered={false}
           pagination={{ pageSize: 10 }}
           rowClassName="hover:bg-blue-50"
-          rowKey={(record) => record.designNumber}
+          rowKey={(record) =>
+            record.id?.toString() || record.order_number || "unknown"
+          }
           scroll={{ x: "max-content" }}
         />
       </Card>
@@ -804,15 +878,15 @@ const DesignPage: React.FC = () => {
         <div style={{ padding: "20px 0" }}>
           <div style={{ marginBottom: "16px" }}>
             <strong>订单号：</strong>
-            {orderStatusEditingRecord?.designNumber}
+            {orderStatusEditingRecord?.order_number}
           </div>
           <div style={{ marginBottom: "16px" }}>
             <strong>客户名称：</strong>
-            {orderStatusEditingRecord?.customerName}
+            {orderStatusEditingRecord?.customer_name}
           </div>
           <div style={{ marginBottom: "16px" }}>
             <strong>当前状态：</strong>
-            {orderStatusEditingRecord?.states}
+            {orderStatusEditingRecord?.order_status}
           </div>
           <div style={{ marginBottom: "16px" }}>
             <strong>选择新状态：</strong>
@@ -845,15 +919,15 @@ const DesignPage: React.FC = () => {
         <div style={{ padding: "20px 0" }}>
           <div style={{ marginBottom: "16px" }}>
             <strong>订单号：</strong>
-            {priceStatusEditingRecord?.designNumber}
+            {priceStatusEditingRecord?.order_number}
           </div>
           <div style={{ marginBottom: "16px" }}>
             <strong>客户名称：</strong>
-            {priceStatusEditingRecord?.customerName}
+            {priceStatusEditingRecord?.customer_name}
           </div>
           <div style={{ marginBottom: "16px" }}>
             <strong>当前状态：</strong>
-            {priceStatusEditingRecord?.priceState}
+            {priceStatusEditingRecord?.quote_status}
           </div>
           <div style={{ marginBottom: "16px" }}>
             <strong>选择新状态：</strong>

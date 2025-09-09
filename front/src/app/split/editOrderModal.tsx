@@ -6,7 +6,6 @@ import {
   Form,
   Input,
   Select,
-  DatePicker,
   Checkbox,
   Button,
   Row,
@@ -14,8 +13,10 @@ import {
   message,
   Descriptions,
 } from "antd";
-import dayjs from "dayjs";
 import type { SplitOrder } from "../../services/splitApi";
+import { updateSplitOrder } from "../../services/splitApi";
+import { UserService, UserRole } from "../../services/userService";
+import { CategoryService } from "../../services/categoryService";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -29,11 +30,19 @@ interface EditOrderModalProps {
 
 export interface EditFormValues {
   splitter: string;
-  orderStatus: string;
-  quoteStatus: string;
-  boardDate: dayjs.Dayjs | null;
-  splitCompleteDate: dayjs.Dayjs | null;
+  categories: string[];
   remarks: string;
+}
+
+interface UserData {
+  username: string;
+  role: string;
+}
+
+interface CategoryData {
+  id: number;
+  name: string;
+  category_type: string;
 }
 
 const EditOrderModal: React.FC<EditOrderModalProps> = ({
@@ -44,33 +53,88 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
 }) => {
   const [form] = Form.useForm<EditFormValues>();
   const [loading, setLoading] = useState(false);
+  const [splitters, setSplitters] = useState<UserData[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+
+  // 获取拆单员列表
+  const fetchSplitters = async () => {
+    try {
+      const users = await UserService.getUsersByRole(UserRole.SPLITTING);
+      setSplitters(users);
+    } catch (error) {
+      console.error("获取拆单员列表失败:", error);
+      message.error("获取拆单员列表失败");
+    }
+  };
+
+  // 获取类目列表
+  const fetchCategories = async () => {
+    try {
+      const categoryList = await CategoryService.getCategoryList();
+      setCategories(categoryList);
+    } catch (error) {
+      console.error("获取类目列表失败:", error);
+      message.error("获取类目列表失败");
+    }
+  };
+
+  // 初始化数据
+  useEffect(() => {
+    if (visible) {
+      setLoadingData(true);
+      Promise.all([fetchSplitters(), fetchCategories()]).finally(() =>
+        setLoadingData(false)
+      );
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (orderData) {
       form.setFieldsValue({
-        splitter: orderData.splitPerson || undefined,
-        boardDate: orderData.fixedTime ? dayjs(orderData.fixedTime) : undefined,
-        splitCompleteDate: orderData.finishTime
-          ? dayjs(orderData.finishTime)
-          : undefined,
-        remarks: orderData.remark || "",
+        splitter: orderData.splitter || undefined,
+        categories:
+          orderData.internal_production_items?.map(
+            (item) => item.category_name
+          ) || [],
+        remarks: orderData.remarks || "",
       });
     }
   }, [orderData, form]);
 
-  const handleOk = async () => {
+  const handleFinish = async (values: EditFormValues) => {
     try {
-      const values = await form.validateFields();
       setLoading(true);
 
-      // 模拟API调用
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!orderData?.id) {
+        message.error("订单ID不存在");
+        setLoading(false);
+        return;
+      }
 
-      onOk(values);
-      message.success("订单信息更新成功");
-      form.resetFields();
+      // 将选中的类目转换为生产项格式
+      const productionItems = values.categories.map((categoryName: string) => ({
+        category_name: categoryName,
+        planned_date: undefined,
+        actual_date: undefined,
+      }));
+
+      // 调用API更新拆单信息
+      const response = await updateSplitOrder(orderData.id, {
+        splitter: values.splitter,
+        internal_production_items: productionItems,
+        remarks: values.remarks,
+      });
+
+      if (response.code === 200) {
+        message.success("订单信息更新成功");
+        onOk(values);
+        form.resetFields();
+      } else {
+        message.error(response.message || "更新失败");
+      }
     } catch (error) {
-      console.error("表单验证失败:", error);
+      console.error("更新失败:", error);
     } finally {
       setLoading(false);
     }
@@ -85,24 +149,13 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
   return (
     <Modal
-      title="编辑订单"
-      open={visible}
-      onCancel={handleCancel}
-      footer={[
-        <Button key="cancel" onClick={handleCancel}>
-          取消
-        </Button>,
-        <Button
-          key="submit"
-          type="primary"
-          loading={loading}
-          onClick={handleOk}
-        >
-          确认
-        </Button>,
-      ]}
-      width={1200}
-    >
+        title="编辑拆单"
+        open={visible}
+        onCancel={handleCancel}
+        onOk={() => form.submit()}
+        width={1200}
+        confirmLoading={loading}
+      >
       <div style={{ padding: "16px 0" }}>
         {/* 只读信息区域 */}
         <div
@@ -121,14 +174,14 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
             size="small"
             items={[
               {
-                key: "designNumber",
+                key: "order_number",
                 label: "订单编号",
-                children: orderData.designNumber,
+                children: orderData.order_number,
               },
               {
-                key: "customerName",
+                key: "customer_name",
                 label: "客户名称",
-                children: orderData.customerName,
+                children: orderData.customer_name,
               },
               {
                 key: "address",
@@ -141,38 +194,45 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 children: orderData.designer,
               },
               {
-                key: "salesPerson",
+                key: "salesperson",
                 label: "销售员",
-                children: orderData.salesPerson,
+                children: orderData.salesperson,
               },
               {
-                key: "orderAmount",
+                key: "order_amount",
                 label: "订单金额",
-                children: orderData.orderAmount
-                  ? `¥${orderData.orderAmount}`
+                children: orderData.order_amount
+                  ? `¥${orderData.order_amount}`
                   : "-",
               },
               {
-                key: "designArea",
-                label: "设计面积",
-                children: orderData.designArea
-                  ? `${orderData.designArea}㎡`
+                key: "cabinet_area",
+                label: "柜体面积",
+                children: orderData.cabinet_area
+                  ? `${orderData.cabinet_area}㎡`
                   : "-",
               },
               {
-                key: "createTime",
+                key: "wall_panel_area",
+                label: "墙板面积",
+                children: orderData.wall_panel_area
+                  ? `${orderData.wall_panel_area}㎡`
+                  : "-",
+              },
+              {
+                key: "order_date",
                 label: "下单日期",
-                children: orderData.createTime,
+                children: orderData.order_date,
               },
               {
-                key: "orderStatus",
+                key: "order_status",
                 label: "订单状态",
-                children: orderData.states,
+                children: orderData.order_status,
               },
               {
-                key: "quoteStatus",
+                key: "quote_status",
                 label: "报价状态",
-                children: orderData.priceState,
+                children: orderData.quote_status,
               },
             ]}
           />
@@ -184,6 +244,7 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
           layout="horizontal"
           labelCol={{ span: 6 }}
           wrapperCol={{ span: 18 }}
+          onFinish={handleFinish}
         >
           <Row gutter={24}>
             <Col span={12}>
@@ -192,10 +253,22 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 name="splitter"
                 rules={[{ required: true, message: "请选择拆单员" }]}
               >
-                <Select placeholder="请选择拆单员">
-                  <Option value="拆单员A">拆单员A</Option>
-                  <Option value="拆单员B">拆单员B</Option>
-                  <Option value="拆单员C">拆单员C</Option>
+                <Select
+                  placeholder="请选择拆单员"
+                  allowClear
+                  loading={loadingData}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.children as unknown as string)
+                      ?.toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                >
+                  {splitters.map((user) => (
+                    <Option key={user.username} value={user.username}>
+                      {user.username}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -207,18 +280,13 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
               >
                 <Checkbox.Group>
                   <Row>
-                    <Col span={6}>
-                      <Checkbox value="木门">木门</Checkbox>
-                    </Col>
-                    <Col span={6}>
-                      <Checkbox value="柜体">柜体</Checkbox>
-                    </Col>
-                    <Col span={6}>
-                      <Checkbox value="石材">石材</Checkbox>
-                    </Col>
-                    <Col span={6}>
-                      <Checkbox value="板材">板材</Checkbox>
-                    </Col>
+                    {categories.map((category) => (
+                      <Col span={6} key={category.id}>
+                        <Checkbox value={category.name}>
+                          {category.name}
+                        </Checkbox>
+                      </Col>
+                    ))}
                   </Row>
                 </Checkbox.Group>
               </Form.Item>

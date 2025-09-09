@@ -30,6 +30,21 @@ class ProgressResponse(ProgressBase):
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="更新时间")
     
+    @classmethod
+    def from_orm(cls, obj):
+        """从ORM对象创建响应模型"""
+        return cls(
+            id=obj.id,
+            order_id=obj.order_id,
+            order_number=obj.order.order_number if obj.order else "",
+            task_item=obj.task_item,
+            planned_date=obj.planned_date,
+            actual_date=obj.actual_date,
+            remarks=obj.remarks,
+            created_at=obj.created_at,
+            updated_at=obj.updated_at
+        )
+    
     class Config:
         from_attributes = True
 

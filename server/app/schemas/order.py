@@ -12,8 +12,8 @@ class OrderBase(BaseModel):
     order_number: str = Field(..., description="订单编号")
     customer_name: str = Field(..., description="客户名称")
     address: str = Field(..., description="地址")
-    designer: str = Field(..., description="设计师")
-    salesperson: str = Field(..., description="销售员")
+    designer: Optional[str] = Field(None, description="设计师")
+    salesperson: Optional[str] = Field(None, description="销售员")
     assignment_date: str = Field(..., description="分单日期")
     order_date: Optional[datetime] = Field(None, description="下单日期")
     category_name: str = Field(..., description="类目名称")
@@ -58,7 +58,6 @@ class OrderStatusUpdate(BaseModel):
 class OrderResponse(OrderBase):
     """订单响应模型"""
     id: int = Field(..., description="订单ID")
-    design_area: Optional[Decimal] = Field(None, description="设计面积")
     order_status: str = Field(..., description="订单状态")
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="更新时间")
@@ -85,11 +84,11 @@ class OrderResponse(OrderBase):
             'order_amount': obj.order_amount,
             'is_installation': obj.is_installation,
             'remarks': obj.remarks,
-            'design_area': obj.design_area,
+
             'order_status': obj.order_status,
             'created_at': obj.created_at,
             'updated_at': obj.updated_at,
-            'progresses': obj.progresses
+            'progresses': [ProgressResponse.from_orm(progress) for progress in obj.progresses]
         }
         return cls(**data)
     
@@ -103,8 +102,8 @@ class OrderListItem(BaseModel):
     order_number: str = Field(..., description="订单编号")
     customer_name: str = Field(..., description="客户名称")
     address: str = Field(..., description="地址")
-    designer: str = Field(..., description="设计师")
-    salesperson: str = Field(..., description="销售员")
+    designer: Optional[str] = Field(None, description="设计师")
+    salesperson: Optional[str] = Field(None, description="销售员")
     assignment_date: str = Field(..., description="分单日期")
     order_date: Optional[datetime] = Field(None, description="下单日期")
     design_cycle: Optional[str] = Field(None, description="设计周期")
