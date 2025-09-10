@@ -6,6 +6,7 @@ from datetime import datetime
 class ProductionItem(BaseModel):
     """生产项模型"""
     category_name: str = Field(..., description="类目名称")
+    item_type: Optional[str] = Field(None, description="项目类型：internal(厂内) 或 external(外购)")
     planned_date: Optional[datetime] = Field(None, description="计划日期")
     actual_date: Optional[datetime] = Field(None, description="实际日期")
     status: Optional[str] = Field(None, description="状态")
@@ -31,8 +32,9 @@ class SplitCreate(SplitBase):
 class SplitUpdate(BaseModel):
     """更新拆单模型"""
     splitter: Optional[str] = Field(None, description="拆单员")
-    internal_production_items: Optional[str] = Field(None, description="厂内生产项")
-    external_purchase_items: Optional[str] = Field(None, description="外购项")
+    production_items: Optional[List[ProductionItem]] = Field(None, description="生产项列表")
+    internal_production_items: Optional[str] = Field(None, description="厂内生产项（兼容旧版本）")
+    external_purchase_items: Optional[str] = Field(None, description="外购项（兼容旧版本）")
     remarks: Optional[str] = Field(None, description="备注")
 
 

@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from typing import List
+from typing import List, Optional
 import math
 import json
 from datetime import datetime
 
 from app.core.database import get_db
+from app.models.user import User, UserRole
 from app.models.split import Split
 from app.models.order import Order
 from app.models.production import Production, PurchaseStatus
 from app.models.progress import Progress
 from app.models.split_progress import SplitProgress, ItemType
+from app.models.category import Category, CategoryType
 from app.schemas.split import (
     SplitListQuery,
     SplitListResponse,
@@ -21,8 +23,16 @@ from app.schemas.split import (
     SplitStatusUpdate,
     ProductionItem
 )
+from app.core.response import success_response, error_response
 
 router = APIRouter()
+
+
+def get_current_user(username: Optional[str] = Header(None, alias="X-Username"), db: Session = Depends(get_db)) -> Optional[User]:
+    """获取当前用户信息"""
+    if not username:
+        return None
+    return db.query(User).filter(User.username == username).first()
 
 
 @router.post("/list", response_model=SplitListResponse, summary="获取拆单列表")
@@ -251,11 +261,12 @@ async def get_split(
     return split_dict
 
 
-@router.put("/{split_id}", response_model=SplitResponse, summary="编辑拆单")
+@router.put("/{split_id}", summary="编辑拆单")
 async def update_split(
     split_id: int,
     split_data: SplitUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
     """
     编辑拆单信息
@@ -273,8 +284,103 @@ async def update_split(
         # 更新字段
         update_data = split_data.dict(exclude_unset=True)
 
-        # 处理下单类目更新（internal_production_items和external_purchase_items）
-        if 'internal_production_items' in update_data or 'external_purchase_items' in update_data:
+        # 处理下单类目更新
+        if 'production_items' in update_data and update_data['production_items'] is not None:
+            # 新的production_items数组处理逻辑
+            production_items = update_data['production_items']
+
+            # 获取现有的进度记录
+            existing_progress = db.query(SplitProgress).filter(
+                SplitProgress.split_id == split_id).all()
+
+            # 创建现有记录的映射（category_name + item_type作为key）
+            existing_map = {}
+            for progress in existing_progress:
+                key = f"{progress.category_name}_{progress.item_type.value}"
+                existing_map[key] = progress
+
+            # 收集新的类目名称，用于同步到设计管理
+            all_category_names = []
+            new_items_map = {}
+
+            # 处理新的production_items
+            for item in production_items:
+                category_name = item['category_name'].strip()
+                all_category_names.append(category_name)
+
+                # 自动解析类目类型：如果没有指定item_type，根据类目表查询正确类型
+                item_type = item.get('item_type')
+                if not item_type:
+                    # 查询类目表获取正确的类型
+                    category = db.query(Category).filter(
+                        Category.name == category_name).first()
+                    if category:
+                        if category.category_type == CategoryType.INTERNAL_PRODUCTION:
+                            item_type = 'internal'
+                        elif category.category_type == CategoryType.EXTERNAL_PURCHASE:
+                            item_type = 'external'
+                        else:
+                            item_type = 'internal'  # 默认为厂内项
+                    else:
+                        # 如果类目不存在于类目表中，默认为厂内项
+                        item_type = 'internal'
+
+                # 转换为枚举类型
+                item_type_enum = ItemType.INTERNAL if item_type == 'internal' else ItemType.EXTERNAL
+
+                key = f"{category_name}_{item_type}"
+                new_items_map[key] = {
+                    'category_name': category_name,
+                    'item_type': item_type_enum,
+                    'planned_date': item.get('planned_date'),
+                    'actual_date': item.get('actual_date'),
+                    'status': item.get('status', '待处理'),
+                    'remarks': item.get('remarks')
+                }
+
+            # 删除不在新列表中的现有记录
+            for key, progress in existing_map.items():
+                if key not in new_items_map:
+                    db.delete(progress)
+
+            # 添加新的记录（跳过已存在的重复项）
+            for key, item_data in new_items_map.items():
+                if key not in existing_map:
+                    progress_item = SplitProgress(
+                        split_id=split_id,
+                        order_number=split.order_number,
+                        category_name=item_data['category_name'],
+                        item_type=item_data['item_type'],
+                        status=item_data['status']
+                    )
+
+                    # 设置日期字段
+                    if item_data['planned_date']:
+                        progress_item.planned_date = item_data['planned_date'].strftime(
+                            '%Y-%m-%d')
+
+                    if item_data['actual_date']:
+                        if item_data['item_type'] == ItemType.INTERNAL:
+                            progress_item.split_date = item_data['actual_date'].strftime(
+                                '%Y-%m-%d')
+                        else:
+                            progress_item.purchase_date = item_data['actual_date'].strftime(
+                                '%Y-%m-%d')
+
+                    if item_data['remarks']:
+                        progress_item.remarks = item_data['remarks']
+
+                    db.add(progress_item)
+
+            # 同步更新设计管理中相同订单编号的category_name
+            if all_category_names:
+                new_category_name = ','.join(all_category_names)
+                db.query(Order).filter(Order.order_number == split.order_number).update({
+                    'category_name': new_category_name
+                })
+
+        # 兼容旧版本的字符串格式处理
+        elif 'internal_production_items' in update_data or 'external_purchase_items' in update_data:
             # 先删除现有的进度记录
             db.query(SplitProgress).filter(
                 SplitProgress.split_id == split_id).delete()
@@ -304,7 +410,7 @@ async def update_split(
                                 try:
                                     from datetime import datetime as dt
                                     progress_item.split_date = dt.strptime(
-                                        parts[1].strip(), '%Y-%m-%d')
+                                        parts[1].strip(), '%Y-%m-%d').strftime('%Y-%m-%d')
                                 except:
                                     pass
                             db.add(progress_item)
@@ -330,7 +436,7 @@ async def update_split(
                                 try:
                                     from datetime import datetime as dt
                                     progress_item.purchase_date = dt.strptime(
-                                        parts[1].strip(), '%Y-%m-%d')
+                                        parts[1].strip(), '%Y-%m-%d').strftime('%Y-%m-%d')
                                 except:
                                     pass
                             db.add(progress_item)
@@ -344,15 +450,23 @@ async def update_split(
 
         # 更新其他字段（排除已处理的类目字段）
         for field, value in update_data.items():
-            if field not in ['internal_production_items', 'external_purchase_items'] and hasattr(split, field):
+            if field not in ['production_items', 'internal_production_items', 'external_purchase_items'] and hasattr(split, field):
                 setattr(split, field, value)
+
+        # 检查是否更新了拆单员字段，如果拆单员存在且不为空，则自动将订单状态改为拆单中
+        if 'splitter' in update_data and update_data['splitter'] and update_data['splitter'].strip():
+            split.order_status = "拆单中"
 
         split.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(split)
 
         # 返回更新后的拆单信息（包含从split_progress表构建的字段）
-        return await get_split(split_id, db)
+        split_data = await get_split(split_id, db)
+        return success_response(
+            data=split_data,
+            message="拆单订单更新成功"
+        )
 
     except Exception as e:
         db.rollback()
@@ -444,7 +558,12 @@ async def update_split_progress(
         db.commit()
         db.refresh(split)
 
-        return split
+        # 获取完整的拆单信息
+        split_data = await get_split(split_id, db)
+        return success_response(
+            data=split_data,
+            message="拆单状态更新成功"
+        )
 
     except HTTPException:
         raise
@@ -456,7 +575,7 @@ async def update_split_progress(
         )
 
 
-@router.put("/{split_id}/status", response_model=SplitResponse, summary="修改拆单状态")
+@router.put("/{split_id}/status", summary="修改拆单状态")
 async def update_split_status(
     split_id: int,
     status_data: SplitStatusUpdate,
@@ -514,7 +633,12 @@ async def update_split_status(
         db.commit()
         db.refresh(split)
 
-        return split
+        # 获取完整的拆单信息
+        split_data = await get_split(split_id, db)
+        return success_response(
+            data=split_data,
+            message="拆单状态更新成功"
+        )
 
     except Exception as e:
         db.rollback()
@@ -524,7 +648,7 @@ async def update_split_status(
         )
 
 
-@router.put("/{split_id}/place-order", response_model=SplitResponse, summary="拆单下单")
+@router.put("/{split_id}/place-order", summary="拆单下单")
 async def place_split_order(
     split_id: int,
     db: Session = Depends(get_db)
@@ -544,41 +668,43 @@ async def place_split_order(
 
         # 更新拆单状态
         split.order_status = "已下单"
+        # 设置完成时间
+        split.completion_date = datetime.now().strftime('%Y-%m-%d')
 
         # 更新关联的订单状态
         order = db.query(Order).filter(
             Order.order_number == split.order_number).first()
         if order:
             order.order_status = "已下单"
+           
+        # # 检查是否已存在生产记录，如果不存在则创建
+        # existing_production = db.query(Production).filter(
+        #     Production.order_number == split.order_number
+        # ).first()
 
-        # 检查是否已存在生产记录，如果不存在则创建
-        existing_production = db.query(Production).filter(
-            Production.order_number == split.order_number
-        ).first()
+        # if not existing_production and order:
+        #     # 创建生产记录
+        #     production = Production(
+        #         order_number=split.order_number,
+        #         customer_name=split.customer_name,
+        #         address=getattr(order, 'address', ''),
+        #         is_installation=getattr(order, 'is_installation', False),
+        #         customer_payment_date=getattr(
+        #             order, 'customer_payment_date', None),
+        #         split_order_date=datetime.utcnow().date(),
+        #         expected_delivery_date=getattr(
+        #             order, 'expected_delivery_date', None),
+        #         purchase_status=PurchaseStatus.PENDING,
+        #         board_18_quantity=0,
+        #         board_09_quantity=0,
+        #         internal_production_items=split.internal_production_items or "",
+        #         external_purchase_items=split.external_purchase_items or "",
+        #         remarks=getattr(split, 'remarks', ''),
+        #         order_status="已下单"
+        #     )
+        #     db.add(production)
 
-        if not existing_production and order:
-            # 创建生产记录
-            production = Production(
-                order_number=split.order_number,
-                customer_name=split.customer_name,
-                address=getattr(order, 'address', ''),
-                is_installation=getattr(order, 'is_installation', False),
-                customer_payment_date=getattr(
-                    order, 'customer_payment_date', None),
-                split_order_date=datetime.utcnow().date(),
-                expected_delivery_date=getattr(
-                    order, 'expected_delivery_date', None),
-                purchase_status=PurchaseStatus.PENDING,
-                board_18_quantity=0,
-                board_09_quantity=0,
-                internal_production_items=split.internal_production_items or "",
-                external_purchase_items=split.external_purchase_items or "",
-                remarks=getattr(split, 'remarks', ''),
-                order_status="已下单"
-            )
-            db.add(production)
-
-        split.updated_at = datetime.utcnow()
+        # split.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(split)
 

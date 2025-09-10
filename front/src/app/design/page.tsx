@@ -407,8 +407,12 @@ const DesignPage: React.FC = () => {
   const loadUserData = async () => {
     try {
       const allUsers = await UserService.getUserList();
-      const designerList = allUsers.filter(user => user.role === UserRole.DESIGNER);
-      const salespersonList = allUsers.filter(user => user.role === UserRole.SALESPERSON);
+      const designerList = allUsers.filter(
+        (user) => user.role === UserRole.DESIGNER
+      );
+      const salespersonList = allUsers.filter(
+        (user) => user.role === UserRole.SALESPERSON
+      );
       setDesigners(designerList);
       setSalespersons(salespersonList);
     } catch (error) {
@@ -472,7 +476,6 @@ const DesignPage: React.FC = () => {
       title: "设计过程",
       dataIndex: "design_process",
       key: "design_process",
-      width: 250,
       render: (text: string, record: DesignOrder) => {
         if (!text || text === "暂无进度") return "-";
         const items = text
@@ -489,9 +492,13 @@ const DesignPage: React.FC = () => {
           return { status: item, time: null };
         };
 
+        // 默认显示最近的3条记录
+        const displayItems = items.slice(0, 3);
+        const hasMore = items.length > 3;
+
         return (
           <div>
-            {items.map((item, itemIndex) => {
+            {displayItems.map((item, itemIndex) => {
               const { status, time } = parseProgressItem(item);
 
               return (
@@ -524,7 +531,7 @@ const DesignPage: React.FC = () => {
                   onClick={() => showDetailModal(record)}
                   style={{ padding: "0 4px", fontSize: "12px" }}
                 >
-                  详情
+                  详情{` (${items.length})`}
                 </Button>
               </div>
             )}

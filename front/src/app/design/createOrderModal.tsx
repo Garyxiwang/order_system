@@ -88,6 +88,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             dayjs(initialValues.assignment_date).isValid()
               ? dayjs(initialValues.assignment_date)
               : undefined,
+          // 将category_name字符串转换为数组以适配Checkbox.Group
+          category_name:
+            initialValues.category_name && typeof initialValues.category_name === 'string'
+              ? initialValues.category_name.split(',')
+              : initialValues.category_name,
         };
         form.setFieldsValue(formValues);
       } else {

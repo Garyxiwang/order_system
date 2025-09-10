@@ -31,11 +31,18 @@ export interface BatchUpdateSplitProgressRequest {
   >;
 }
 
+// 拆单进度列表响应接口
+export interface SplitProgressListResponse {
+  items: SplitProgressItem[];
+  total: number;
+}
+
 // 拆单进度API
 export const splitProgressApi = {
   // 获取拆单的进度列表
   getProgressList: async (splitId: number): Promise<SplitProgressItem[]> => {
-    return await api.get(`/v1/split-progress/split/${splitId}`);
+    const response: SplitProgressListResponse = await api.get(`/v1/split-progress/split/${splitId}`);
+    return response.items;
   },
 
   // 批量更新拆单进度

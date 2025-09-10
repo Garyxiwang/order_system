@@ -151,7 +151,7 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
       // 调用API更新拆单信息
       const response = await updateSplitOrder(orderData.id, {
         splitter: values.splitter,
-        internal_production_items: productionItems,
+        production_items: productionItems,
         remarks: values.remarks,
       });
 
@@ -313,7 +313,10 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                       <Col
                         flex="auto"
                         key={category.id}
-                        style={{ whiteSpace: "nowrap", minWidth: "fit-content" }}
+                        style={{
+                          whiteSpace: "nowrap",
+                          minWidth: "fit-content",
+                        }}
                       >
                         <Checkbox
                           value={category.name}

@@ -91,40 +91,66 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
 
   // 初始化表单数据
   useEffect(() => {
-    if (orderData && categories.length > 0) {
-      const internalItems: Record<
-        string,
-        { plannedDate?: Dayjs; splitDate?: Dayjs }
-      > = {};
-      const externalItems: Record<
-        string,
-        { plannedDate?: Dayjs; purchaseDate?: Dayjs }
-      > = {};
+    const loadFormData = async () => {
+      if (orderData && categories.length > 0) {
+        const internalItems: Record<
+          string,
+          { plannedDate?: Dayjs; splitDate?: Dayjs }
+        > = {};
+        const externalItems: Record<
+          string,
+          { plannedDate?: Dayjs; purchaseDate?: Dayjs }
+        > = {};
 
-      // 为每个类目初始化空的日期字段
-      internalCategories.forEach((cat) => {
-        internalItems[cat.name] = {
-          plannedDate: orderData.completion_date
-            ? dayjs(orderData.completion_date)
-            : undefined,
-          splitDate: undefined,
-        };
-      });
+        // 为每个类目初始化默认的日期字段
+        internalCategories.forEach((cat) => {
+          internalItems[cat.name] = {
+            plannedDate: orderData.completion_date
+              ? dayjs(orderData.completion_date)
+              : undefined,
+            splitDate: undefined,
+          };
+        });
 
-      externalCategories.forEach((cat) => {
-        externalItems[cat.name] = {
-          plannedDate: orderData.completion_date
-            ? dayjs(orderData.completion_date)
-            : undefined,
-          purchaseDate: undefined,
-        };
-      });
+        externalCategories.forEach((cat) => {
+          externalItems[cat.name] = {
+            plannedDate: orderData.completion_date
+              ? dayjs(orderData.completion_date)
+              : undefined,
+            purchaseDate: undefined,
+          };
+        });
 
-      form.setFieldsValue({
-        internalItems,
-        externalItems,
-      });
-    }
+        // 获取已有的拆单进度数据
+        try {
+          const progressList = await splitProgressApi.getProgressList(orderData.id);
+          // 填充已有的进度数据
+          progressList.forEach((progress) => {
+            if (progress.item_type === "internal" && internalItems[progress.category_name]) {
+              internalItems[progress.category_name] = {
+                plannedDate: progress.planned_date ? dayjs(progress.planned_date) : internalItems[progress.category_name].plannedDate,
+                splitDate: progress.split_date ? dayjs(progress.split_date) : undefined,
+              };
+            } else if (progress.item_type === "external" && externalItems[progress.category_name]) {
+              externalItems[progress.category_name] = {
+                plannedDate: progress.planned_date ? dayjs(progress.planned_date) : externalItems[progress.category_name].plannedDate,
+                purchaseDate: progress.purchase_date ? dayjs(progress.purchase_date) : undefined,
+              };
+            }
+          });
+        } catch (error) {
+          console.error("加载拆单进度数据失败:", error);
+          // 如果加载失败，继续使用默认数据
+        }
+
+        form.setFieldsValue({
+          internalItems,
+          externalItems,
+        });
+      }
+    };
+
+    loadFormData();
   }, [orderData, categories, internalCategories, externalCategories, form]);
 
   const handleOk = async () => {
