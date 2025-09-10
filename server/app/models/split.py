@@ -26,8 +26,6 @@ class Split(Base):
     
     # 拆单特有字段
     splitter = Column(String(50), nullable=True, comment="拆单员")
-    internal_production_items = Column(JSON, nullable=True, comment="厂内生产项")
-    external_purchase_items = Column(JSON, nullable=True, comment="外购项")
     quote_status = Column(String(20), default="未打款", comment="报价状态")
     completion_date = Column(String(50), nullable=True, comment="完成日期")
     remarks = Column(Text, nullable=True, comment="备注")
@@ -37,6 +35,7 @@ class Split(Base):
     
     # 关联关系
     order = relationship("Order", back_populates="splits")
+    progress_items = relationship("SplitProgress", back_populates="split")
     
     def __repr__(self):
         return f"<Split(id={self.id}, order_number='{self.order_number}', customer='{self.customer_name}', quote_status='{self.quote_status}')>"

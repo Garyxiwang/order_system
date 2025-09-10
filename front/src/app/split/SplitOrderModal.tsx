@@ -4,19 +4,20 @@ import React, { useState, useEffect } from "react";
 import {
   Modal,
   Form,
-  Input,
   DatePicker,
   Button,
+  Card,
   Row,
   Col,
   message,
+  Input,
   Descriptions,
-  Card,
 } from "antd";
-import dayjs from "dayjs";
-import type { SplitOrder } from "../../services/splitApi";
-
 const { TextArea } = Input;
+import dayjs, { Dayjs } from "dayjs";
+import type { SplitOrder } from "../../services/splitApi";
+import { splitProgressApi } from "../../services/splitProgressApi";
+import { CategoryService, CategoryData } from "../../services/categoryService";
 
 interface SplitOrderModalProps {
   visible: boolean;
@@ -26,21 +27,22 @@ interface SplitOrderModalProps {
 }
 
 export interface SplitFormValues {
-  // 木门/柜体相关
-  doorSplitDate: string;
-  doorFixedDate: string;
-  cabinetSplitDate: string;
-  cabinetFixedDate: string;
-
-  // 其他项目相关
-  stoneSplitDate: string;
-  stoneFixedDate: string;
-  boardSplitDate: string;
-  boardFixedDate: string;
-  aluminumSplitDate: string;
-  aluminumFixedDate: string;
-
-  remarks: string;
+  // 厂内生产项：类目名称 -> {计划日期, 拆单日期}
+  internal_items: Record<
+    string,
+    {
+      plannedDate?: string;
+      splitDate?: string;
+    }
+  >;
+  // 外购项：类目名称 -> {计划日期, 采购日期}
+  external_items: Record<
+    string,
+    {
+      plannedDate?: string;
+      purchaseDate?: string;
+    }
+  >;
 }
 
 const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
@@ -51,39 +53,150 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [internalCategories, setInternalCategories] = useState<CategoryData[]>(
+    []
+  );
+  const [externalCategories, setExternalCategories] = useState<CategoryData[]>(
+    []
+  );
 
+  // 加载类目数据
   useEffect(() => {
-    if (orderData) {
+    const loadCategories = async () => {
+      try {
+        const categoryList = await CategoryService.getCategoryList();
+        setCategories(categoryList);
+
+        // 按类型分组
+        const internal = categoryList.filter(
+          (cat) => cat.category_type === "厂内生产项"
+        );
+        const external = categoryList.filter(
+          (cat) => cat.category_type === "外购项"
+        );
+
+        setInternalCategories(internal);
+        setExternalCategories(external);
+      } catch (error) {
+        console.error("加载类目数据失败:", error);
+        message.error("加载类目数据失败");
+      }
+    };
+
+    if (visible) {
+      loadCategories();
+    }
+  }, [visible]);
+
+  // 初始化表单数据
+  useEffect(() => {
+    if (orderData && categories.length > 0) {
+      const internalItems: Record<
+        string,
+        { plannedDate?: Dayjs; splitDate?: Dayjs }
+      > = {};
+      const externalItems: Record<
+        string,
+        { plannedDate?: Dayjs; purchaseDate?: Dayjs }
+      > = {};
+
+      // 为每个类目初始化空的日期字段
+      internalCategories.forEach((cat) => {
+        internalItems[cat.name] = {
+          plannedDate: orderData.completion_date
+            ? dayjs(orderData.completion_date)
+            : undefined,
+          splitDate: undefined,
+        };
+      });
+
+      externalCategories.forEach((cat) => {
+        externalItems[cat.name] = {
+          plannedDate: orderData.completion_date
+            ? dayjs(orderData.completion_date)
+            : undefined,
+          purchaseDate: undefined,
+        };
+      });
+
       form.setFieldsValue({
-        doorSplitDate: undefined,
-        doorFixedDate: orderData.completion_date
-          ? dayjs(orderData.completion_date)
-          : undefined,
-        cabinetSplitDate: undefined,
-        cabinetFixedDate: orderData.completion_date
-          ? dayjs(orderData.completion_date)
-          : undefined,
-        stoneSplitDate: undefined,
-        stoneFixedDate: undefined,
-        boardSplitDate: undefined,
-        boardFixedDate: undefined,
-        aluminumSplitDate: undefined,
-        aluminumFixedDate: undefined,
-        remarks: orderData.remarks || "",
+        internalItems,
+        externalItems,
       });
     }
-  }, [orderData, form]);
+  }, [orderData, categories, internalCategories, externalCategories, form]);
 
   const handleOk = async () => {
     try {
       setLoading(true);
       const values = await form.validateFields();
-      console.log("拆单数据:", values);
-      onOk(values);
-      message.success("拆单操作成功！");
+
+      // 转换数据格式，将日期对象转换为字符串
+      const formattedValues: {
+        internalItems: Record<string, { plannedDate?: string; splitDate?: string }>;
+        externalItems: Record<string, { plannedDate?: string; purchaseDate?: string }>;
+      } = {
+        internalItems: {},
+        externalItems: {},
+      };
+      
+      const legacyFormattedValues: SplitFormValues = {
+        internal_items: {},
+        external_items: {},
+      };
+
+      // 处理厂内生产项
+      if (values.internalItems) {
+        Object.keys(values.internalItems).forEach((categoryName) => {
+          const item = values.internalItems[categoryName];
+          formattedValues.internalItems[categoryName] = {
+            plannedDate: item.plannedDate
+              ? dayjs(item.plannedDate).format("YYYY-MM-DD")
+              : undefined,
+            splitDate: item.splitDate
+              ? dayjs(item.splitDate).format("YYYY-MM-DD")
+              : undefined,
+          };
+        });
+      }
+
+      // 处理外购项
+      if (values.externalItems) {
+        Object.keys(values.externalItems).forEach((categoryName) => {
+          const item = values.externalItems[categoryName];
+          formattedValues.externalItems[categoryName] = {
+            plannedDate: item.plannedDate
+              ? dayjs(item.plannedDate).format("YYYY-MM-DD")
+              : undefined,
+            purchaseDate: item.purchaseDate
+              ? dayjs(item.purchaseDate).format("YYYY-MM-DD")
+              : undefined,
+          };
+        });
+      }
+
+      // 调用新的拆单进度API
+      if (!orderData?.id) {
+        throw new Error("订单数据不完整");
+      }
+
+      await splitProgressApi.batchUpdate(orderData.id, formattedValues);
+
+      // 同时填充legacy格式用于回调
+      Object.keys(formattedValues.internalItems).forEach((categoryName) => {
+        legacyFormattedValues.internal_items[categoryName] = formattedValues.internalItems[categoryName];
+      });
+      Object.keys(formattedValues.externalItems).forEach((categoryName) => {
+        legacyFormattedValues.external_items[categoryName] = formattedValues.externalItems[categoryName];
+      });
+
+      console.log("拆单进度更新成功:", formattedValues);
+      onOk(legacyFormattedValues);
+      message.success("拆单进度更新成功！");
     } catch (error) {
-      console.error("表单验证失败:", error);
-      message.error("请检查表单数据！");
+      console.error("拆单进度更新失败:", error);
+      message.error("拆单进度更新失败，请重试！");
     } finally {
       setLoading(false);
     }
@@ -170,137 +283,93 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
         labelCol={{ span: 8 }}
         wrapperCol={{ span: 16 }}
       >
-        {/* 木门和柜体 */}
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col span={12}>
-            <Card title="木门" size="small" style={{ height: "100%" }}>
-              <Form.Item
-                label="计划日期"
-                name="doorFixedDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-              <Form.Item
-                label="拆单日期"
-                name="doorSplitDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card title="柜体" size="small" style={{ height: "100%" }}>
-              <Form.Item
-                label="计划日期"
-                name="doorFixedDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-              <Form.Item
-                label="拆单日期"
-                name="cabinetSplitDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-            </Card>
-          </Col>
-        </Row>
+        {/* 厂内生产项 */}
+        {internalCategories.length > 0 && (
+          <Row style={{ marginBottom: 16 }}>
+            <Col span={24}>
+              <Card title="厂内生产项" size="small">
+                <Row gutter={16}>
+                  {internalCategories.map((category) => (
+                    <Col
+                      span={12}
+                      key={category.id}
+                      style={{ marginBottom: 16 }}
+                    >
+                      <Card title={category.name} size="small" type="inner">
+                        <Form.Item
+                          label="计划日期"
+                          name={["internalItems", category.name, "plannedDate"]}
+                          style={{ marginBottom: 12 }}
+                        >
+                          <DatePicker
+                            placeholder="请选择日期"
+                            style={{ width: "100%" }}
+                          />
+                        </Form.Item>
+                        <Form.Item
+                          label="拆单日期"
+                          name={["internalItems", category.name, "splitDate"]}
+                          style={{ marginBottom: 12 }}
+                        >
+                          <DatePicker
+                            placeholder="请选择日期"
+                            style={{ width: "100%" }}
+                          />
+                        </Form.Item>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </Card>
+            </Col>
+          </Row>
+        )}
 
-        {/* 石材和板材 */}
-        <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col span={12}>
-            <Card title="石材" size="small" style={{ height: "100%" }}>
-              <Form.Item
-                label="计划日期"
-                name="doorFixedDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-              <Form.Item
-                label="采购日期"
-                name="stoneSplitDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card title="板材" size="small" style={{ height: "100%" }}>
-              <Form.Item
-                label="计划日期"
-                name="doorFixedDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-              <Form.Item
-                label="定板日期"
-                name="boardSplitDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* 铝合金门 */}
-        <Row style={{ marginBottom: 16 }}>
-          <Col span={12}>
-            <Card title="铝合金门" size="small">
-              <Form.Item
-                label="计划日期"
-                name="doorFixedDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-              <Form.Item
-                label="采购日期"
-                name="aluminumSplitDate"
-                style={{ marginBottom: 12 }}
-              >
-                <DatePicker
-                  placeholder="请选择日期"
-                  style={{ width: "100%" }}
-                />
-              </Form.Item>
-            </Card>
-          </Col>
-        </Row>
+        {/* 外购项 */}
+        {externalCategories.length > 0 && (
+          <Row style={{ marginBottom: 16 }}>
+            <Col span={24}>
+              <Card title="外购项" size="small">
+                <Row gutter={16}>
+                  {externalCategories.map((category) => (
+                    <Col
+                      span={12}
+                      key={category.id}
+                      style={{ marginBottom: 16 }}
+                    >
+                      <Card title={category.name} size="small" type="inner">
+                        <Form.Item
+                          label="计划日期"
+                          name={["externalItems", category.name, "plannedDate"]}
+                          style={{ marginBottom: 12 }}
+                        >
+                          <DatePicker
+                            placeholder="请选择日期"
+                            style={{ width: "100%" }}
+                          />
+                        </Form.Item>
+                        <Form.Item
+                          label="采购日期"
+                          name={[
+                            "externalItems",
+                            category.name,
+                            "purchaseDate",
+                          ]}
+                          style={{ marginBottom: 12 }}
+                        >
+                          <DatePicker
+                            placeholder="请选择日期"
+                            style={{ width: "100%" }}
+                          />
+                        </Form.Item>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </Card>
+            </Col>
+          </Row>
+        )}
       </Form>
     </Modal>
   );

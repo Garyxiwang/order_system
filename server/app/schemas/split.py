@@ -16,8 +16,8 @@ class SplitBase(BaseModel):
     """拆单基础模型"""
     order_number: str = Field(..., description="订单编号")
     splitter: Optional[str] = Field(None, description="拆单员")
-    internal_production_items: Optional[List[ProductionItem]] = Field(None, description="厂内生产项")
-    external_purchase_items: Optional[List[ProductionItem]] = Field(None, description="外购项")
+    internal_production_items: Optional[str] = Field(None, description="厂内生产项")
+    external_purchase_items: Optional[str] = Field(None, description="外购项")
     quote_status: Optional[str] = Field("未打款", description="报价状态")
     completion_date: Optional[str] = Field(None, description="完成日期")
     remarks: Optional[str] = Field(None, description="备注")
@@ -31,8 +31,8 @@ class SplitCreate(SplitBase):
 class SplitUpdate(BaseModel):
     """更新拆单模型"""
     splitter: Optional[str] = Field(None, description="拆单员")
-    internal_production_items: Optional[List[ProductionItem]] = Field(None, description="厂内生产项")
-    external_purchase_items: Optional[List[ProductionItem]] = Field(None, description="外购项")
+    internal_production_items: Optional[str] = Field(None, description="厂内生产项")
+    external_purchase_items: Optional[str] = Field(None, description="外购项")
     remarks: Optional[str] = Field(None, description="备注")
 
 
@@ -87,8 +87,8 @@ class SplitResponse(BaseModel):
     order_type: str
     order_status: str
     splitter: Optional[str]
-    internal_production_items: Optional[List[ProductionItem]]
-    external_purchase_items: Optional[List[ProductionItem]]
+    internal_production_items: Optional[str]
+    external_purchase_items: Optional[str]
     quote_status: str
     completion_date: Optional[str]
     remarks: Optional[str]

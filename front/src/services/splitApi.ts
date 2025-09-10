@@ -1,4 +1,5 @@
 // 拆单页面相关的API接口
+import api from './api';
 
 export interface SplitOrder {
   id: number;
@@ -36,44 +37,23 @@ interface ApiResponse<T> {
   data: T;
 }
 
+// 拆单列表响应接口
+interface SplitListResponse {
+  items: SplitOrder[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 // 获取拆单列表
-export const getSplitOrders = async (): Promise<ApiResponse<SplitOrder[]>> => {
-  try {
-    const requestData = {
-      page: 1,
-      page_size: 100, // 暂时获取所有数据
-    };
+export const getSplitOrders = async (): Promise<SplitListResponse> => {
+  const requestData = {
+    page: 1,
+    page_size: 100, // 暂时获取所有数据
+  };
 
-    const response = await fetch("/api/v1/splits/list", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    // 转换后端数据格式为前端期望的格式
-    const transformedData = {
-      code: 200,
-      message: "获取成功",
-      data: result.items || [],
-    };
-
-    return transformedData;
-  } catch (error) {
-    console.error("获取拆单列表失败:", error);
-    return {
-      code: 500,
-      message: "获取拆单列表失败",
-      data: [],
-    };
-  }
+  return await api.post('/v1/splits/list', requestData);
 };
 
 // 更新拆单状态
@@ -81,34 +61,7 @@ export const updateSplitStatus = async (
   splitId: number,
   updates: { order_status?: string; quote_status?: string; actual_payment_date?: string }
 ): Promise<ApiResponse<SplitOrder>> => {
-  try {
-    const response = await fetch(`/api/v1/splits/${splitId}/status`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updates),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    return {
-      code: 200,
-      message: "更新成功",
-      data: result,
-    };
-  } catch (error) {
-    console.error("更新拆单状态失败:", error);
-    return {
-      code: 500,
-      message: "更新拆单状态失败",
-      data: {} as SplitOrder,
-    };
-  }
+  return await api.put(`/v1/splits/${splitId}/status`, updates);
 };
 
 // 更新拆单信息
@@ -121,32 +74,5 @@ export const updateSplitOrder = async (
     remarks?: string;
   }
 ): Promise<ApiResponse<SplitOrder>> => {
-  try {
-    const response = await fetch(`/api/v1/splits/${splitId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updates),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    return {
-      code: 200,
-      message: "更新成功",
-      data: result,
-    };
-  } catch (error) {
-    console.error("更新拆单信息失败:", error);
-    return {
-      code: 500,
-      message: "更新拆单信息失败",
-      data: {} as SplitOrder,
-    };
-  }
+  return await api.put(`/v1/splits/${splitId}`, updates);
 };

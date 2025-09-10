@@ -93,10 +93,39 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
     if (orderData) {
       form.setFieldsValue({
         splitter: orderData.splitter || undefined,
-        categories:
-          orderData.internal_production_items?.map(
-            (item) => item.category_name
-          ) || [],
+        categories: (() => {
+          const categories: string[] = [];
+
+          // 处理厂内生产项
+          if (orderData.internal_production_items) {
+            if (typeof orderData.internal_production_items === "string") {
+              // 字符串格式："类目:实际时间:消耗时间"
+              const items = (
+                orderData.internal_production_items as string
+              ).split(",");
+              items.forEach((item: string) => {
+                const parts = item.split(":");
+                if (parts[0]) categories.push(parts[0]);
+              });
+            }
+          }
+
+          // 处理外购项
+          if (orderData.external_purchase_items) {
+            if (typeof orderData.external_purchase_items === "string") {
+              // 字符串格式："类目:实际时间:消耗时间"
+              const items = (orderData.external_purchase_items as string).split(
+                ","
+              );
+              items.forEach((item: string) => {
+                const parts = item.split(":");
+                if (parts[0]) categories.push(parts[0]);
+              });
+            }
+          }
+
+          return [...new Set(categories)]; // 去重
+        })(),
         remarks: orderData.remarks || "",
       });
     }
@@ -149,13 +178,13 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
   return (
     <Modal
-        title="编辑拆单"
-        open={visible}
-        onCancel={handleCancel}
-        onOk={() => form.submit()}
-        width={1200}
-        confirmLoading={loading}
-      >
+      title="编辑拆单"
+      open={visible}
+      onCancel={handleCancel}
+      onOk={() => form.submit()}
+      width={1200}
+      confirmLoading={loading}
+    >
       <div style={{ padding: "16px 0" }}>
         {/* 只读信息区域 */}
         <div
@@ -281,8 +310,15 @@ const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 <Checkbox.Group>
                   <Row>
                     {categories.map((category) => (
-                      <Col span={6} key={category.id}>
-                        <Checkbox value={category.name}>
+                      <Col
+                        flex="auto"
+                        key={category.id}
+                        style={{ whiteSpace: "nowrap", minWidth: "fit-content" }}
+                      >
+                        <Checkbox
+                          value={category.name}
+                          style={{ whiteSpace: "nowrap" }}
+                        >
                           {category.name}
                         </Checkbox>
                       </Col>

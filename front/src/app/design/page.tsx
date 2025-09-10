@@ -36,7 +36,7 @@ import {
   type OrderListParams,
 } from "../../services/designApi";
 import { formatDateTime } from "../../utils/dateUtils";
-import { UserService, UserData } from "../../services/userService";
+import { UserService, UserData, UserRole } from "../../services/userService";
 import { CategoryService, CategoryData } from "../../services/categoryService";
 
 const { Option } = Select;
@@ -108,7 +108,7 @@ const DesignPage: React.FC = () => {
 
           if (response.code === 200) {
             message.success("下单成功");
-            await loadDesignData(); // 重新加载数据
+            await handleSearch();
           } else {
             message.error(response.message || "下单失败");
           }
@@ -145,7 +145,7 @@ const DesignPage: React.FC = () => {
           console.log("response", response);
           if (response.code === 200) {
             message.success("撤销成功");
-            await loadDesignData(); // 重新加载数据
+            await handleSearch(); // 重新加载数据
           } else {
             message.error(response.message || "撤销失败");
           }
@@ -406,10 +406,9 @@ const DesignPage: React.FC = () => {
   // 加载用户数据
   const loadUserData = async () => {
     try {
-      const [designerList, salespersonList] = await Promise.all([
-        UserService.getDesigners(),
-        UserService.getSalespersons(),
-      ]);
+      const allUsers = await UserService.getUserList();
+      const designerList = allUsers.filter(user => user.role === UserRole.DESIGNER);
+      const salespersonList = allUsers.filter(user => user.role === UserRole.SALESPERSON);
       setDesigners(designerList);
       setSalespersons(salespersonList);
     } catch (error) {
@@ -635,8 +634,7 @@ const DesignPage: React.FC = () => {
         if (text === "已下单") {
           return <Tag color="green">{text}</Tag>;
         }
-        if (text === "已撤销" || text === "暂停"
-        ) {
+        if (text === "已撤销" || text === "暂停") {
           return <Tag color="red">{text}</Tag>;
         }
 

@@ -8,6 +8,8 @@ from app.core.database import get_db
 from app.models.order import Order
 from app.models.progress import Progress
 from app.models.split import Split
+from app.models.split_progress import SplitProgress, ItemType
+from app.models.category import Category, CategoryType
 # from app.models.category import Category  # 不再需要
 from app.schemas.order import (
     OrderCreate,
@@ -126,7 +128,9 @@ async def get_orders(
             # 获取设计过程（进度信息）- 格式化为"事件名：实际时间"
             design_process_items = []
             if order.progresses:
-                for p in order.progresses:
+                # 按照created_at从近到远排序
+                sorted_progresses = sorted(order.progresses, key=lambda p: p.created_at, reverse=True)
+                for p in sorted_progresses:
                     if p.actual_date:
                         design_process_items.append(
                             f"{p.task_item}:{p.actual_date}")
@@ -235,6 +239,52 @@ async def create_order(
                 quote_status="未打款"
             )
             db.add(split)
+            db.flush()  # 获取split.id
+            
+            # 根据订单类目创建拆单进度记录
+            if order.category_name:
+                # 解析类目名称（可能是逗号分隔的多个类目）
+                category_names = [name.strip() for name in order.category_name.split(',') if name.strip()]
+                
+                for category_name in category_names:
+                    # 查询类目表获取类目类型
+                    category = db.query(Category).filter(Category.name == category_name).first()
+                    
+                    if category:
+                        # 根据类目类型创建对应的进度记录
+                        if category.category_type == CategoryType.INTERNAL_PRODUCTION:
+                            progress_item = SplitProgress(
+                                split_id=split.id,
+                                order_number=order.order_number,
+                                category_name=category_name,
+                                item_type=ItemType.INTERNAL
+                            )
+                        elif category.category_type == CategoryType.EXTERNAL_PURCHASE:
+                            progress_item = SplitProgress(
+                                split_id=split.id,
+                                order_number=order.order_number,
+                                category_name=category_name,
+                                item_type=ItemType.EXTERNAL
+                            )
+                        else:
+                            # 默认为厂内生产项
+                            progress_item = SplitProgress(
+                                split_id=split.id,
+                                order_number=order.order_number,
+                                category_name=category_name,
+                                item_type=ItemType.INTERNAL
+                            )
+                        db.add(progress_item)
+                    else:
+                        # 如果类目不存在，默认创建厂内生产项
+                        progress_item = SplitProgress(
+                            split_id=split.id,
+                            order_number=order.order_number,
+                            category_name=category_name,
+                            item_type=ItemType.INTERNAL
+                        )
+                        db.add(progress_item)
+            
             db.commit()
 
         return success_response(
@@ -294,6 +344,34 @@ async def update_order(
         # 如果有字段需要同步更新，更新拆单表
         if split_updates:
             db.query(Split).filter(Split.order_number == order.order_number).update(split_updates)
+        
+        # 如果更新了category_name，需要同步更新split_progress表
+        if 'category_name' in update_data:
+            # 查找对应的拆单记录
+            split = db.query(Split).filter(Split.order_number == order.order_number).first()
+            if split:
+                # 删除现有的split_progress记录
+                db.query(SplitProgress).filter(SplitProgress.split_id == split.id).delete()
+                
+                # 根据新的类目名称创建split_progress记录
+                new_category_name = update_data['category_name']
+                if new_category_name:
+                    category_names = [name.strip() for name in new_category_name.split(',') if name.strip()]
+                    
+                    for category_name in category_names:
+                        # 查询类目表获取类目类型
+                        category = db.query(Category).filter(Category.name == category_name).first()
+                        
+                        if category:
+                            item_type = ItemType.INTERNAL if category.category_type == CategoryType.INTERNAL_PRODUCTION else ItemType.EXTERNAL
+                            
+                            split_progress = SplitProgress(
+                                split_id=split.id,
+                                order_number=order.order_number,
+                                category_name=category_name,
+                                item_type=item_type
+                            )
+                            db.add(split_progress)
         
         # 更新订单表字段
         for field, value in update_data.items():
@@ -388,21 +466,55 @@ async def update_order_status(
                     order_type=order.order_type,
                     quote_status=quote_status,
                     remarks="",
-                    # 根据订单类目创建生产项
-                    internal_production_items=[
-                        {
-                            "category_name": order.category_name,
-                            "planned_date": None,
-                            "actual_date": None,
-                            "status": "待开始",
-                            "remarks": ""
-                        }
-                    ] if order.category_name else [],
-                    external_purchase_items=[],
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()
                 )
                 db.add(split)
+                db.flush()  # 获取split.id
+                
+                # 根据订单类目创建拆单进度记录
+                if order.category_name:
+                    # 解析类目名称（可能是逗号分隔的多个类目）
+                    category_names = [name.strip() for name in order.category_name.split(',') if name.strip()]
+                    
+                    for category_name in category_names:
+                        # 查询类目表获取类目类型
+                        category = db.query(Category).filter(Category.name == category_name).first()
+                        
+                        if category:
+                            # 根据类目类型创建对应的进度记录
+                            if category.category_type == CategoryType.INTERNAL_PRODUCTION:
+                                progress_item = SplitProgress(
+                                    split_id=split.id,
+                                    order_number=order.order_number,
+                                    category_name=category_name,
+                                    item_type=ItemType.INTERNAL
+                                )
+                            elif category.category_type == CategoryType.EXTERNAL_PURCHASE:
+                                progress_item = SplitProgress(
+                                    split_id=split.id,
+                                    order_number=order.order_number,
+                                    category_name=category_name,
+                                    item_type=ItemType.EXTERNAL
+                                )
+                            else:
+                                # 默认为厂内生产项
+                                progress_item = SplitProgress(
+                                    split_id=split.id,
+                                    order_number=order.order_number,
+                                    category_name=category_name,
+                                    item_type=ItemType.INTERNAL
+                                )
+                            db.add(progress_item)
+                        else:
+                            # 如果类目不存在，默认创建厂内生产项
+                            progress_item = SplitProgress(
+                                split_id=split.id,
+                                order_number=order.order_number,
+                                category_name=category_name,
+                                item_type=ItemType.INTERNAL
+                            )
+                            db.add(progress_item)
 
         # 如果订单状态变更为已撤销，同步更新拆单管理中相同订单的状态为撤销中
         if status_data.order_status == "已撤销":

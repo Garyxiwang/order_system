@@ -31,9 +31,11 @@ import {
 import { formatDateTime } from "../../utils/dateUtils";
 import EditOrderModal from "./editOrderModal";
 import type { EditFormValues } from "./editOrderModal";
-import SplitOrderModal from "./SplitOrderModal";
-import type { SplitFormValues } from "./SplitOrderModal";
+import SplitOrderModal from "./splitOrderModal";
+import type { SplitFormValues } from "./splitOrderModal";
 import type { Dayjs } from "dayjs";
+import { UserService, UserData, UserRole } from "../../services/userService";
+import { CategoryService, CategoryData } from "../../services/categoryService";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -44,6 +46,10 @@ const DesignPage: React.FC = () => {
   const [isSplitModalVisible, setIsSplitModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SplitOrder | null>(null);
   const [searchForm] = Form.useForm();
+  const [designers, setDesigners] = useState<UserData[]>([]);
+  const [salespersons, setSalespersons] = useState<UserData[]>([]);
+  const [splitters, setSplitters] = useState<UserData[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
 
   // 订单状态修改相关状态
   const [isOrderStatusModalVisible, setIsOrderStatusModalVisible] =
@@ -68,16 +74,37 @@ const DesignPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await getSplitOrders();
-      if (response.code === 200) {
-        setSplitData(response.data);
-      } else {
-        message.error(response.message || "获取数据失败");
-      }
+      setSplitData(response.items);
     } catch (error) {
       message.error("获取数据失败，请稍后重试");
       console.error("获取拆单数据失败:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 加载用户数据
+  const loadUserData = async () => {
+    try {
+      const allUsers = await UserService.getUserList();
+      setDesigners(allUsers.filter((user) => user.role === UserRole.DESIGNER));
+      setSalespersons(
+        allUsers.filter((user) => user.role === UserRole.SALESPERSON)
+      );
+      setSplitters(allUsers.filter((user) => user.role === UserRole.SPLITTING));
+    } catch (error) {
+      console.error("加载用户数据失败:", error);
+      message.error("加载用户数据失败");
+    }
+  };
+
+  // 加载类目数据
+  const loadCategories = async () => {
+    try {
+      const categoryList = await CategoryService.getCategoryList();
+      setCategories(categoryList);
+    } catch (error) {
+      console.error("获取类目数据失败:", error);
     }
   };
 
@@ -88,6 +115,8 @@ const DesignPage: React.FC = () => {
       splitStatus: ["未开始", "拆单中", "未审核", "已审核", "撤销中"], // -1: 拆单中, 1: 已审核
     });
     loadSplitData();
+    loadUserData();
+    loadCategories();
   }, []);
 
   // 显示编辑模态框
@@ -341,32 +370,27 @@ const DesignPage: React.FC = () => {
       title: "厂内生产项",
       dataIndex: "internal_production_items",
       key: "internal_production_items",
-      render: (items: ProductionItem[], record: SplitOrder) => {
-        // 向后兼容旧的字符串格式
-        let productionItems = items;
-        if (!productionItems && record.internal_production_items) {
-          // 解析旧格式的字符串数据
-          const itemStrings: string[] =
-            typeof record.internal_production_items === "string"
-              ? (record.internal_production_items as string).split(",")
-              : [];
+      render: (items: ProductionItem[] | string) => {
+        let productionItems: ProductionItem[] = [];
+
+        // 处理字符串格式的数据（格式："类目:实际时间:消耗时间"）
+        if (typeof items === "string" && items) {
+          const itemStrings: string[] = items.split(",");
           productionItems = itemStrings.map((item: string) => {
             const parts: string[] = item.split(":");
             return {
               category_name: parts[0] || "",
-              planned_date: parts[1] || undefined,
-              actual_date: undefined,
+              planned_date: undefined,
+              actual_date: parts[1] && parts[1] !== "-" ? parts[1] : undefined,
             };
           });
         }
-
         if (!productionItems || productionItems.length === 0) return null;
 
         return (
           <div>
             {productionItems.map((item: ProductionItem, index: number) => {
               const name = item.category_name || "";
-              const plannedDate = item.planned_date;
               const actualDate = item.actual_date;
 
               if (actualDate) {
@@ -375,25 +399,11 @@ const DesignPage: React.FC = () => {
                     <CheckOutlined
                       style={{ color: "green", marginRight: "4px" }}
                     />
-                    {name}: {new Date(actualDate).toLocaleDateString("zh-CN")}
-                  </div>
-                );
-              } else if (plannedDate) {
-                return (
-                  <div key={index}>
-                    <CheckOutlined
-                      style={{ color: "orange", marginRight: "4px" }}
-                    />
-                    {name}: {new Date(plannedDate).toLocaleDateString("zh-CN")}{" "}
-                    (计划)
+                    {name}: {actualDate}
                   </div>
                 );
               } else {
-                return (
-                  <div key={index} style={{ marginLeft: "20px" }}>
-                    {name}: -
-                  </div>
-                );
+                return <div key={index}>{name}:-</div>;
               }
             })}
           </div>
@@ -404,32 +414,27 @@ const DesignPage: React.FC = () => {
       title: "外购项",
       dataIndex: "external_purchase_items",
       key: "external_purchase_items",
-      render: (items: ProductionItem[], record: SplitOrder) => {
-        // 向后兼容旧的字符串格式
-        let purchaseItems = items;
-        if (!purchaseItems && record.external_purchase_items) {
-          // 解析旧格式的字符串数据
-          const itemStrings: string[] =
-            typeof record.external_purchase_items === "string"
-              ? (record.external_purchase_items as string).split(",")
-              : [];
+      render: (items: ProductionItem[] | string) => {
+        let purchaseItems: ProductionItem[] = [];
+
+        // 处理字符串格式的数据（格式："类目:实际时间:消耗时间"）
+        if (typeof items === "string" && items) {
+          const itemStrings: string[] = items.split(",");
           purchaseItems = itemStrings.map((item: string) => {
             const parts: string[] = item.split(":");
             return {
               category_name: parts[0] || "",
-              planned_date: parts[1] || undefined,
-              actual_date: undefined,
+              planned_date: undefined,
+              actual_date: parts[1] && parts[1] !== "-" ? parts[1] : undefined,
             };
           });
         }
-
         if (!purchaseItems || purchaseItems.length === 0) return null;
 
         return (
           <div>
             {purchaseItems.map((item: ProductionItem, index: number) => {
               const name = item.category_name || "";
-              const plannedDate = item.planned_date;
               const actualDate = item.actual_date;
 
               if (actualDate) {
@@ -438,25 +443,11 @@ const DesignPage: React.FC = () => {
                     <CheckOutlined
                       style={{ color: "green", marginRight: "4px" }}
                     />
-                    {name}: {new Date(actualDate).toLocaleDateString("zh-CN")}
-                  </div>
-                );
-              } else if (plannedDate) {
-                return (
-                  <div key={index}>
-                    <CheckOutlined
-                      style={{ color: "orange", marginRight: "4px" }}
-                    />
-                    {name}: {new Date(plannedDate).toLocaleDateString("zh-CN")}{" "}
-                    (计划)
+                    {name}: {actualDate}
                   </div>
                 );
               } else {
-                return (
-                  <div key={index} style={{ marginLeft: "20px" }}>
-                    {name}: -
-                  </div>
-                );
+                return <div key={index}>{name}: -</div>;
               }
             })}
           </div>
@@ -633,7 +624,7 @@ const DesignPage: React.FC = () => {
             </Button>
           </div>
         );
-       },
+      },
     },
   ];
 
@@ -671,8 +662,11 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="designer1">设计师1</Option>
-                  <Option value="designer2">设计师2</Option>
+                  {designers.map((designer) => (
+                    <Option key={designer.username} value={designer.username}>
+                      {designer.username}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -684,9 +678,14 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="designer1">销售员1</Option>
-                  <Option value="designer2">销售员2</Option>
-                  <Option value="designer2">销售员3</Option>
+                  {salespersons.map((salesperson) => (
+                    <Option
+                      key={salesperson.username}
+                      value={salesperson.username}
+                    >
+                      {salesperson.username}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -698,9 +697,11 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="designer1">拆单员1</Option>
-                  <Option value="designer2">拆单员2</Option>
-                  <Option value="designer2">拆单员3</Option>
+                  {splitters.map((splitter) => (
+                    <Option key={splitter.username} value={splitter.username}>
+                      {splitter.username}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -713,11 +714,11 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="1">木门</Option>
-                  <Option value="2">柜体</Option>
-                  <Option value="3">石材</Option>
-                  <Option value="4">板材</Option>
-                  <Option value="5">铝合金门</Option>
+                  {categories.map((category) => (
+                    <Option key={category.id} value={category.name}>
+                      {category.name}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -730,9 +731,9 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="normal">未打款</Option>
-                  <Option value="normal">已打款</Option>
-                  <Option value="important">报价已发未打款</Option>
+                  <Option value="未打款">未打款</Option>
+                  <Option value="已打款">已打款</Option>
+                  <Option value="报价已发未打款">报价已发未打款</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -744,9 +745,9 @@ const DesignPage: React.FC = () => {
                   size="middle"
                   allowClear
                 >
-                  <Option value="design">设计单</Option>
-                  <Option value="development">生产单</Option>
-                  <Option value="finish">成品单</Option>
+                  <Option value="设计单">设计单</Option>
+                  <Option value="生产单">生产单</Option>
+                  <Option value="成品单">成品单</Option>
                 </Select>
               </Form.Item>
             </Col>

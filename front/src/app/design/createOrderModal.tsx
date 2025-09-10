@@ -265,8 +265,17 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               <Checkbox.Group>
                 <Row>
                   {categories.map((category) => (
-                    <Col span={8} key={category.id}>
-                      <Checkbox value={category.name}>{category.name}</Checkbox>
+                    <Col
+                      flex="auto"
+                      key={category.id}
+                      style={{ whiteSpace: "nowrap", minWidth: "fit-content" }}
+                    >
+                      <Checkbox
+                        value={category.name}
+                        style={{ whiteSpace: "nowrap" }}
+                      >
+                        {category.name}
+                      </Checkbox>
                     </Col>
                   ))}
                 </Row>

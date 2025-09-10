@@ -6,6 +6,7 @@ from .category import Category, CategoryType
 from .order import Order, DesignCycle
 from .progress import Progress
 from .split import Split
+from .split_progress import SplitProgress, ItemType
 # from .design import Design
 from .production import Production, PurchaseStatus
 
