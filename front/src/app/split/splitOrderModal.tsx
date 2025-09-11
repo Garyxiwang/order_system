@@ -16,7 +16,10 @@ import {
 const { TextArea } = Input;
 import dayjs, { Dayjs } from "dayjs";
 import type { SplitOrder } from "../../services/splitApi";
-import { splitProgressApi } from "../../services/splitProgressApi";
+import {
+  splitProgressApi,
+  SplitProgressItem,
+} from "../../services/splitProgressApi";
 import { CategoryService, CategoryData } from "../../services/categoryService";
 
 interface SplitOrderModalProps {
@@ -53,7 +56,6 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<CategoryData[]>([]);
   const [internalCategories, setInternalCategories] = useState<CategoryData[]>(
     []
   );
@@ -61,38 +63,10 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
     []
   );
 
-  // 加载类目数据
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const categoryList = await CategoryService.getCategoryList();
-        setCategories(categoryList);
-
-        // 按类型分组
-        const internal = categoryList.filter(
-          (cat) => cat.category_type === "厂内生产项"
-        );
-        const external = categoryList.filter(
-          (cat) => cat.category_type === "外购项"
-        );
-
-        setInternalCategories(internal);
-        setExternalCategories(external);
-      } catch (error) {
-        console.error("加载类目数据失败:", error);
-        message.error("加载类目数据失败");
-      }
-    };
-
-    if (visible) {
-      loadCategories();
-    }
-  }, [visible]);
-
   // 初始化表单数据
   useEffect(() => {
     const loadFormData = async () => {
-      if (orderData && categories.length > 0) {
+      if (orderData) {
         const internalItems: Record<
           string,
           { plannedDate?: Dayjs; splitDate?: Dayjs }
@@ -102,45 +76,58 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           { plannedDate?: Dayjs; purchaseDate?: Dayjs }
         > = {};
 
-        // 为每个类目初始化默认的日期字段
-        internalCategories.forEach((cat) => {
-          internalItems[cat.name] = {
-            plannedDate: orderData.completion_date
-              ? dayjs(orderData.completion_date)
-              : undefined,
-            splitDate: undefined,
-          };
-        });
-
-        externalCategories.forEach((cat) => {
-          externalItems[cat.name] = {
-            plannedDate: orderData.completion_date
-              ? dayjs(orderData.completion_date)
-              : undefined,
-            purchaseDate: undefined,
-          };
-        });
-
-        // 获取已有的拆单进度数据
+        // 通过order_number查询split_progress表中的数据
         try {
-          const progressList = await splitProgressApi.getProgressList(orderData.id);
-          // 填充已有的进度数据
-          progressList.forEach((progress) => {
-            if (progress.item_type === "internal" && internalItems[progress.category_name]) {
+          const progressList = await splitProgressApi.getProgressByOrderNumber(
+            orderData.order_number
+          );
+
+          // 根据item_type分类并创建表单项
+          const internalCategories: CategoryData[] = [];
+          const externalCategories: CategoryData[] = [];
+
+          progressList.forEach((progress: SplitProgressItem) => {
+            if (progress.item_type === "internal") {
               internalItems[progress.category_name] = {
-                plannedDate: progress.planned_date ? dayjs(progress.planned_date) : internalItems[progress.category_name].plannedDate,
-                splitDate: progress.split_date ? dayjs(progress.split_date) : undefined,
+                plannedDate: progress.planned_date
+                  ? dayjs(progress.planned_date)
+                  : orderData.completion_date
+                  ? dayjs(orderData.completion_date)
+                  : undefined,
+                splitDate: progress.split_date
+                  ? dayjs(progress.split_date)
+                  : undefined,
               };
-            } else if (progress.item_type === "external" && externalItems[progress.category_name]) {
+              internalCategories.push({
+                id: 0,
+                name: progress.category_name,
+                category_type: "厂内生产项",
+              });
+            } else if (progress.item_type === "external") {
               externalItems[progress.category_name] = {
-                plannedDate: progress.planned_date ? dayjs(progress.planned_date) : externalItems[progress.category_name].plannedDate,
-                purchaseDate: progress.purchase_date ? dayjs(progress.purchase_date) : undefined,
+                plannedDate: progress.planned_date
+                  ? dayjs(progress.planned_date)
+                  : orderData.completion_date
+                  ? dayjs(orderData.completion_date)
+                  : undefined,
+                purchaseDate: progress.purchase_date
+                  ? dayjs(progress.purchase_date)
+                  : undefined,
               };
+              externalCategories.push({
+                id: 0,
+                name: progress.category_name,
+                category_type: "外购项",
+              });
             }
           });
+
+          setInternalCategories(internalCategories);
+          setExternalCategories(externalCategories);
         } catch (error) {
           console.error("加载拆单进度数据失败:", error);
-          // 如果加载失败，继续使用默认数据
+          setInternalCategories([]);
+          setExternalCategories([]);
         }
 
         form.setFieldsValue({
@@ -151,7 +138,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
     };
 
     loadFormData();
-  }, [orderData, categories, internalCategories, externalCategories, form]);
+  }, [orderData, form]);
 
   const handleOk = async () => {
     try {
@@ -160,13 +147,19 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
 
       // 转换数据格式，将日期对象转换为字符串
       const formattedValues: {
-        internalItems: Record<string, { plannedDate?: string; splitDate?: string }>;
-        externalItems: Record<string, { plannedDate?: string; purchaseDate?: string }>;
+        internalItems: Record<
+          string,
+          { plannedDate?: string; splitDate?: string }
+        >;
+        externalItems: Record<
+          string,
+          { plannedDate?: string; purchaseDate?: string }
+        >;
       } = {
         internalItems: {},
         externalItems: {},
       };
-      
+
       const legacyFormattedValues: SplitFormValues = {
         internal_items: {},
         external_items: {},
@@ -211,10 +204,12 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
 
       // 同时填充legacy格式用于回调
       Object.keys(formattedValues.internalItems).forEach((categoryName) => {
-        legacyFormattedValues.internal_items[categoryName] = formattedValues.internalItems[categoryName];
+        legacyFormattedValues.internal_items[categoryName] =
+          formattedValues.internalItems[categoryName];
       });
       Object.keys(formattedValues.externalItems).forEach((categoryName) => {
-        legacyFormattedValues.external_items[categoryName] = formattedValues.externalItems[categoryName];
+        legacyFormattedValues.external_items[categoryName] =
+          formattedValues.externalItems[categoryName];
       });
 
       console.log("拆单进度更新成功:", formattedValues);

@@ -170,6 +170,7 @@ const DesignPage: React.FC = () => {
   const handleProgressModalCancel = () => {
     setIsProgressModalVisible(false);
     setSelectedOrderNumber("");
+    handleSearch();
   };
 
   // 显示进度详情弹窗
@@ -328,6 +329,7 @@ const DesignPage: React.FC = () => {
         formValues.orderCategory && formValues.orderCategory.length > 0
           ? formValues.orderCategory
           : undefined,
+      designCycleFilter: formValues.designCycleFilter,
       startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
       endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
       orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
@@ -387,6 +389,7 @@ const DesignPage: React.FC = () => {
         formValues.orderCategory && formValues.orderCategory.length > 0
           ? formValues.orderCategory
           : undefined,
+      designCycleFilter: formValues.designCycleFilter,
       startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
       endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
       orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
@@ -460,11 +463,13 @@ const DesignPage: React.FC = () => {
       title: "设计师",
       dataIndex: "designer",
       key: "designer",
+      render: (text: string) => (text ? text : "-"),
     },
     {
       title: "销售员",
       dataIndex: "salesperson",
       key: "salesperson",
+      render: (text: string) => (text ? text : "-"),
     },
     {
       title: "分单日期",
@@ -494,7 +499,6 @@ const DesignPage: React.FC = () => {
 
         // 默认显示最近的3条记录
         const displayItems = items.slice(0, 3);
-        const hasMore = items.length > 3;
 
         return (
           <div>
@@ -573,6 +577,24 @@ const DesignPage: React.FC = () => {
       render: (date: string) => formatDateTime(date),
     },
     {
+      title: "设计周期",
+      dataIndex: "design_cycle",
+      key: "design_cycle",
+      render: (cycle: string) => {
+        if (!cycle) return "-";
+        const days = parseInt(cycle);
+        let color = "default";
+        if (days <= 3) {
+          color = "green";
+        } else if (days > 3 && days <= 20) {
+          color = "orange";
+        } else if (days > 20) {
+          color = "red";
+        }
+        return <Tag color={color}>{days}天</Tag>;
+      },
+    },
+    {
       title: "订单类型",
       dataIndex: "order_type",
       key: "order_type",
@@ -645,7 +667,7 @@ const DesignPage: React.FC = () => {
           return <Tag color="red">{text}</Tag>;
         }
 
-        return <Tag color="default">{text}</Tag>;
+        return <Tag color="blue">{text}</Tag>;
       },
     },
     {
@@ -898,6 +920,25 @@ const DesignPage: React.FC = () => {
                       {category.name}
                     </Option>
                   ))}
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={6} className="py-2">
+              <Form.Item
+                name="designCycleFilter"
+                label="设计周期"
+                className="mb-0"
+              >
+                <Select
+                  placeholder="请选择"
+                  className="rounded-md"
+                  size="middle"
+                  allowClear
+                >
+                  <Option value="lte20">小于20天</Option>
+                  <Option value="gt20">大于20天</Option>
+                  <Option value="lt50">小于50天</Option>
                 </Select>
               </Form.Item>
             </Col>

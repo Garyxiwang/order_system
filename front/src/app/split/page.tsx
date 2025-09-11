@@ -527,6 +527,8 @@ const DesignPage: React.FC = () => {
       dataIndex: "internal_production_items",
       key: "internal_production_items",
       render: (items: ProductionItem[] | string) => {
+        if (!items) return "-";
+
         let productionItems: ProductionItem[] = [];
 
         // 处理字符串格式的数据（格式："类目:实际时间:消耗时间"）
@@ -536,8 +538,8 @@ const DesignPage: React.FC = () => {
             const parts: string[] = item.split(":");
             return {
               category_name: parts[0] || "",
-              planned_date: undefined,
               actual_date: parts[1] && parts[1] !== "-" ? parts[1] : undefined,
+              cycle_days: parts[2] || "",
             };
           });
         }
@@ -548,6 +550,7 @@ const DesignPage: React.FC = () => {
             {productionItems.map((item: ProductionItem, index: number) => {
               const name = item.category_name || "";
               const actualDate = item.actual_date;
+              const cycleDays = item.cycle_days;
 
               if (actualDate) {
                 return (
@@ -555,7 +558,7 @@ const DesignPage: React.FC = () => {
                     <CheckOutlined
                       style={{ color: "green", marginRight: "4px" }}
                     />
-                    {name}: {actualDate}
+                    {name}: {actualDate}: {cycleDays}
                   </div>
                 );
               } else {
@@ -571,6 +574,7 @@ const DesignPage: React.FC = () => {
       dataIndex: "external_purchase_items",
       key: "external_purchase_items",
       render: (items: ProductionItem[] | string) => {
+        if (!items) return "-";
         let purchaseItems: ProductionItem[] = [];
 
         // 处理字符串格式的数据（格式："类目:实际时间:消耗时间"）
@@ -580,8 +584,8 @@ const DesignPage: React.FC = () => {
             const parts: string[] = item.split(":");
             return {
               category_name: parts[0] || "",
-              planned_date: undefined,
               actual_date: parts[1] && parts[1] !== "-" ? parts[1] : undefined,
+              cycle_days: parts[2] || "",
             };
           });
         }
@@ -592,6 +596,7 @@ const DesignPage: React.FC = () => {
             {purchaseItems.map((item: ProductionItem, index: number) => {
               const name = item.category_name || "";
               const actualDate = item.actual_date;
+              const cycleDays = item.cycle_days;
 
               if (actualDate) {
                 return (
@@ -599,7 +604,7 @@ const DesignPage: React.FC = () => {
                     <CheckOutlined
                       style={{ color: "green", marginRight: "4px" }}
                     />
-                    {name}: {actualDate}
+                    {name}: {actualDate}: {cycleDays}
                   </div>
                 );
               } else {

@@ -45,6 +45,12 @@ export const splitProgressApi = {
     return response.items;
   },
 
+  // 通过订单号获取拆单进度列表
+  getProgressByOrderNumber: async (orderNumber: string): Promise<SplitProgressItem[]> => {
+    const response: SplitProgressListResponse = await api.get(`/v1/split-progress/order/${orderNumber}`);
+    return response.items;
+  },
+
   // 批量更新拆单进度
   batchUpdate: async (
     splitId: number,

@@ -28,6 +28,7 @@ export interface ProductionItem {
   category_name: string;
   planned_date?: string;
   actual_date?: string;
+  cycle_days?: string;
 }
 
 // 搜索参数接口

@@ -51,6 +51,7 @@ export interface OrderListParams {
   orderStatus?: string[];
   orderType?: string;
   designCycle?: string;
+  designCycleFilter?: string;
   orderCategory?: string[];
   startDate?: string;
   endDate?: string;
@@ -80,6 +81,7 @@ export const getDesignOrders = async (params?: OrderListParams): Promise<OrderLi
     order_status: params?.orderStatus,
     order_type: params?.orderType,
     design_cycle: params?.designCycle,
+    design_cycle_filter: params?.designCycleFilter,
     category_names: params?.orderCategory,
     assignment_date_start: params?.startDate,
     assignment_date_end: params?.endDate,
