@@ -17,6 +17,7 @@ class SplitProgressBase(BaseModel):
     planned_date: Optional[str] = Field(None, description="计划日期")
     split_date: Optional[str] = Field(None, description="拆单日期（厂内项）")
     purchase_date: Optional[str] = Field(None, description="采购日期（外购项）")
+    cycle_days: Optional[str] = Field(None, description="周期天数")
     status: Optional[str] = Field("待处理", description="状态")
     remarks: Optional[str] = Field(None, description="备注")
 
@@ -32,6 +33,7 @@ class SplitProgressUpdate(BaseModel):
     planned_date: Optional[str] = Field(None, description="计划日期")
     split_date: Optional[str] = Field(None, description="拆单日期（厂内项）")
     purchase_date: Optional[str] = Field(None, description="采购日期（外购项）")
+    cycle_days: Optional[str] = Field(None, description="周期天数")
     status: Optional[str] = Field(None, description="状态")
     remarks: Optional[str] = Field(None, description="备注")
 
@@ -56,6 +58,7 @@ class SplitProgressResponse(BaseModel):
     planned_date: Optional[str]
     split_date: Optional[str]
     purchase_date: Optional[str]
+    cycle_days: Optional[str]
     status: str
     remarks: Optional[str]
     created_at: datetime

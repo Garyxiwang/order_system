@@ -120,7 +120,7 @@ async def get_splits(
 
             for item in progress_items:
                 if item.item_type == ItemType.INTERNAL:
-                    # 格式："类目:实际时间:消耗时间"
+                    # 格式："类目:实际时间:拆单周期"
                     if item.split_date:
                         if isinstance(item.split_date, str):
                             split_date = item.split_date
@@ -128,10 +128,11 @@ async def get_splits(
                             split_date = item.split_date.strftime('%Y-%m-%d')
                     else:
                         split_date = ''
-                    item_str = f"{item.category_name}:{split_date}:-"
+                    cycle_days = item.cycle_days if item.cycle_days else '-'
+                    item_str = f"{item.category_name}:{split_date}:{cycle_days}"
                     internal_items.append(item_str)
                 elif item.item_type == ItemType.EXTERNAL:
-                    # 格式："类目:实际时间:消耗时间"
+                    # 格式："类目:实际时间:拆单周期"
                     if item.purchase_date:
                         if isinstance(item.purchase_date, str):
                             purchase_date = item.purchase_date
@@ -140,7 +141,8 @@ async def get_splits(
                                 '%Y-%m-%d')
                     else:
                         purchase_date = ''
-                    item_str = f"{item.category_name}:{purchase_date}:-"
+                    cycle_days = item.cycle_days if item.cycle_days else '-'
+                    item_str = f"{item.category_name}:{purchase_date}:{cycle_days}"
                     external_items.append(item_str)
             # 创建响应对象
             split_dict = {
@@ -611,7 +613,7 @@ async def update_split_status(
                     # 查找打款进度事项
                     payment_progress = db.query(Progress).filter(
                         Progress.order_id == order.id,
-                        Progress.task_item == "报价"
+                        Progress.task_item == "打款"
                     ).first()
 
                     if payment_progress:
@@ -619,10 +621,10 @@ async def update_split_status(
                         payment_progress.actual_date = status_data.actual_payment_date
                         payment_progress.updated_at = datetime.utcnow()
                     else:
-                        # 如果没找到报价事项，创建一个新的进度事项
+                        # 如果没找到打款事项，创建一个新的进度事项
                         new_progress = Progress(
                             order_id=order.id,
-                            task_item="报价",
+                            task_item="打款",
                             planned_date=status_data.actual_payment_date,
                             actual_date=status_data.actual_payment_date,
                             remarks="系统自动创建"
@@ -676,7 +678,7 @@ async def place_split_order(
             Order.order_number == split.order_number).first()
         if order:
             order.order_status = "已下单"
-           
+
         # # 检查是否已存在生产记录，如果不存在则创建
         # existing_production = db.query(Production).filter(
         #     Production.order_number == split.order_number

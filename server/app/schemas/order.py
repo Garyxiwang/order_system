@@ -131,7 +131,7 @@ class OrderListQuery(BaseModel):
     salesperson: Optional[str] = Field(None, description="销售员")
     order_status: Optional[List[str]] = Field(None, description="订单状态（多选）")
     order_type: Optional[str] = Field(None, description="订单类型")
-    design_cycle: Optional[str] = Field(None, description="设计周期")
+    design_cycle_filter: Optional[str] = Field(None, description="设计周期筛选：lte20(小于等于20天)、gt20(大于20天)、lt50(小于50天)")
     category_names: Optional[List[str]] = Field(None, description="类目名称（多选）")
     assignment_date_start: Optional[str] = Field(None, description="分单日期开始")
     assignment_date_end: Optional[str] = Field(None, description="分单日期结束")

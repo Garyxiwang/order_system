@@ -35,3 +35,6 @@ fastapi-cors==0.0.6
 
 # 日志
 loguru==0.7.2
+
+# 定时任务
+apscheduler==3.10.4

@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.database import engine, create_tables, create_initial_data
 from app.models import Base, User, UserRole
 from app.api.v1.api import api_router
+from app.utils.scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
@@ -34,10 +35,26 @@ async def lifespan(app: FastAPI):
         # 初始数据创建失败不应该阻止应用启动
         pass
     
+    # 启动定时任务调度器
+    try:
+        start_scheduler()
+        print("✅ 定时任务调度器启动成功")
+    except Exception as e:
+        print(f"❌ 定时任务调度器启动失败: {e}")
+        # 定时任务启动失败不应该阻止应用启动
+        pass
+    
     yield
     
     # 关闭时执行
     print("🛑 关闭订单管理系统后端服务...")
+    
+    # 停止定时任务调度器
+    try:
+        stop_scheduler()
+        print("✅ 定时任务调度器已停止")
+    except Exception as e:
+        print(f"❌ 停止定时任务调度器失败: {e}")
 
 
 # 创建FastAPI应用实例

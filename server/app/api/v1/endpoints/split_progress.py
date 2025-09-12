@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.models.split import Split
 from app.models.split_progress import SplitProgress, ItemType
 from app.models.category import Category, CategoryType
+from app.models.order import Order
 from app.schemas.split_progress import (
     SplitProgressCreate,
     SplitProgressUpdate,
@@ -47,6 +48,32 @@ async def get_split_progress(
         
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取拆单进度失败: {str(e)}"
+        )
+
+
+@router.get("/order/{order_number}", response_model=SplitProgressListResponse, summary="通过订单号获取拆单进度列表")
+async def get_split_progress_by_order_number(
+    order_number: str,
+    db: Session = Depends(get_db)
+):
+    """
+    通过订单号获取拆单进度列表
+    """
+    try:
+        # 获取进度列表
+        progress_items = db.query(SplitProgress).filter(
+            SplitProgress.order_number == order_number
+        ).all()
+        
+        return SplitProgressListResponse(
+            items=progress_items,
+            total=len(progress_items)
+        )
+        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -99,6 +126,20 @@ async def batch_update_split_progress(
                     progress.planned_date = dates['plannedDate']
                 if dates.get('splitDate'):
                     progress.split_date = dates['splitDate']
+                    
+                    # 计算厂内项周期（从订单下单日期到拆单日期）
+                    if progress.split_date:
+                        try:
+                            from datetime import datetime as dt
+                            # 查询订单获取下单日期
+                            order = db.query(Order).filter(Order.order_number == split.order_number).first()
+                            if order and order.order_date:
+                                order_dt = dt.strptime(order.order_date, '%Y-%m-%d')
+                                split_dt = dt.fromisoformat(progress.split_date.replace('Z', '+00:00'))
+                                cycle_days = (split_dt.date() - order_dt.date()).days
+                                progress.cycle_days = f"{cycle_days}天"
+                        except:
+                            pass
                 
                 progress.updated_at = datetime.utcnow()
         
@@ -127,6 +168,20 @@ async def batch_update_split_progress(
                     progress.planned_date = dates['plannedDate']
                 if dates.get('purchaseDate'):
                     progress.purchase_date = dates['purchaseDate']
+                    
+                    # 计算外购项周期（从订单下单日期到采购日期）
+                    if progress.purchase_date:
+                        try:
+                            from datetime import datetime as dt
+                            # 查询订单获取下单日期
+                            order = db.query(Order).filter(Order.order_number == split.order_number).first()
+                            if order and order.order_date:
+                                order_dt = dt.strptime(order.order_date, '%Y-%m-%d')
+                                purchase_dt = dt.fromisoformat(progress.purchase_date.replace('Z', '+00:00'))
+                                cycle_days = (purchase_dt.date() - order_dt.date()).days
+                                progress.cycle_days = f"{cycle_days}天"
+                        except:
+                            pass
                 
                 progress.updated_at = datetime.utcnow()
         
@@ -135,6 +190,7 @@ async def batch_update_split_progress(
             split.remarks = progress_data.remarks
             split.updated_at = datetime.utcnow()
         
+
         db.commit()
         
         # 返回更新后的进度列表

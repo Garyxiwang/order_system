@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import health, users, orders, productions, auth, categories, splits, split_progress
+from app.api.v1.endpoints import health, users, orders, productions, auth, categories, splits, split_progress, scheduler
 from app.api.v1 import progress
 
 # 创建API路由器
@@ -61,4 +61,10 @@ api_router.include_router(
     progress.router, 
     prefix="/progress", 
     tags=["进度管理"]
+)
+
+api_router.include_router(
+    scheduler.router, 
+    prefix="/scheduler", 
+    tags=["定时任务管理"]
 )

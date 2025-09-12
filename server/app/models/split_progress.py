@@ -25,6 +25,7 @@ class SplitProgress(Base):
     planned_date = Column(String(50), nullable=True, comment="计划日期")
     split_date = Column(String(50), nullable=True, comment="拆单日期（厂内项）")
     purchase_date = Column(String(50), nullable=True, comment="采购日期（外购项）")
+    cycle_days = Column(String(20), nullable=True, comment="周期天数")
     status = Column(String(20), default="待处理", comment="状态")
     remarks = Column(Text, nullable=True, comment="备注")
     
