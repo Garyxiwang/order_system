@@ -10,7 +10,8 @@ from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.split import Split
 from app.models.order import Order
-from app.models.production import Production, PurchaseStatus
+from app.models.production import Production
+from app.models.production_progress import ProductionProgress, ItemType as ProductionItemType
 from app.models.progress import Progress
 from app.models.split_progress import SplitProgress, ItemType
 from app.models.category import Category, CategoryType
@@ -162,6 +163,7 @@ async def get_splits(
                 "internal_production_items": ",".join(internal_items) if internal_items else "",
                 "external_purchase_items": ",".join(external_items) if external_items else "",
                 "quote_status": split.quote_status,
+                "actual_payment_date": split.actual_payment_date,
                 "completion_date": split.completion_date,
                 "remarks": split.remarks,
                 "created_at": split.created_at,
@@ -254,6 +256,7 @@ async def get_split(
         "internal_production_items": ",".join(internal_items) if internal_items else "",
         "external_purchase_items": ",".join(external_items) if external_items else "",
         "quote_status": split.quote_status,
+        "actual_payment_date": split.actual_payment_date,
         "completion_date": split.completion_date,
         "remarks": split.remarks,
         "created_at": split.created_at,
@@ -603,9 +606,11 @@ async def update_split_status(
 
         if status_data.quote_status is not None:
             split.quote_status = status_data.quote_status
-
-            # 如果更新为已打款状态且提供了实际打款日期，更新设计单中的打款进度
+            
+            # 如果更新为已打款状态且提供了实际打款日期，保存到拆单表并更新设计单中的打款进度
             if status_data.quote_status == "已打款" and status_data.actual_payment_date:
+                # 保存实际打款日期到拆单表
+                split.actual_payment_date = status_data.actual_payment_date
                 # 查找对应的订单
                 order = db.query(Order).filter(
                     Order.order_number == split.order_number).first()
@@ -679,42 +684,127 @@ async def place_split_order(
         if order:
             order.order_status = "已下单"
 
-        # # 检查是否已存在生产记录，如果不存在则创建
-        # existing_production = db.query(Production).filter(
-        #     Production.order_number == split.order_number
-        # ).first()
+        # 检查是否已存在生产记录，如果不存在则创建
+        existing_production = db.query(Production).filter(
+            Production.order_number == split.order_number
+        ).first()
 
-        # if not existing_production and order:
-        #     # 创建生产记录
-        #     production = Production(
-        #         order_number=split.order_number,
-        #         customer_name=split.customer_name,
-        #         address=getattr(order, 'address', ''),
-        #         is_installation=getattr(order, 'is_installation', False),
-        #         customer_payment_date=getattr(
-        #             order, 'customer_payment_date', None),
-        #         split_order_date=datetime.utcnow().date(),
-        #         expected_delivery_date=getattr(
-        #             order, 'expected_delivery_date', None),
-        #         purchase_status=PurchaseStatus.PENDING,
-        #         board_18_quantity=0,
-        #         board_09_quantity=0,
-        #         internal_production_items=split.internal_production_items or "",
-        #         external_purchase_items=split.external_purchase_items or "",
-        #         remarks=getattr(split, 'remarks', ''),
-        #         order_status="已下单"
-        #     )
-        #     db.add(production)
+        if not existing_production and order:
+            # 计算预计交货日期（实际打款日期往后推迟20天）
+            expected_delivery_date = None
+            payment_date = None
+            if split.actual_payment_date:
+                if isinstance(split.actual_payment_date, str):
+                    payment_date = datetime.strptime(split.actual_payment_date, '%Y-%m-%d')
+                else:
+                    payment_date = split.actual_payment_date
+            elif hasattr(order, 'customer_payment_date') and order.customer_payment_date:
+                if isinstance(order.customer_payment_date, str):
+                    payment_date = datetime.strptime(order.customer_payment_date, '%Y-%m-%d')
+                else:
+                    payment_date = order.customer_payment_date
+            
+            if payment_date:
+                from datetime import timedelta
+                expected_delivery_date = (payment_date + timedelta(days=20)).strftime('%Y-%m-%d')
+            
+            # 计算下单天数（拆单日期 - 打款日期）
+            order_days = 0
+            if payment_date:
+                split_order_date = datetime.now()
+                order_days = (split_order_date - payment_date).days
+            
+            # 获取拆单进度项
+            split_progress_items = db.query(SplitProgress).filter(
+                SplitProgress.split_id == split.id
+            ).all()
+            
+            # 构建生产项字符串
+            internal_items = []
+            external_items = []
+            for item in split_progress_items:
+                if item.item_type == ItemType.INTERNAL:
+                    internal_items.append(item.category_name)
+                elif item.item_type == ItemType.EXTERNAL:
+                    external_items.append(item.category_name)
+            
+            internal_production_items = ','.join(internal_items)
+            external_purchase_items = ','.join(external_items)
+            
+            # 创建生产记录
+            production = Production(
+                order_id=order.id,
+                order_number=split.order_number,
+                customer_name=split.customer_name,
+                address=getattr(order, 'address', ''),
+                splitter=split.splitter,
+                is_installation=getattr(order, 'is_installation', False),
+                customer_payment_date=split.actual_payment_date if split.actual_payment_date else getattr(order, 'customer_payment_date', None),
+                split_order_date=split.completion_date if split.completion_date else datetime.now().strftime('%Y-%m-%d'),
+                internal_production_items=internal_production_items,
+                external_purchase_items=external_purchase_items,
+                order_days=order_days,
+                expected_delivery_date=expected_delivery_date,
+                board_18="",
+                board_09="",
+                order_status="未齐料",
+                actual_delivery_date=None,
+                cutting_date=None,
+                expected_shipping_date=None,
+                remarks=getattr(split, 'remarks', '')
+            )
+            db.add(production)
+            db.flush()  # 获取生产记录ID
+            
+            # 创建生产进度记录
+            # 处理厂内生产项
+            for item in split_progress_items:
+                if item.item_type == ItemType.INTERNAL:
+                    split_date = item.split_date if item.split_date else (split.completion_date if split.completion_date else datetime.now().strftime('%Y-%m-%d'))
+                    
+                    progress_item = ProductionProgress(
+                         production_id=production.id,
+                         order_number=split.order_number,
+                         item_type=ProductionItemType.INTERNAL,
+                         category_name=item.category_name,
+                         order_date=split_date,
+                         expected_material_date=None,
+                         actual_storage_date=None,
+                         storage_time=None,
+                         quantity=None
+                     )
+                    db.add(progress_item)
+                elif item.item_type == ItemType.EXTERNAL:
+                    purchase_date = item.purchase_date if item.purchase_date else (split.completion_date if split.completion_date else datetime.now().strftime('%Y-%m-%d'))
+                    
+                    progress_item = ProductionProgress(
+                         production_id=production.id,
+                         order_number=split.order_number,
+                         item_type=ProductionItemType.EXTERNAL,
+                         category_name=item.category_name,
+                         order_date=purchase_date,
+                         expected_arrival_date=None,
+                         actual_arrival_date=None
+                     )
+                    db.add(progress_item)
 
-        # split.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(split)
 
-        return split
+        return success_response(
+            data={
+                "split_id": split.id,
+                "order_number": split.order_number,
+                "order_status": split.order_status,
+                "completion_date": split.completion_date,
+                "production_created": not existing_production
+            },
+            message="拆单下单成功，生产管理订单已创建"
+        )
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"拆单下单失败: {str(e)}"
+        return error_response(
+            message=f"拆单下单失败: {str(e)}",
+            code=500
         )

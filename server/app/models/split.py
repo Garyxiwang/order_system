@@ -27,6 +27,7 @@ class Split(Base):
     # 拆单特有字段
     splitter = Column(String(50), nullable=True, comment="拆单员")
     quote_status = Column(String(20), default="未打款", comment="报价状态")
+    actual_payment_date = Column(String(50), nullable=True, comment="实际打款日期")
     completion_date = Column(String(50), nullable=True, comment="完成日期")
     remarks = Column(Text, nullable=True, comment="备注")
     

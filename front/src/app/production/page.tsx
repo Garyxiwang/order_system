@@ -25,6 +25,7 @@ const { RangePicker } = DatePicker;
 import {
   getProductionOrders,
   searchProductionOrders,
+  updateProductionOrder,
   type ProductionOrder,
 } from "../../services/productionApi";
 import EditProductionModal from "./editProductionModal";
@@ -84,14 +85,27 @@ const ProductionPage: React.FC = () => {
   };
 
   // 处理编辑模态框确认
-  const handleEditModalOk = (values: Partial<ProductionOrder>) => {
-    console.log("编辑表单数据:", values);
-    // 这里可以调用API更新数据
-    setIsEditModalVisible(false);
-    setSelectedOrder(null);
-    // 重新加载数据
-    loadProductionData();
-    message.success("更新成功");
+  const handleEditModalOk = async (values: Partial<ProductionOrder>) => {
+    if (!selectedOrder?.id) {
+      message.error("订单ID不存在");
+      return;
+    }
+
+    try {
+      const response = await updateProductionOrder(selectedOrder.id.toString(), values);
+      if (response.code === 200) {
+        message.success("更新成功");
+        setIsEditModalVisible(false);
+        setSelectedOrder(null);
+        // 重新加载数据
+        loadProductionData();
+      } else {
+        message.error(response.message || "更新失败");
+      }
+    } catch (error) {
+      console.error("更新生产订单失败:", error);
+      message.error("更新失败，请稍后重试");
+    }
   };
 
   // 显示生产进度模态框
@@ -146,9 +160,10 @@ const ProductionPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await searchProductionOrders({
-        orderCode: values.orderCode,
-        customerName: values.customerName,
+      const response = await getProductionOrders({
+        order_number: values.orderNumber,
+        customer_name: values.orderName,
+        order_status: values.splitStatus,
       });
       if (response.code === 200) {
         setProductionData(response.data);
@@ -173,48 +188,54 @@ const ProductionPage: React.FC = () => {
   // 表格列定义
   const columns: ColumnsType<ProductionOrder> = [
     {
-      title: "订单编码",
-      dataIndex: "orderCode",
-      key: "orderCode",
+      title: "订单编号",
+      dataIndex: "order_number",
+      key: "order_number",
     },
     {
       title: "客户名称",
-      dataIndex: "customerName",
-      key: "customerName",
+      dataIndex: "customer_name",
+      key: "customer_name",
       width: 150,
     },
     {
       title: "地址",
-      dataIndex: "deliveryAddress",
-      key: "deliveryAddress",
+      dataIndex: "address",
+      key: "address",
       ellipsis: true,
     },
     {
+      title: "拆单员",
+      dataIndex: "splitter",
+      key: "splitter",
+      render: (text: string) => text || "-",
+    },
+    {
       title: "是否安装",
-      dataIndex: "isInstallation",
-      key: "isInstallation",
+      dataIndex: "is_installation",
+      key: "is_installation",
       render: (value: boolean) => <span>{value ? "是" : "否"}</span>,
     },
     {
       title: "客户打款日期",
-      dataIndex: "customerPaymentDate",
-      key: "customerPaymentDate",
+      dataIndex: "customer_payment_date",
+      key: "customer_payment_date",
       render: (text: string) => text || "-",
     },
     {
       title: "拆单下单日期",
-      dataIndex: "splitOrderDate",
-      key: "splitOrderDate",
+      dataIndex: "split_order_date",
+      key: "split_order_date",
       render: (text: string) => text || "-",
     },
     {
       title: "下单天数",
-      dataIndex: "orderDays",
-      key: "orderDays",
-      render: (value: number, record: ProductionOrder) => {
-        if (record.splitOrderDate && record.customerPaymentDate) {
-          const splitDate = new Date(record.splitOrderDate);
-          const paymentDate = new Date(record.customerPaymentDate);
+      dataIndex: "order_days",
+      key: "order_days",
+      render: (value: string, record: ProductionOrder) => {
+        if (record.split_order_date && record.customer_payment_date) {
+          const splitDate = new Date(record.split_order_date);
+          const paymentDate = new Date(record.customer_payment_date);
           const diffTime = splitDate.getTime() - paymentDate.getTime();
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           return `${diffDays}天`;
@@ -224,8 +245,8 @@ const ProductionPage: React.FC = () => {
     },
     {
       title: "预计交货日期",
-      dataIndex: "expectedDeliveryDate",
-      key: "expectedDeliveryDate",
+      dataIndex: "expected_delivery_date",
+      key: "expected_delivery_date",
       render: (text: string) => text || "-",
     },
     {
@@ -281,16 +302,16 @@ const ProductionPage: React.FC = () => {
       render: (value, record: ProductionOrder) => {
         return (
           <div>
-            <div>18板：{record.board18}张</div>
-            <div>09板：{record.board09}张</div>
+            <div>18板：{record.board_18 ? `${record.board_18}张` : "-"}</div>
+            <div>09板：{record.board_09 ? `${record.board_09}张` : "-"}</div>
           </div>
         );
       },
     },
     {
       title: "下料日期",
-      dataIndex: "cuttingDate",
-      key: "cuttingDate",
+      dataIndex: "cutting_date",
+      key: "cutting_date",
       render: (text: string) => text || "-",
     },
 
@@ -301,8 +322,8 @@ const ProductionPage: React.FC = () => {
       render: (text, record: ProductionOrder) => {
         return (
           <div>
-            <div>预计出货日期：{record.expectedShipmentDate || "-"}</div>
-            <div>实际出货日期：{record.actualShipmentDate || "-"}</div>
+            <div>预计出货日期：{record.expected_shipping_date || "-"}</div>
+            <div>实际出货日期：{record.actual_delivery_date || "-"}</div>
           </div>
         );
       },
@@ -318,8 +339,8 @@ const ProductionPage: React.FC = () => {
 
     {
       title: "订单状态",
-      dataIndex: "status",
-      key: "status",
+      dataIndex: "order_status",
+      key: "order_status",
       fixed: "right",
     },
     {
@@ -328,13 +349,19 @@ const ProductionPage: React.FC = () => {
       width: 145,
       fixed: "right",
       render: (_, record) => (
-        <>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            width: "145px",
+          }}
+        >
           <Button
             type="link"
             size="small"
             onClick={() => showEditModal(record)}
           >
-            编辑
+            编辑订单
           </Button>
           <Button
             type="link"
@@ -350,7 +377,10 @@ const ProductionPage: React.FC = () => {
           >
             生产进度
           </Button>
-        </>
+          <Button type="link" size="small">
+            订单状态
+          </Button>
+        </div>
       ),
     },
   ];

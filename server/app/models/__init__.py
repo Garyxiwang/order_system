@@ -8,7 +8,8 @@ from .progress import Progress
 from .split import Split
 from .split_progress import SplitProgress, ItemType
 # from .design import Design
-from .production import Production, PurchaseStatus
+from .production import Production
+from .production_progress import ProductionProgress, ItemType as ProductionItemType
 
 # 导出Base供其他模块使用
 __all__ = ["Base"]

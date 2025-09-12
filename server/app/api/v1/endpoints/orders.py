@@ -496,6 +496,11 @@ async def update_order_status(
                 # 如果存在打款事项且已填写实际日期，则为已打款，否则为未打款
                 quote_status = "已打款" if (
                     payment_progress and payment_progress.actual_date) else "未打款"
+                
+                # 获取实际打款日期
+                actual_payment_date = None
+                if payment_progress and payment_progress.actual_date:
+                    actual_payment_date = payment_progress.actual_date.strftime('%Y-%m-%d') if isinstance(payment_progress.actual_date, date) else str(payment_progress.actual_date)
 
                 # 创建拆单记录
                 split = Split(
@@ -511,6 +516,7 @@ async def update_order_status(
                     order_status="未开始",
                     order_type=order.order_type,
                     quote_status=quote_status,
+                    actual_payment_date=actual_payment_date,
                     remarks="",
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()

@@ -92,6 +92,7 @@ class SplitResponse(BaseModel):
     internal_production_items: Optional[str]
     external_purchase_items: Optional[str]
     quote_status: str
+    actual_payment_date: Optional[str]
     completion_date: Optional[str]
     remarks: Optional[str]
     created_at: datetime

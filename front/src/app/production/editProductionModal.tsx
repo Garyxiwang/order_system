@@ -40,30 +40,15 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
   useEffect(() => {
     if (visible && orderData) {
       form.setFieldsValue({
-        expectedDeliveryDate: orderData.expectedDeliveryDate
-          ? dayjs(orderData.expectedDeliveryDate)
+        expectedDeliveryDate: orderData.expected_delivery_date
+          ? dayjs(orderData.expected_delivery_date)
           : null,
-        expectedMaterialDate: orderData.expectedMaterialDate
-          ? dayjs(orderData.expectedMaterialDate)
-          : null,
-        actualMaterialStatus: orderData.actualMaterialStatus,
-        board18: orderData.board18,
-        board09: orderData.board09,
+        board18: orderData.board_18,
+        board09: orderData.board_09,
         remarks: orderData.remarks,
-        cuttingDate: orderData.cuttingDate
-          ? dayjs(orderData.cuttingDate)
+        actualShipmentDate: orderData.actual_delivery_date
+          ? dayjs(orderData.actual_delivery_date)
           : null,
-        warehouseDate: orderData.warehouseDate
-          ? dayjs(orderData.warehouseDate)
-          : null,
-        status: orderData.status,
-        expectedShipmentDate: orderData.expectedShipmentDate
-          ? dayjs(orderData.expectedShipmentDate)
-          : null,
-        actualShipmentDate: orderData.actualShipmentDate
-          ? dayjs(orderData.actualShipmentDate)
-          : null,
-        shipmentStatus: orderData.shipmentStatus,
       });
     }
   }, [visible, orderData, form]);
@@ -74,25 +59,15 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
       setLoading(true);
       const values = await form.validateFields();
 
-      // 转换日期格式
+      // 转换日期格式和字段名称
       const formattedValues = {
-        ...values,
-        expectedDeliveryDate: values.expectedDeliveryDate
+        expected_delivery_date: values.expectedDeliveryDate
           ? values.expectedDeliveryDate.format("YYYY-MM-DD")
           : null,
-        expectedMaterialDate: values.expectedMaterialDate
-          ? values.expectedMaterialDate.format("YYYY-MM-DD")
-          : null,
-        cuttingDate: values.cuttingDate
-          ? values.cuttingDate.format("YYYY-MM-DD")
-          : null,
-        warehouseDate: values.warehouseDate
-          ? values.warehouseDate.format("YYYY-MM-DD")
-          : null,
-        expectedShipmentDate: values.expectedShipmentDate
-          ? values.expectedShipmentDate.format("YYYY-MM-DD")
-          : null,
-        actualShipmentDate: values.actualShipmentDate
+        board_18: values.board18,
+        board_09: values.board09,
+        remarks: values.remarks,
+        actual_delivery_date: values.actualShipmentDate
           ? values.actualShipmentDate.format("YYYY-MM-DD")
           : null,
       };
@@ -148,49 +123,49 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
           size="small"
           items={[
             {
-              key: "orderCode",
-              label: "订单编码",
-              children: orderData.orderCode,
+              key: "orderNumber",
+              label: "订单编号",
+              children: orderData.order_number,
             },
             {
               key: "customerName",
               label: "客户名称",
-              children: orderData.customerName,
+              children: orderData.customer_name,
             },
             {
-              key: "deliveryAddress",
+              key: "address",
               label: "发货地址",
-              children: orderData.deliveryAddress,
+              children: orderData.address || "-",
             },
             {
               key: "isInstallation",
               label: "是否安装",
-              children: orderData.isInstallation ? "是" : "否",
+              children: orderData.is_installation ? "是" : "否",
             },
             {
               key: "customerPaymentDate",
               label: "客户打款日期",
-              children: orderData.customerPaymentDate || "-",
+              children: orderData.customer_payment_date || "-",
             },
             {
               key: "splitOrderDate",
               label: "拆单下单日期",
-              children: orderData.splitOrderDate || "-",
+              children: orderData.split_order_date || "-",
             },
             {
               key: "orderDays",
               label: "下单天数",
-              children: orderData.orderDays ? `${orderData.orderDays}天` : "-",
+              children: orderData.order_days ? `${orderData.order_days}天` : "-",
             },
             {
-              key: "doorBody",
+              key: "internalProduction",
               label: "厂内生产项",
-              children: orderData.doorBody || "-",
+              children: orderData.internal_production_items || "-",
             },
             {
-              key: "external",
+              key: "externalPurchase",
               label: "外购项",
-              children: orderData.external || "-",
+              children: orderData.external_purchase_items || "-",
               span: 2,
             },
           ]}
@@ -224,21 +199,7 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
               <DatePicker placeholder="请选择日期" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item
-              label="订单状态"
-              name="status"
-              rules={[{ required: true, message: "请选择状态" }]}
-            >
-              <Select placeholder="请选择状态">
-                <Option value="未齐料">未齐料</Option>
-                <Option value="已齐料">已齐料</Option>
-                <Option value="已下料">已下料</Option>
-                <Option value="已入库">已入库</Option>
-                <Option value="已出货">已出货</Option>
-              </Select>
-            </Form.Item>
-          </Col>
+
           <Col span={12}>
             <Form.Item label="实际出货日期" name="actualShipmentDate">
               <DatePicker placeholder="请选择日期" style={{ width: "100%" }} />
