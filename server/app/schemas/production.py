@@ -47,6 +47,10 @@ class ProductionListItem(BaseModel):
     cutting_date: Optional[str]
     expected_shipping_date: Optional[str]
     remarks: Optional[str]
+    
+    # 采购状态
+    purchase_status: Optional[str] = Field(default=None, description="采购状态")
+    
     created_at: datetime
     updated_at: datetime
 
@@ -99,6 +103,20 @@ class ProductionProgressBase(BaseModel):
     actual_arrival_date: Optional[str] = None
 
 
+class ProductionProgressBatchUpdate(BaseModel):
+    """生产进度批量更新模型"""
+    id: Optional[int] = None  # 可选ID，用于更新现有记录
+    item_type: Optional[str] = None
+    category_name: Optional[str] = None
+    order_date: Optional[str] = None
+    expected_material_date: Optional[str] = None
+    actual_storage_date: Optional[str] = None
+    storage_time: Optional[str] = None
+    quantity: Optional[str] = None
+    expected_arrival_date: Optional[str] = None
+    actual_arrival_date: Optional[str] = None
+
+
 class ProductionProgressResponse(ProductionProgressBase):
     """生产进度响应模型"""
     id: int
@@ -109,11 +127,13 @@ class ProductionProgressResponse(ProductionProgressBase):
 
     class Config:
         from_attributes = True
+        use_enum_values = True
 
 
 class ProductionResponse(BaseModel):
     """生产管理响应模型"""
     id: int
+    order_id: int
     order_number: str
     customer_name: str
     address: Optional[str]

@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     username: str
     role: UserRole
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

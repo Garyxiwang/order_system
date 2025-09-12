@@ -13,6 +13,8 @@ import {
   message,
   DatePicker,
   Form,
+  Modal,
+  Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -27,49 +29,44 @@ import {
   searchProductionOrders,
   updateProductionOrder,
   type ProductionOrder,
+  type PaginatedResponse,
+  type ProductionListResponse,
 } from "../../services/productionApi";
 import EditProductionModal from "./editProductionModal";
-import ProgressModal from "./progressModal";
+import PurchaseStatusModal from "./purchaseStatusModal";
+import ProductionProgressModal from "./productionProgressModal";
 import PurchaseDetailModal from "./purchaseDetailModal";
 
 const ProductionPage: React.FC = () => {
   const [productionData, setProductionData] = useState<ProductionOrder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [isProgressModalVisible, setIsProgressModalVisible] = useState(false);
+  const [isPurchaseModalVisible, setIsPurchaseModalVisible] = useState(false);
+  const [
+    isProductionProgressModalVisible,
+    setIsProductionProgressModalVisible,
+  ] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isOrderStatusModalVisible, setIsOrderStatusModalVisible] =
+    useState(false);
+  const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>("");
+  const [orderStatusEditingRecord, setOrderStatusEditingRecord] =
+    useState<ProductionOrder | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(
     null
   );
-  const [modalType, setModalType] = useState<"progress" | "purchase">(
-    "progress"
-  );
-  const [searchForm] = Form.useForm();
 
-  // 加载生产订单数据
-  const loadProductionData = async () => {
-    setLoading(true);
-    try {
-      const response = await getProductionOrders();
-      if (response.code === 200) {
-        setProductionData(response.data);
-      } else {
-        message.error(response.message || "获取数据失败");
-      }
-    } catch (error) {
-      message.error("获取数据失败，请稍后重试");
-      console.error("获取生产订单数据失败:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [searchForm] = Form.useForm();
 
   // 组件挂载时加载数据
   useEffect(() => {
     searchForm.setFieldsValue({
       splitStatus: ["未齐料", "已齐料", "已下料", "已入库"], // -1: 拆单中, 1: 已审核
     });
-    loadProductionData();
+    handleSearch();
   }, []);
 
   // 显示编辑模态框
@@ -92,13 +89,16 @@ const ProductionPage: React.FC = () => {
     }
 
     try {
-      const response = await updateProductionOrder(selectedOrder.id.toString(), values);
+      const response = await updateProductionOrder(
+        selectedOrder.id.toString(),
+        values
+      );
       if (response.code === 200) {
         message.success("更新成功");
         setIsEditModalVisible(false);
         setSelectedOrder(null);
         // 重新加载数据
-        loadProductionData();
+        await handleSearch();
       } else {
         message.error(response.message || "更新失败");
       }
@@ -111,15 +111,13 @@ const ProductionPage: React.FC = () => {
   // 显示生产进度模态框
   const showProgressModal = (record: ProductionOrder) => {
     setSelectedOrder(record);
-    setModalType("progress");
-    setIsProgressModalVisible(true);
+    setIsProductionProgressModalVisible(true);
   };
 
   // 显示采购状态模态框
   const showPurchaseModal = (record: ProductionOrder) => {
     setSelectedOrder(record);
-    setModalType("purchase");
-    setIsProgressModalVisible(true);
+    setIsPurchaseModalVisible(true);
   };
 
   // 显示采购状态详情模态框
@@ -134,39 +132,150 @@ const ProductionPage: React.FC = () => {
     setSelectedOrder(null);
   };
 
-  // 处理模态框取消
-  const handleProgressModalCancel = () => {
-    setIsProgressModalVisible(false);
+  // 处理采购状态模态框取消
+  const handlePurchaseModalCancel = () => {
+    setIsPurchaseModalVisible(false);
     setSelectedOrder(null);
   };
 
-  // 处理模态框确认
-  const handleProgressModalOk = (values: Partial<ProductionOrder>) => {
-    console.log("表单数据:", values);
-    // 这里可以调用API更新数据
-    setIsProgressModalVisible(false);
+  // 处理采购状态模态框确认
+  const handlePurchaseModalOk = async (values: Partial<ProductionOrder>) => {
+    setIsPurchaseModalVisible(false);
     setSelectedOrder(null);
     // 重新加载数据
-    loadProductionData();
-    message.success(
-      modalType === "progress" ? "生产进度更新成功" : "采购状态更新成功"
-    );
+    await handleSearch();
+  };
+
+  // 处理生产进度模态框取消
+  const handleProductionProgressModalCancel = () => {
+    setIsProductionProgressModalVisible(false);
+    setSelectedOrder(null);
+  };
+
+  // 处理生产进度模态框确认
+  const handleProductionProgressModalOk = async (
+    values: Record<string, string | number | null>
+  ) => {
+    setIsProductionProgressModalVisible(false);
+    setSelectedOrder(null);
+    // 重新加载数据
+    await handleSearch();
+  };
+
+  // 显示订单状态修改弹窗
+  const showOrderStatusModal = (record: ProductionOrder) => {
+    setOrderStatusEditingRecord(record);
+    setSelectedOrderStatus(record.order_status || "");
+    setIsOrderStatusModalVisible(true);
+  };
+
+  // 关闭订单状态修改弹窗
+  const handleOrderStatusModalCancel = () => {
+    setIsOrderStatusModalVisible(false);
+    setOrderStatusEditingRecord(null);
+    setSelectedOrderStatus("");
+  };
+
+  // 处理订单状态修改
+  const handleUpdateOrderStatus = async () => {
+    if (!orderStatusEditingRecord || !selectedOrderStatus) {
+      message.warning("请选择订单状态");
+      return;
+    }
+    try {
+      setLoading(true);
+
+      // 调用API更新订单状态
+      const response = await updateProductionOrder(
+        orderStatusEditingRecord.id.toString(),
+        {
+          order_status: selectedOrderStatus,
+        }
+      );
+
+      if (response.code === 200) {
+        message.success(`订单状态修改成功`);
+        await handleSearch(); // 重新加载数据
+        handleOrderStatusModalCancel();
+      } else {
+        message.error(response.message || "订单状态修改失败");
+      }
+    } catch (error) {
+      message.error("订单状态修改失败，请稍后重试");
+      console.error("订单状态修改失败:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 处理搜索
-  const handleSearch = async () => {
-    const values = searchForm.getFieldsValue();
-    console.log("搜索条件:", values);
-
+  const handleSearch = async (
+    customParams?: Record<string, string | string[]>,
+    page?: number,
+    size?: number
+  ) => {
     setLoading(true);
     try {
-      const response = await getProductionOrders({
+      const values = customParams || searchForm.getFieldsValue();
+      console.log("搜索条件:", values);
+
+      const searchParams = {
         order_number: values.orderNumber,
         customer_name: values.orderName,
         order_status: values.splitStatus,
-      });
+        // 时间筛选参数
+        expected_delivery_start: values.expectedDeliveryDate?.[0]?.format
+          ? values.expectedDeliveryDate[0].format("YYYY-MM-DD")
+          : values.expectedDeliveryDate?.[0],
+        expected_delivery_end: values.expectedDeliveryDate?.[1]?.format
+          ? values.expectedDeliveryDate[1].format("YYYY-MM-DD")
+          : values.expectedDeliveryDate?.[1],
+        cutting_date_start: values.orderDate?.[0]?.format
+          ? values.orderDate[0].format("YYYY-MM-DD")
+          : values.orderDate?.[0],
+        cutting_date_end: values.orderDate?.[1]?.format
+          ? values.orderDate[1].format("YYYY-MM-DD")
+          : values.orderDate?.[1],
+        expected_shipment_start: values.expectedDate?.[0]?.format
+          ? values.expectedDate[0].format("YYYY-MM-DD")
+          : values.expectedDate?.[0],
+        expected_shipment_end: values.expectedDate?.[1]?.format
+          ? values.expectedDate[1].format("YYYY-MM-DD")
+          : values.expectedDate?.[1],
+        actual_shipment_start: values.actualDate?.[0]?.format
+          ? values.actualDate[0].format("YYYY-MM-DD")
+          : values.actualDate?.[0],
+        actual_shipment_end: values.actualDate?.[1]?.format
+          ? values.actualDate[1].format("YYYY-MM-DD")
+          : values.actualDate?.[1],
+      };
+
+      // 过滤掉空值
+      const filteredParams = Object.fromEntries(
+        Object.entries(searchParams).filter(
+          ([_, value]) => value !== undefined && value !== "" && value !== null
+        )
+      );
+
+      const params = {
+        ...filteredParams,
+        page: page || currentPage,
+        page_size: size || pageSize,
+      };
+
+      console.log("searchParams", filteredParams);
+      const response = await getProductionOrders(params);
       if (response.code === 200) {
-        setProductionData(response.data);
+        // 后端返回的数据结构：{code, message, data: ProductionOrder[], total, page, page_size, total_pages}
+        setProductionData(response.data || []);
+        setTotal(response.total || 0);
+        setCurrentPage(response.page || page || 1);
+        setPageSize(response.page_size || size || pageSize);
+
+        // 如果不是自定义参数调用，搜索时重置到第一页
+        if (!customParams && !page) {
+          setCurrentPage(1);
+        }
       } else {
         message.error(response.message || "搜索失败");
       }
@@ -179,10 +288,51 @@ const ProductionPage: React.FC = () => {
   };
 
   // 处理重置
-  const handleReset = () => {
+  const handleReset = async () => {
+    // 重置表单
     searchForm.resetFields();
-    // 重新加载数据
-    loadProductionData();
+    // 重置分页状态
+    setCurrentPage(1);
+    // 重新加载所有数据
+    await handleSearch();
+  };
+
+  // 处理分页变化
+  const handlePageChange = async (page: number, size?: number) => {
+    const newPageSize = size || pageSize;
+    let newPage = page;
+
+    // 如果是pageSize变化，重置到第一页
+    if (size && size !== pageSize) {
+      setPageSize(size);
+      newPage = 1;
+      setCurrentPage(1);
+    } else {
+      setCurrentPage(page);
+    }
+
+    // 获取当前搜索条件
+    const formValues = searchForm.getFieldsValue();
+    const searchParams: Record<string, string | string[]> = {
+      orderNumber: formValues.orderNumber,
+      orderName: formValues.orderName,
+      splitStatus: formValues.splitStatus,
+      // 时间筛选参数
+      expectedDeliveryDate: formValues.expectedDeliveryDate,
+      orderDate: formValues.orderDate,
+      entryDate: formValues.entryDate,
+      expectedDate: formValues.expectedDate,
+      actualDate: formValues.actualDate,
+    };
+
+    // 过滤掉空值
+    const filteredParams = Object.fromEntries(
+      Object.entries(searchParams).filter(
+        ([_, value]) => value !== undefined && value !== "" && value !== null
+      )
+    );
+
+    await handleSearch(filteredParams, newPage, newPageSize);
   };
 
   // 表格列定义
@@ -251,26 +401,33 @@ const ProductionPage: React.FC = () => {
     },
     {
       title: "采购状态",
-      dataIndex: "actualMaterialStatus",
-      key: "actualMaterialStatus",
+      dataIndex: "purchase_status",
+      key: "purchase_status",
       render: (text: string, record: ProductionOrder) => {
-        if (!text) return null;
+        if (!text) {
+          return "-";
+        }
 
-        const items = text.split(",");
+        const items = text.split("; ");
         return (
           <div>
             {items.map((item, index) => {
               const parts = item.split(":");
               const name = parts[0];
-              const time = parts[1];
+              const status = parts[1];
 
-              if (parts.length >= 2 && name && time) {
+              if (parts.length >= 2 && name !== undefined) {
+                const isCompleted = status && status.trim() !== "";
                 return (
                   <div key={index}>
-                    <CheckOutlined
-                      style={{ color: "green", marginRight: "4px" }}
-                    />
-                    {name}:{time}
+                    {isCompleted ? (
+                      <CheckOutlined
+                        style={{ color: "green", marginRight: "4px" }}
+                      />
+                    ) : (
+                      <span style={{ marginRight: "18px" }} />
+                    )}
+                    {name}: {status}
                   </div>
                 );
               } else {
@@ -342,6 +499,15 @@ const ProductionPage: React.FC = () => {
       dataIndex: "order_status",
       key: "order_status",
       fixed: "right",
+      render: (text: string) => {
+        // 向后兼容旧字段
+        const status = text || "";
+        let color = "";
+        if (status === "已完成") {
+          color = "green";
+        }
+        return <Tag color={color}>{status}</Tag>;
+      },
     },
     {
       title: "操作",
@@ -359,6 +525,7 @@ const ProductionPage: React.FC = () => {
           <Button
             type="link"
             size="small"
+            disabled={record.order_status === "已完成"}
             onClick={() => showEditModal(record)}
           >
             编辑订单
@@ -366,6 +533,7 @@ const ProductionPage: React.FC = () => {
           <Button
             type="link"
             size="small"
+            disabled={record.order_status === "已完成"}
             onClick={() => showPurchaseModal(record)}
           >
             采购状态
@@ -373,11 +541,17 @@ const ProductionPage: React.FC = () => {
           <Button
             type="link"
             size="small"
+            disabled={record.order_status === "已完成"}
             onClick={() => showProgressModal(record)}
           >
             生产进度
           </Button>
-          <Button type="link" size="small">
+          <Button
+            type="link"
+            size="small"
+            disabled={record.order_status === "已完成"}
+            onClick={() => showOrderStatusModal(record)}
+          >
             订单状态
           </Button>
         </div>
@@ -431,7 +605,8 @@ const ProductionPage: React.FC = () => {
                   <Option value="已齐料">已齐料</Option>
                   <Option value="已下料">已下料</Option>
                   <Option value="已入库">已入库</Option>
-                  <Option value="已出货">已出货</Option>
+                  <Option value="已发货">已发货</Option>
+                  <Option value="已完成">已完成</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -520,7 +695,7 @@ const ProductionPage: React.FC = () => {
                 icon={<SearchOutlined />}
                 size="middle"
                 className="bg-blue-600 hover:bg-blue-700"
-                onClick={handleSearch}
+                onClick={() => handleSearch()}
               >
                 查询
               </Button>
@@ -554,7 +729,18 @@ const ProductionPage: React.FC = () => {
           dataSource={productionData}
           loading={loading}
           bordered={false}
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
+            onChange: handlePageChange,
+            onShowSizeChange: handlePageChange,
+            pageSizeOptions: ["10", "20", "50", "100"],
+          }}
           rowClassName="hover:bg-blue-50"
           rowKey={(record) => record.id}
           scroll={{ x: "max-content" }}
@@ -569,13 +755,20 @@ const ProductionPage: React.FC = () => {
         orderData={selectedOrder}
       />
 
-      {/* 生产进度/采购状态模态框 */}
-      <ProgressModal
-        visible={isProgressModalVisible}
+      {/* 采购状态模态框 */}
+      <PurchaseStatusModal
+        visible={isPurchaseModalVisible}
         order={selectedOrder}
-        onCancel={handleProgressModalCancel}
-        onOk={handleProgressModalOk}
-        modalType={modalType}
+        onCancel={handlePurchaseModalCancel}
+        onOk={handlePurchaseModalOk}
+      />
+
+      {/* 生产进度模态框 */}
+      <ProductionProgressModal
+        visible={isProductionProgressModalVisible}
+        order={selectedOrder}
+        onCancel={handleProductionProgressModalCancel}
+        onOk={handleProductionProgressModalOk}
       />
 
       {/* 采购详情模态框 */}
@@ -584,6 +777,48 @@ const ProductionPage: React.FC = () => {
         order={selectedOrder}
         onCancel={handleDetailModalCancel}
       />
+
+      {/* 订单状态修改Modal */}
+      <Modal
+        title="修改订单状态"
+        open={isOrderStatusModalVisible}
+        onOk={handleUpdateOrderStatus}
+        onCancel={handleOrderStatusModalCancel}
+        okText="确认"
+        cancelText="取消"
+        width={400}
+      >
+        <div style={{ padding: "20px 0" }}>
+          <div style={{ marginBottom: "16px" }}>
+            <strong>订单号：</strong>
+            {orderStatusEditingRecord?.order_number}
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <strong>客户名称：</strong>
+            {orderStatusEditingRecord?.customer_name}
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <strong>当前状态：</strong>
+            {orderStatusEditingRecord?.order_status}
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <strong>选择新状态：</strong>
+            <Select
+              value={selectedOrderStatus}
+              onChange={setSelectedOrderStatus}
+              placeholder="请选择订单状态"
+              style={{ width: "100%", marginTop: "8px" }}
+            >
+              <Option value="未齐料">未齐料</Option>
+              <Option value="已齐料">已齐料</Option>
+              <Option value="已下料">已下料</Option>
+              <Option value="已入库">已入库</Option>
+              <Option value="已发货">已发货</Option>
+              <Option value="已完成">已完成</Option>
+            </Select>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

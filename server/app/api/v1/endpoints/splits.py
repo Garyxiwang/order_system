@@ -689,6 +689,11 @@ async def place_split_order(
             Production.order_number == split.order_number
         ).first()
 
+        # 获取拆单进度项（无论是否存在生产记录都需要）
+        split_progress_items = db.query(SplitProgress).filter(
+            SplitProgress.split_id == split.id
+        ).all()
+
         if not existing_production and order:
             # 计算预计交货日期（实际打款日期往后推迟20天）
             expected_delivery_date = None
@@ -714,10 +719,7 @@ async def place_split_order(
                 split_order_date = datetime.now()
                 order_days = (split_order_date - payment_date).days
             
-            # 获取拆单进度项
-            split_progress_items = db.query(SplitProgress).filter(
-                SplitProgress.split_id == split.id
-            ).all()
+            # 拆单进度项已在上面获取
             
             # 构建生产项字符串
             internal_items = []
@@ -787,6 +789,44 @@ async def place_split_order(
                          actual_arrival_date=None
                      )
                     db.add(progress_item)
+            
+            # 默认为厂内生产添加五金类目
+            default_date = split.completion_date if split.completion_date else datetime.now().strftime('%Y-%m-%d')
+            hardware_progress_item = ProductionProgress(
+                production_id=production.id,
+                order_number=split.order_number,
+                item_type=ProductionItemType.INTERNAL,
+                category_name="五金",
+                order_date=default_date,
+                expected_material_date=None,
+                actual_storage_date=None,
+                storage_time=None,
+                quantity=None
+            )
+            db.add(hardware_progress_item)
+        
+        # 如果生产记录已存在，也要添加五金类目（如果还没有的话）
+        elif existing_production:
+            # 检查是否已存在五金类目
+            existing_hardware = db.query(ProductionProgress).filter(
+                ProductionProgress.production_id == existing_production.id,
+                ProductionProgress.category_name == "五金"
+            ).first()
+            
+            if not existing_hardware:
+                default_date = split.completion_date if split.completion_date else datetime.now().strftime('%Y-%m-%d')
+                hardware_progress_item = ProductionProgress(
+                    production_id=existing_production.id,
+                    order_number=split.order_number,
+                    item_type=ProductionItemType.INTERNAL,
+                    category_name="五金",
+                    order_date=default_date,
+                    expected_material_date=None,
+                    actual_storage_date=None,
+                    storage_time=None,
+                    quantity=None
+                )
+                db.add(hardware_progress_item)
 
         db.commit()
         db.refresh(split)

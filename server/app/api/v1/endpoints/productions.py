@@ -55,14 +55,14 @@ async def get_productions(
             query = query.filter(Production.cutting_date <= query_data.cutting_date_end)
             
         if query_data.expected_shipment_start:
-            query = query.filter(Production.expected_shipment_date >= query_data.expected_shipment_start)
+            query = query.filter(Production.expected_shipping_date >= query_data.expected_shipment_start)
         if query_data.expected_shipment_end:
-            query = query.filter(Production.expected_shipment_date <= query_data.expected_shipment_end)
+            query = query.filter(Production.expected_shipping_date <= query_data.expected_shipment_end)
             
         if query_data.actual_shipment_start:
-            query = query.filter(Production.actual_shipment_date >= query_data.actual_shipment_start)
+            query = query.filter(Production.actual_delivery_date >= query_data.actual_shipment_start)
         if query_data.actual_shipment_end:
-            query = query.filter(Production.actual_shipment_date <= query_data.actual_shipment_end)
+            query = query.filter(Production.actual_delivery_date <= query_data.actual_shipment_end)
         
         # 获取总数
         total = query.count()
@@ -74,6 +74,29 @@ async def get_productions(
         # 转换为响应格式
         production_items = []
         for production in productions:
+            # 查询生产进度表，生成采购状态
+            progress_items = db.query(ProductionProgress).filter(
+                ProductionProgress.production_id == production.id
+            ).all()
+            
+            # 生成采购状态字符串
+            purchase_status_parts = []
+            for progress in progress_items:
+                if progress.item_type == ItemType.INTERNAL:
+                    # 厂内项目：检查实际入库日期
+                    if progress.actual_storage_date:
+                        purchase_status_parts.append(f"{progress.category_name}:{progress.actual_storage_date}")
+                    else:
+                        purchase_status_parts.append(f"{progress.category_name}:")
+                elif progress.item_type == ItemType.EXTERNAL:
+                    # 外购项目：检查实际到厂日期
+                    if progress.actual_arrival_date:
+                        purchase_status_parts.append(f"{progress.category_name}:{progress.actual_arrival_date}")
+                    else:
+                        purchase_status_parts.append(f"{progress.category_name}:")
+            
+            purchase_status = "; ".join(purchase_status_parts) if purchase_status_parts else "暂无进度信息"
+            
             item_data = {
                 "id": production.id,
                 "order_number": production.order_number,
@@ -94,6 +117,7 @@ async def get_productions(
                 "external_purchase_items": production.external_purchase_items,
                 "remarks": production.remarks,
                 "order_status": production.order_status,
+                "purchase_status": purchase_status,
                 "created_at": production.created_at,
                 "updated_at": production.updated_at
             }

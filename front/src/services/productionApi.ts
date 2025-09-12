@@ -21,6 +21,7 @@ export interface ProductionOrder {
   external_purchase_items?: string; // 外购项
   remarks?: string; // 备注
   order_status: string; // 订单状态
+  purchase_status?: string; // 采购状态
   created_at: string; // 创建时间
   updated_at: string; // 更新时间
 }
@@ -30,6 +31,25 @@ export interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
+}
+
+// 分页响应接口
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// 生产订单分页响应接口（匹配后端实际返回结构）
+export interface ProductionListResponse {
+  code: number;
+  message: string;
+  data: ProductionOrder[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 // 模拟数据
@@ -66,7 +86,7 @@ export const getProductionOrders = async (params?: {
   order_number?: string;
   customer_name?: string;
   order_status?: string[];
-}): Promise<ApiResponse<ProductionOrder[]>> => {
+}): Promise<ProductionListResponse> => {
   const queryParams = {
     page: 1,
     page_size: 10,
@@ -90,6 +110,10 @@ export const getProductionOrders = async (params?: {
     code: result.code || 200,
     message: result.message || '获取成功',
     data: result.data || [],
+    total: result.total || 0,
+    page: result.page || 1,
+    page_size: result.page_size || 10,
+    total_pages: result.total_pages || 0,
   };
 };
 
