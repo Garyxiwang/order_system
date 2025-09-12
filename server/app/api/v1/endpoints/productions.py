@@ -170,6 +170,7 @@ async def update_production(
         # 手动构建响应数据
         production_dict = {
             "id": production.id,
+            "order_id": production.order_id,
             "order_number": production.order_number,
             "customer_name": production.customer_name,
             "address": production.address,
