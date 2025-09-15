@@ -98,10 +98,10 @@ async def get_productions(
                     # 厂内项目：检查实际入库日期
                     if progress.actual_storage_date:
                         purchase_status_parts.append(
-                            f"{progress.category_name+"材料"}:{progress.actual_storage_date}")
+                            f"{progress.category_name}材料:{progress.actual_storage_date}")
                     else:
                         purchase_status_parts.append(
-                            f"{progress.category_name+"材料"}:")
+                            f"{progress.category_name}材料:")
                 elif progress.item_type == ItemType.EXTERNAL:
                     # 外购项目：检查实际到厂日期
                     if progress.actual_arrival_date:
