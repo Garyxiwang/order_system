@@ -5,6 +5,7 @@ from app.core.response import success_response, error_response
 from app.utils.scheduler import (
     get_scheduler_status,
     update_design_cycles,
+    update_split_progress_cycles,
     start_scheduler,
     stop_scheduler
 )
@@ -60,3 +61,16 @@ async def manual_update_design_cycles():
         )
     except Exception as e:
         return error_response(message=f"执行设计周期更新任务失败: {str(e)}")
+
+@router.post("/update-split-progress-cycles", summary="手动执行拆单进度周期更新")
+async def manual_update_split_progress_cycles():
+    """手动触发拆单进度周期更新任务"""
+    try:
+        # 在后台执行任务，避免阻塞API响应
+        asyncio.create_task(update_split_progress_cycles())
+        return success_response(
+            data=None,
+            message="拆单进度周期更新任务已启动，请查看日志了解执行结果"
+        )
+    except Exception as e:
+        return error_response(message=f"执行拆单进度周期更新任务失败: {str(e)}")

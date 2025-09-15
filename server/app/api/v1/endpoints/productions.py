@@ -32,45 +32,57 @@ async def get_productions(
     try:
         # 构建查询
         query = db.query(Production)
-        
+
         # 搜索条件
         if query_data.order_number:
-            query = query.filter(Production.order_number.like(f"%{query_data.order_number}%"))
-        
+            query = query.filter(Production.order_number.like(
+                f"%{query_data.order_number}%"))
+
         if query_data.customer_name:
-            query = query.filter(Production.customer_name.like(f"%{query_data.customer_name}%"))
-        
+            query = query.filter(Production.customer_name.like(
+                f"%{query_data.customer_name}%"))
+
         if query_data.order_status:
-            query = query.filter(Production.order_status.in_(query_data.order_status))
-        
+            query = query.filter(
+                Production.order_status.in_(query_data.order_status))
+
         # 日期区间搜索
         if query_data.expected_delivery_start:
-            query = query.filter(Production.expected_delivery_date >= query_data.expected_delivery_start)
+            query = query.filter(
+                Production.expected_delivery_date >= query_data.expected_delivery_start)
         if query_data.expected_delivery_end:
-            query = query.filter(Production.expected_delivery_date <= query_data.expected_delivery_end)
-            
+            query = query.filter(
+                Production.expected_delivery_date <= query_data.expected_delivery_end)
+
         if query_data.cutting_date_start:
-            query = query.filter(Production.cutting_date >= query_data.cutting_date_start)
+            query = query.filter(Production.cutting_date >=
+                                 query_data.cutting_date_start)
         if query_data.cutting_date_end:
-            query = query.filter(Production.cutting_date <= query_data.cutting_date_end)
-            
+            query = query.filter(Production.cutting_date <=
+                                 query_data.cutting_date_end)
+
         if query_data.expected_shipment_start:
-            query = query.filter(Production.expected_shipping_date >= query_data.expected_shipment_start)
+            query = query.filter(
+                Production.expected_shipping_date >= query_data.expected_shipment_start)
         if query_data.expected_shipment_end:
-            query = query.filter(Production.expected_shipping_date <= query_data.expected_shipment_end)
-            
+            query = query.filter(
+                Production.expected_shipping_date <= query_data.expected_shipment_end)
+
         if query_data.actual_shipment_start:
-            query = query.filter(Production.actual_delivery_date >= query_data.actual_shipment_start)
+            query = query.filter(
+                Production.actual_delivery_date >= query_data.actual_shipment_start)
         if query_data.actual_shipment_end:
-            query = query.filter(Production.actual_delivery_date <= query_data.actual_shipment_end)
-        
+            query = query.filter(
+                Production.actual_delivery_date <= query_data.actual_shipment_end)
+
         # 获取总数
         total = query.count()
-        
+
         # 分页
         offset = (query_data.page - 1) * query_data.page_size
-        productions = query.order_by(Production.created_at.desc()).offset(offset).limit(query_data.page_size).all()
-        
+        productions = query.order_by(Production.created_at.desc()).offset(
+            offset).limit(query_data.page_size).all()
+
         # 转换为响应格式
         production_items = []
         for production in productions:
@@ -78,25 +90,30 @@ async def get_productions(
             progress_items = db.query(ProductionProgress).filter(
                 ProductionProgress.production_id == production.id
             ).all()
-            
+
             # 生成采购状态字符串
             purchase_status_parts = []
             for progress in progress_items:
                 if progress.item_type == ItemType.INTERNAL:
                     # 厂内项目：检查实际入库日期
                     if progress.actual_storage_date:
-                        purchase_status_parts.append(f"{progress.category_name}:{progress.actual_storage_date}")
+                        purchase_status_parts.append(
+                            f"{progress.category_name+"材料"}:{progress.actual_storage_date}")
                     else:
-                        purchase_status_parts.append(f"{progress.category_name}:")
+                        purchase_status_parts.append(
+                            f"{progress.category_name+"材料"}:")
                 elif progress.item_type == ItemType.EXTERNAL:
                     # 外购项目：检查实际到厂日期
                     if progress.actual_arrival_date:
-                        purchase_status_parts.append(f"{progress.category_name}:{progress.actual_arrival_date}")
+                        purchase_status_parts.append(
+                            f"{progress.category_name}:{progress.actual_arrival_date}")
                     else:
-                        purchase_status_parts.append(f"{progress.category_name}:")
-            
-            purchase_status = "; ".join(purchase_status_parts) if purchase_status_parts else "暂无进度信息"
-            
+                        purchase_status_parts.append(
+                            f"{progress.category_name}:")
+
+            purchase_status = "; ".join(
+                purchase_status_parts) if purchase_status_parts else "暂无进度信息"
+            print(purchase_status)
             item_data = {
                 "id": production.id,
                 "order_number": production.order_number,
@@ -122,10 +139,11 @@ async def get_productions(
                 "updated_at": production.updated_at
             }
             production_items.append(ProductionListItem(**item_data))
-        
+
         # 计算总页数
-        total_pages = math.ceil(total / query_data.page_size) if total > 0 else 0
-        
+        total_pages = math.ceil(
+            total / query_data.page_size) if total > 0 else 0
+
         return ProductionListResponse(
             data=production_items,
             total=total,
@@ -133,7 +151,7 @@ async def get_productions(
             page_size=query_data.page_size,
             total_pages=total_pages
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -152,21 +170,34 @@ async def update_production(
     可编辑字段：18板、09板、预计交货日期、订单状态、实际出货日期、备注
     """
     try:
-        production = db.query(Production).filter(Production.id == production_id).first()
+        production = db.query(Production).filter(
+            Production.id == production_id).first()
         if not production:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="生产记录不存在"
             )
-        
+
         # 更新字段
         update_data = production_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(production, field, value)
-        
+
+        # 如果存在下料日期，自动更新订单状态为已下料
+        if production.cutting_date and production.cutting_date.strip():
+            production.order_status = "已下料"
+
+            # 如果存在实际出货日期，自动更新订单状态为已发货
+        if production.actual_delivery_date and production.actual_delivery_date.strip():
+            production.order_status = "已发货"
+
+         # 如果前端传入的订单状态是已完成，保持已完成状态
+        if update_data.get('order_status') == "已完成":
+            production.order_status = "已完成"
+
         db.commit()
         db.refresh(production)
-        
+
         # 手动构建响应数据
         production_dict = {
             "id": production.id,
@@ -193,12 +224,12 @@ async def update_production(
             "updated_at": production.updated_at,
             "progress_items": []
         }
-        
+
         return success_response(
             data=ProductionResponse(**production_dict),
             message="生产记录编辑成功"
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -221,18 +252,19 @@ async def get_production(
     获取生产记录详情
     """
     try:
-        production = db.query(Production).filter(Production.id == production_id).first()
+        production = db.query(Production).filter(
+            Production.id == production_id).first()
         if not production:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="生产记录不存在"
             )
-        
+
         return success_response(
             data=ProductionResponse.model_validate(production),
             message="获取生产记录详情成功"
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:

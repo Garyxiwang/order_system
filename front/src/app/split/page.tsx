@@ -38,6 +38,7 @@ import type { SplitFormValues } from "./splitOrderModal";
 import type { Dayjs } from "dayjs";
 import { UserService, UserData, UserRole } from "../../services/userService";
 import { CategoryService, CategoryData } from "../../services/categoryService";
+import InternalProductionDetailModal from "./progressDetailModal";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -74,6 +75,21 @@ const DesignPage: React.FC = () => {
   );
   const [dateError, setDateError] = useState<string>("");
 
+  // 订单信息补充Modal相关状态
+  const [isOrderInfoModalVisible, setIsOrderInfoModalVisible] = useState(false);
+  const [orderInfoEditingRecord, setOrderInfoEditingRecord] =
+    useState<SplitOrder | null>(null);
+  const [orderInfoForm] = Form.useForm();
+
+  // 厂内生产项详情Modal相关状态
+  const [isInternalDetailModalVisible, setIsInternalDetailModalVisible] =
+    useState(false);
+  const [internalDetailOrder, setInternalDetailOrder] =
+    useState<SplitOrder | null>(null);
+  const [detailModalItemType, setDetailModalItemType] = useState<
+    "internal" | "external"
+  >("internal");
+
   // 加载拆单数据
 
   // 加载用户数据
@@ -105,7 +121,7 @@ const DesignPage: React.FC = () => {
   useEffect(() => {
     // 设置订单状态默认选择"拆单中"和"已审核"
     searchForm.setFieldsValue({
-      orderStatus: ["未开始", "拆单中", "撤销中"], // -1: 拆单中, 1: 已审核
+      orderStatus: ["未开始", "拆单中", "撤销中", "未审核", "已审核"], // -1: 拆单中, 1: 已审核
     });
     // 使用表单默认值加载数据
     handleSearch();
@@ -446,16 +462,8 @@ const DesignPage: React.FC = () => {
       (!record.cabinet_area && !record.wall_panel_area) ||
       !record.order_amount
     ) {
-      // message.warning("请输入面积和订单金额");
-      Modal.error({
-        title: "订单错误",
-        content: (
-          <div>
-            <p>当前订单缺少面积信息和订单金额</p>
-            <p>请先补充，再下单！</p>
-          </div>
-        ),
-      });
+      // 打开订单信息补充Modal
+      handleOrderInfoEdit(record);
       return;
     }
     // 检查打款状态
@@ -492,6 +500,83 @@ const DesignPage: React.FC = () => {
     });
   };
 
+  // 处理订单信息补充
+  const handleOrderInfoEdit = (record: SplitOrder) => {
+    setOrderInfoEditingRecord(record);
+    orderInfoForm.setFieldsValue({
+      cabinet_area: record.cabinet_area || "",
+      wall_panel_area: record.wall_panel_area || "",
+      order_amount: record.order_amount || "",
+    });
+    setIsOrderInfoModalVisible(true);
+  };
+
+  // 提交订单信息补充
+  const handleOrderInfoSubmit = async () => {
+    if (!orderInfoEditingRecord) return;
+
+    try {
+      const values = await orderInfoForm.validateFields();
+      setLoading(true);
+
+      // 调用设计订单更新API
+      const { updateDesignOrder } = await import("../../services/designApi");
+      await updateDesignOrder(orderInfoEditingRecord.id.toString(), {
+        cabinet_area: values.cabinet_area,
+        wall_panel_area: values.wall_panel_area,
+        order_amount: values.order_amount,
+      });
+
+      message.success("订单信息更新成功");
+      setIsOrderInfoModalVisible(false);
+      orderInfoForm.resetFields();
+      setOrderInfoEditingRecord(null);
+
+      // 重新加载数据
+      await handleSearch();
+
+      // 继续下单流程
+      handlePlaceOrder({
+        ...orderInfoEditingRecord,
+        cabinet_area: parseFloat(values.cabinet_area) || 0,
+        wall_panel_area: parseFloat(values.wall_panel_area) || 0,
+        order_amount: parseFloat(values.order_amount) || 0,
+      });
+    } catch (error) {
+      console.error("更新订单信息失败:", error);
+      message.error("更新订单信息失败，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 关闭订单信息补充Modal
+  const handleOrderInfoCancel = () => {
+    setIsOrderInfoModalVisible(false);
+    orderInfoForm.resetFields();
+    setOrderInfoEditingRecord(null);
+  };
+
+  // 显示厂内生产项详情Modal
+  const showInternalDetailModal = (record: SplitOrder) => {
+    setInternalDetailOrder(record);
+    setDetailModalItemType("internal");
+    setIsInternalDetailModalVisible(true);
+  };
+
+  // 关闭厂内生产项详情Modal
+  const handleInternalDetailCancel = () => {
+    setIsInternalDetailModalVisible(false);
+    setInternalDetailOrder(null);
+  };
+
+  // 显示外购项详情Modal
+  const showExternalDetailModal = (record: SplitOrder) => {
+    setInternalDetailOrder(record);
+    setDetailModalItemType("external");
+    setIsInternalDetailModalVisible(true);
+  };
+
   const columns: ColumnsType<SplitOrder> = [
     {
       title: "订单编号",
@@ -526,7 +611,7 @@ const DesignPage: React.FC = () => {
       title: "厂内生产项",
       dataIndex: "internal_production_items",
       key: "internal_production_items",
-      render: (items: ProductionItem[] | string) => {
+      render: (items: ProductionItem[] | string, record: SplitOrder) => {
         if (!items) return "-";
 
         let productionItems: ProductionItem[] = [];
@@ -553,18 +638,35 @@ const DesignPage: React.FC = () => {
               const cycleDays = item.cycle_days;
 
               if (actualDate) {
+                const cycleNumber = parseInt(cycleDays || "0") || 0;
+                const isOverThreeDays = cycleNumber >= 3;
                 return (
                   <div key={index}>
                     <CheckOutlined
                       style={{ color: "green", marginRight: "4px" }}
                     />
-                    {name}: {actualDate}: {cycleDays}
+                    {name}: {actualDate}:{" "}
+                    <span
+                      style={{ color: isOverThreeDays ? "red" : "inherit" }}
+                    >
+                      {cycleDays}
+                    </span>
                   </div>
                 );
               } else {
                 return <div key={index}>{name}:-</div>;
               }
             })}
+            <div style={{ textAlign: "right", marginTop: "4px" }}>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => showInternalDetailModal(record)}
+                style={{ padding: 0, marginTop: "4px" }}
+              >
+                详情
+              </Button>
+            </div>
           </div>
         );
       },
@@ -573,7 +675,7 @@ const DesignPage: React.FC = () => {
       title: "外购项",
       dataIndex: "external_purchase_items",
       key: "external_purchase_items",
-      render: (items: ProductionItem[] | string) => {
+      render: (items: ProductionItem[] | string, record: SplitOrder) => {
         if (!items) return "-";
         let purchaseItems: ProductionItem[] = [];
 
@@ -599,18 +701,35 @@ const DesignPage: React.FC = () => {
               const cycleDays = item.cycle_days;
 
               if (actualDate) {
+                const cycleNumber = parseInt(cycleDays || "0") || 0;
+                const isOverThreeDays = cycleNumber >= 3;
                 return (
                   <div key={index}>
                     <CheckOutlined
                       style={{ color: "green", marginRight: "4px" }}
                     />
-                    {name}: {actualDate}: {cycleDays}
+                    {name}: {actualDate}:{" "}
+                    <span
+                      style={{ color: isOverThreeDays ? "red" : "inherit" }}
+                    >
+                      {cycleDays}
+                    </span>
                   </div>
                 );
               } else {
                 return <div key={index}>{name}: -</div>;
               }
             })}
+            <div style={{ textAlign: "right", marginTop: "4px" }}>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => showExternalDetailModal(record)}
+                style={{ padding: 0, marginTop: "4px" }}
+              >
+                详情
+              </Button>
+            </div>
           </div>
         );
       },
@@ -766,14 +885,14 @@ const DesignPage: React.FC = () => {
               更新进度
             </Button>
 
-            {/* <Button
+            <Button
               type="link"
               size="small"
               disabled={isRevoked}
               onClick={() => showOrderStatusModal(record)}
             >
               订单状态
-            </Button> */}
+            </Button>
             <Button
               type="link"
               size="small"
@@ -932,6 +1051,8 @@ const DesignPage: React.FC = () => {
                   <Option value="未开始">未开始</Option>
                   <Option value="拆单中">拆单中</Option>
                   <Option value="撤销中">撤销中</Option>
+                  <Option value="未审核">未审核</Option>
+                  <Option value="已审核">已审核</Option>
                   <Option value="已下单">已下单</Option>
                 </Select>
               </Form.Item>
@@ -1149,6 +1270,102 @@ const DesignPage: React.FC = () => {
           )}
         </div>
       </Modal>
+
+      {/* 订单信息补充Modal */}
+      <Modal
+        title="补充订单信息并下单"
+        open={isOrderInfoModalVisible}
+        onOk={handleOrderInfoSubmit}
+        onCancel={handleOrderInfoCancel}
+        okText="确认并下单"
+        cancelText="取消"
+        width={500}
+        confirmLoading={loading}
+      >
+        <div style={{ padding: "20px 0" }}>
+          <div style={{ marginBottom: "16px" }}>
+            <strong>订单号：</strong>
+            {orderInfoEditingRecord?.order_number}
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <strong>客户名称：</strong>
+            {orderInfoEditingRecord?.customer_name}
+          </div>
+          <Form
+            form={orderInfoForm}
+            layout="vertical"
+            style={{ marginTop: "20px" }}
+          >
+            <Form.Item
+              label="柜体面积（平方米）"
+              name="cabinet_area"
+              rules={[
+                {
+                  pattern: /^\d+(\.\d+)?$/,
+                  message: "请输入有效的数字",
+                },
+              ]}
+            >
+              <Input placeholder="请输入柜体面积" suffix="㎡" />
+            </Form.Item>
+            <Form.Item
+              label="墙板面积（平方米）"
+              name="wall_panel_area"
+              rules={[
+                {
+                  pattern: /^\d+(\.\d+)?$/,
+                  message: "请输入有效的数字",
+                },
+              ]}
+            >
+              <Input placeholder="请输入墙板面积" suffix="㎡" />
+            </Form.Item>
+            <Form.Item
+              label="订单金额（元）"
+              name="order_amount"
+              rules={[
+                { required: true, message: "请输入订单金额" },
+                {
+                  pattern: /^\d+(\.\d+)?$/,
+                  message: "请输入有效的金额",
+                },
+              ]}
+            >
+              <Input placeholder="请输入订单金额" suffix="元" />
+            </Form.Item>
+          </Form>
+          <div
+            style={{
+              backgroundColor: "#f6ffed",
+              border: "1px solid #b7eb8f",
+              borderRadius: "6px",
+              padding: "12px",
+              marginTop: "16px",
+            }}
+          >
+            <div
+              style={{
+                color: "#52c41a",
+                fontWeight: "500",
+                marginBottom: "4px",
+              }}
+            >
+              💡 提示
+            </div>
+            <div style={{ color: "#389e0d", fontSize: "14px" }}>
+              补充完订单信息后，系统将自动为您进行下单操作。
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 厂内生产项详情Modal */}
+      <InternalProductionDetailModal
+        visible={isInternalDetailModalVisible}
+        order={internalDetailOrder}
+        onCancel={handleInternalDetailCancel}
+        itemType={detailModalItemType}
+      />
     </div>
   );
 };

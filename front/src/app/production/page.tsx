@@ -64,7 +64,7 @@ const ProductionPage: React.FC = () => {
   // 组件挂载时加载数据
   useEffect(() => {
     searchForm.setFieldsValue({
-      splitStatus: ["未齐料", "已齐料", "已下料", "已入库"], // -1: 拆单中, 1: 已审核
+      splitStatus: ["未齐料", "已齐料", "已下料", "已入库", "已发货"],
     });
     handleSearch();
   }, []);
@@ -386,6 +386,7 @@ const ProductionPage: React.FC = () => {
         if (record.split_order_date && record.customer_payment_date) {
           const splitDate = new Date(record.split_order_date);
           const paymentDate = new Date(record.customer_payment_date);
+          // 计算逻辑：拆单下单日期 - 客户打款日期
           const diffTime = splitDate.getTime() - paymentDate.getTime();
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           return `${diffDays}天`;
@@ -427,7 +428,7 @@ const ProductionPage: React.FC = () => {
                     ) : (
                       <span style={{ marginRight: "18px" }} />
                     )}
-                    {name}: {status}
+                    {name}: {status ? status : "-"}
                   </div>
                 );
               } else {
@@ -735,8 +736,7 @@ const ProductionPage: React.FC = () => {
             total: total,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) =>
-              `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
+            showTotal: (total) => `共 ${total} 条`,
             onChange: handlePageChange,
             onShowSizeChange: handlePageChange,
             pageSizeOptions: ["10", "20", "50", "100"],

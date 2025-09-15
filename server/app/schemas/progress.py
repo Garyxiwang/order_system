@@ -18,6 +18,7 @@ class ProgressCreate(ProgressBase):
 
 class ProgressUpdate(BaseModel):
     """更新进度模型"""
+    planned_date: Optional[str] = Field(None, description="计划日期")
     actual_date: Optional[str] = Field(None, description="实际日期")
     remarks: Optional[str] = Field(None, description="备注")
 

@@ -116,6 +116,31 @@ async def batch_update_production_progress(
                 db.add(progress_item)
                 updated_progress_items.append(progress_item)
         
+        # 检查所有厂内生产项的状态并更新订单状态
+        internal_items = db.query(ProductionProgress).filter(
+            ProductionProgress.production_id == production_id,
+            ProductionProgress.item_type == ItemType.INTERNAL
+        ).all()
+        
+        if internal_items:
+            # 检查是否所有厂内生产项都有storage_time
+            all_have_storage_time = all(
+                item.storage_time and item.storage_time.strip() 
+                for item in internal_items
+            )
+            
+            # 检查是否所有厂内生产项都有actual_storage_date
+            all_have_actual_storage_date = all(
+                item.actual_storage_date and item.actual_storage_date.strip() 
+                for item in internal_items
+            )
+            
+            # 更新订单状态
+            if all_have_storage_time:
+                production.order_status = "已入库"
+            elif all_have_actual_storage_date:
+                production.order_status = "已齐料"
+        
         db.commit()
         
         # 刷新数据以获取ID

@@ -90,8 +90,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               : undefined,
           // 将category_name字符串转换为数组以适配Checkbox.Group
           category_name:
-            initialValues.category_name && typeof initialValues.category_name === 'string'
-              ? initialValues.category_name.split(',')
+            initialValues.category_name &&
+            typeof initialValues.category_name === "string"
+              ? initialValues.category_name.split(",")
               : initialValues.category_name,
         };
         form.setFieldsValue(formValues);
@@ -100,7 +101,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         form.resetFields();
         form.setFieldsValue({
           order_type: "设计单",
-          is_installation: false,
         });
       }
     }
@@ -237,14 +237,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               label="销售员"
               name="salesperson"
               dependencies={["order_type"]}
-              rules={[
-                ({ getFieldValue }) => ({
-                  required:
-                    getFieldValue("order_type") !== "生产单" &&
-                    getFieldValue("order_type") !== "成品单",
-                  message: "请选择销售员",
-                }),
-              ]}
+              rules={[{ required: true, message: "请选择销售员" }]}
             >
               <Select placeholder="请选择销售员" loading={loading}>
                 {salespersons.map((salesperson) => (

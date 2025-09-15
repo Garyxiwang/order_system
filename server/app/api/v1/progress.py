@@ -144,6 +144,8 @@ async def update_progress(
             return error_response(message="进度不存在")
         
         # 更新进度字段（只更新ProgressUpdate模型中存在的字段）
+        if progress_data.planned_date is not None:
+            progress.planned_date = progress_data.planned_date
         if progress_data.actual_date is not None:
             progress.actual_date = progress_data.actual_date
         if progress_data.remarks is not None:

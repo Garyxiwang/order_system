@@ -744,13 +744,16 @@ const DesignPage: React.FC = () => {
             orderStatus: [
               "量尺",
               "初稿",
+              "公司对方案",
+              "线上对方案",
+              "改图",
+              "客户确认图",
+              "客户硬装阶段",
+              "出内部结构图",
+              "出下单图",
+              "复尺",
               "报价",
               "打款",
-              "延期",
-              "等硬装",
-              "客户待打款",
-              "待客户确认",
-              "已撤销",
               "下单",
               "其他",
             ],
@@ -826,14 +829,18 @@ const DesignPage: React.FC = () => {
                     const allStatusOptions = [
                       "量尺",
                       "初稿",
+                      "公司对方案",
+                      "线上对方案",
+                      "改图",
+                      "客户确认图",
+                      "客户硬装阶段",
+                      "出内部结构图",
+                      "出下单图",
+                      "复尺",
                       "报价",
                       "打款",
-                      "延期",
-                      "暂停",
-                      "等硬装",
-                      "客户待打款",
-                      "待客户确认",
                       "下单",
+                      "暂停",
                       "已下单",
                       "已撤销",
                       "其他",
@@ -876,16 +883,20 @@ const DesignPage: React.FC = () => {
                 >
                   <Option value="量尺">量尺</Option>
                   <Option value="初稿">初稿</Option>
+                  <Option value="公司对方案">公司对方案</Option>
+                  <Option value="线上对方案">线上对方案</Option>
+                  <Option value="改图">改图</Option>
+                  <Option value="客户确认图">客户确认图</Option>
+                  <Option value="客户硬装阶段">客户硬装阶段</Option>
+                  <Option value="出内部结构图">出内部结构图</Option>
+                  <Option value="出下单图">出下单图</Option>
+                  <Option value="复尺">复尺</Option>
                   <Option value="报价">报价</Option>
                   <Option value="打款">打款</Option>
-                  <Option value="延期">延期</Option>
-                  <Option value="暂停">暂停</Option>
-                  <Option value="等硬装">等硬装</Option>
-                  <Option value="客户待打款">客户待打款</Option>
-                  <Option value="待客户确认">待客户确认</Option>
                   <Option value="下单">待下单</Option>
                   <Option value="已下单">已下单</Option>
                   <Option value="已撤销">已撤销</Option>
+                  <Option value="暂停">暂停</Option>
                   <Option value="其他">其他</Option>
                 </Select>
               </Form.Item>

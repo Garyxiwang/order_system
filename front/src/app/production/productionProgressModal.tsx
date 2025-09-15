@@ -438,7 +438,7 @@ const ProductionProgressModal: React.FC<ProductionProgressModalProps> = ({
                           {item.category_name}
                         </h4>
                         <Form.Item
-                          label="入库时间"
+                          label="实际入库时间"
                           name={`${prefix}WarehouseTime`}
                           className={styles.formItem}
                         >
@@ -481,7 +481,7 @@ const ProductionProgressModal: React.FC<ProductionProgressModalProps> = ({
                           {item.category_name}
                         </h4>
                         <Form.Item
-                          label="入库时间"
+                          label="实际入库时间"
                           name={`${prefix}WarehouseTime`}
                           className={styles.formItem}
                         >

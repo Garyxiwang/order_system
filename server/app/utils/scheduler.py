@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 from app.core.database import get_db
 from app.models.order import Order
+from app.models.split_progress import SplitProgress
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +33,36 @@ def calculate_design_cycle_days(assignment_date: str) -> int:
         return (today - assignment).days
     except ValueError as e:
         logger.error(f"日期格式错误: {assignment_date}, 错误: {e}")
+        return 0
+
+def calculate_split_progress_cycle_days(order_date: str, actual_date: str = None) -> int:
+    """
+    计算拆单进度周期天数
+    
+    Args:
+        order_date: 下单日期，格式为 'YYYY-MM-DD'
+        actual_date: 实际日期（拆单日期或采购日期），格式为 'YYYY-MM-DD'，可以为 None
+    
+    Returns:
+        int: 周期天数
+    """
+    if order_date is None:
+        return 0
+        
+    try:
+        order_dt = datetime.strptime(order_date, '%Y-%m-%d')
+        
+        if actual_date:
+            # 如果有实际日期，计算实际日期 - 下单日期
+            actual_dt = datetime.strptime(actual_date, '%Y-%m-%d')
+            return (actual_dt - order_dt).days
+        else:
+            # 如果没有实际日期，计算当天 - 下单日期
+            today = datetime.now()
+            return (today - order_dt).days
+            
+    except ValueError as e:
+        logger.error(f"日期格式错误: order_date={order_date}, actual_date={actual_date}, 错误: {e}")
         return 0
 
 async def update_design_cycles():
@@ -74,6 +105,61 @@ async def update_design_cycles():
     finally:
         db.close()
 
+async def update_split_progress_cycles():
+    """
+    定时任务：更新所有拆单进度的周期天数
+    """
+    logger.info("开始执行拆单进度周期更新任务")
+    
+    # 获取数据库会话
+    db_gen = get_db()
+    db: Session = next(db_gen)
+    
+    try:
+        # 查询所有拆单进度记录，并关联订单信息
+        progress_items = db.query(SplitProgress).join(
+            Order, SplitProgress.order_number == Order.order_number
+        ).all()
+        
+        updated_count = 0
+        
+        for progress in progress_items:
+            # 获取关联的订单信息
+            order = db.query(Order).filter(
+                Order.order_number == progress.order_number
+            ).first()
+            
+            if order and order.order_date:
+                # 根据项目类型确定实际日期
+                actual_date = None
+                if progress.item_type.value == "internal" and progress.split_date:
+                    actual_date = progress.split_date
+                elif progress.item_type.value == "external" and progress.purchase_date:
+                    actual_date = progress.purchase_date
+                
+                # 计算新的周期天数
+                new_cycle = calculate_split_progress_cycle_days(
+                    order.order_date, 
+                    actual_date
+                )
+                
+                # 只有当周期天数发生变化时才更新
+                current_cycle = int(progress.cycle_days or "0")
+                if new_cycle != current_cycle:
+                    progress.cycle_days = str(new_cycle)
+                    updated_count += 1
+        
+        # 提交更改
+        db.commit()
+        
+        logger.info(f"拆单进度周期更新任务完成，共更新 {updated_count} 条进度记录")
+        
+    except Exception as e:
+        logger.error(f"拆单进度周期更新任务执行失败: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
 def start_scheduler():
     """
     启动定时任务调度器
@@ -83,7 +169,7 @@ def start_scheduler():
     if scheduler is None:
         scheduler = AsyncIOScheduler()
         
-        # 添加定时任务：每天凌晨2点执行
+        # 添加定时任务：每天凌晨2点执行设计周期更新
         scheduler.add_job(
             update_design_cycles,
             trigger=CronTrigger(hour=2, minute=0),  # 每天凌晨2点执行
@@ -92,8 +178,17 @@ def start_scheduler():
             replace_existing=True
         )
         
+        # 添加定时任务：每天凌晨2点30分执行拆单进度周期更新
+        scheduler.add_job(
+            update_split_progress_cycles,
+            trigger=CronTrigger(hour=2, minute=30),  # 每天凌晨2点30分执行
+            id='update_split_progress_cycles',
+            name='更新拆单进度周期',
+            replace_existing=True
+        )
+        
         scheduler.start()
-        logger.info("定时任务调度器已启动，设计周期更新任务已添加（每天凌晨2点执行）")
+        logger.info("定时任务调度器已启动，设计周期更新任务已添加（每天凌晨2点执行），拆单进度周期更新任务已添加（每天凌晨2点30分执行）")
     else:
         logger.info("定时任务调度器已在运行中")
 

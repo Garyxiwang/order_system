@@ -62,14 +62,18 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
   const progressTypes = [
     "量尺",
     "初稿",
+    "公司对方案",
+    "线上对方案",
+    "改图",
+    "客户确认图",
+    "客户硬装阶段",
+    "出内部结构图",
+    "出下单图",
+    "复尺",
     "报价",
     "打款",
-    "延期",
-    "暂停",
-    "等硬装",
-    "客户待打款",
-    "待客户确认",
     "下单",
+    "暂停",
     "其他",
   ];
 
@@ -172,23 +176,37 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
   // 编辑状态管理
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempDate, setTempDate] = useState<dayjs.Dayjs | null>(null);
+  const [tempPlannedDate, setTempPlannedDate] = useState<dayjs.Dayjs | null>(
+    null
+  );
   const [tempNote, setTempNote] = useState<string>("");
 
-  // 处理编辑实际日期
-  const handleEditActualDate = (record: ProgressItem) => {
+  // 处理编辑进度记录
+  const handleEditProgress = (record: ProgressItem) => {
     setEditingId(record.id);
-    // 验证日期有效性，避免显示Invalid Date
-    if (record.actualDate && record.actualDate !== 'Invalid Date') {
+    // 验证实际日期有效性，避免显示Invalid Date
+    if (record.actualDate && record.actualDate !== "Invalid Date") {
       const date = dayjs(record.actualDate);
       setTempDate(date.isValid() ? date : null);
     } else {
       setTempDate(null);
     }
+    // 验证计划日期有效性
+    if (
+      record.plannedDate &&
+      record.plannedDate !== "Invalid Date" &&
+      record.plannedDate !== "-"
+    ) {
+      const plannedDate = dayjs(record.plannedDate);
+      setTempPlannedDate(plannedDate.isValid() ? plannedDate : null);
+    } else {
+      setTempPlannedDate(null);
+    }
     setTempNote(record.note || "");
   };
 
-  // 保存实际日期
-  const handleSaveActualDate = async () => {
+  // 保存进度更新
+  const handleSaveProgress = async () => {
     if (!editingId || !orderNumber) return;
 
     setLoading(true);
@@ -197,7 +215,11 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       if (!currentItem) return;
 
       const actualDate = tempDate ? tempDate.format("YYYY-MM-DD") : undefined;
+      const plannedDate = tempPlannedDate
+        ? tempPlannedDate.format("YYYY-MM-DD")
+        : undefined;
       const updateData: Partial<ProgressData> = {
+        planned_date: plannedDate,
         actual_date: actualDate,
         remarks: tempNote,
       };
@@ -216,6 +238,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
 
       setEditingId(null);
       setTempDate(null);
+      setTempPlannedDate(null);
       setTempNote("");
     } catch (error) {
       console.error("保存进度失败:", error);
@@ -229,6 +252,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
   const handleCancelEdit = () => {
     setEditingId(null);
     setTempDate(null);
+    setTempPlannedDate(null);
     setTempNote("");
   };
 
@@ -244,7 +268,22 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       title: "计划日期",
       dataIndex: "plannedDate",
       key: "plannedDate",
-      width: 120,
+      width: 150,
+      render: (text: string, record: ProgressItem) => {
+        if (editingId === record.id) {
+          return (
+            <DatePicker
+              value={tempPlannedDate}
+              onChange={setTempPlannedDate}
+              format="YYYY-MM-DD"
+              size="small"
+              placeholder="选择计划日期"
+              className={styles.fullWidth}
+            />
+          );
+        }
+        return text || "-";
+      },
     },
     {
       title: "实际日期",
@@ -252,7 +291,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       key: "actualDate",
       width: 150,
       render: (text: string, record: ProgressItem) => {
-        if (editingId === record.id) {
+        if (editingId === record.id && record.item !== "下单") {
           return (
             <DatePicker
               value={tempDate}
@@ -296,11 +335,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
         if (editingId === record.id) {
           return (
             <div className={styles.buttonContainer}>
-              <Button
-                type="primary"
-                size="small"
-                onClick={handleSaveActualDate}
-              >
+              <Button type="primary" size="small" onClick={handleSaveProgress}>
                 保存
               </Button>
               <Button size="small" onClick={handleCancelEdit}>
@@ -313,8 +348,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
           <Button
             type="link"
             size="small"
-            disabled={record.item === "下单"}
-            onClick={() => handleEditActualDate(record)}
+            onClick={() => handleEditProgress(record)}
           >
             编辑
           </Button>

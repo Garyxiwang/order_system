@@ -354,12 +354,12 @@ const PurchaseStatusModal: React.FC<PurchaseStatusModalProps> = ({
                               />
                             </Form.Item>
                             <Form.Item
-                              label="实际入库日期"
+                              label="实际齐料日期"
                               name={`${prefix}ActualWarehouseDate`}
                               className={styles.formItem}
                             >
                               <DatePicker
-                                placeholder="选择实际入库日期"
+                                placeholder="选择实际齐料日期"
                                 className={styles.fullWidth}
                               />
                             </Form.Item>
