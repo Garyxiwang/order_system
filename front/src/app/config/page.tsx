@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import RouteGuard from "@/components/auth/RouteGuard";
+import { PageModule } from "@/utils/permissions";
 import {
   Typography,
   Card,
@@ -483,4 +485,10 @@ const ConfigPage: React.FC = () => {
   );
 };
 
-export default ConfigPage;
+export default function ConfigPageWithGuard() {
+  return (
+    <RouteGuard requiredModule={PageModule.CONFIG}>
+      <ConfigPage />
+    </RouteGuard>
+  );
+}

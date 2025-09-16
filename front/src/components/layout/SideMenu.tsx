@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Menu, Tooltip } from "antd";
 import {
   CreditCardOutlined,
@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import logger from "@/utils/logger";
+import PermissionService, { PageModule } from "@/utils/permissions";
 
 interface SideMenuProps {
   collapsed?: boolean;
@@ -20,6 +21,7 @@ interface SideMenuProps {
 
 const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
   const pathname = usePathname();
+  const [accessibleModules, setAccessibleModules] = useState<PageModule[]>([]);
 
   // 监听路径变化并打印日志
   useEffect(() => {
@@ -30,12 +32,31 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
     }
   }, [pathname]);
 
-  // 组件挂载时记录日志
+  // 组件挂载时记录日志和获取用户权限
   useEffect(() => {
     try {
       logger.system("侧边菜单组件已加载");
     } catch {
       console.log(`[系统信息] 侧边菜单组件已加载`);
+    }
+
+    // 获取用户可访问的模块
+    const modules = PermissionService.getAccessibleModules();
+    setAccessibleModules(modules);
+  }, []);
+
+  // 监听用户信息更新事件
+  useEffect(() => {
+    const handleUserInfoUpdate = () => {
+      const modules = PermissionService.getAccessibleModules();
+      setAccessibleModules(modules);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('userInfoUpdated', handleUserInfoUpdate);
+      return () => {
+        window.removeEventListener('userInfoUpdated', handleUserInfoUpdate);
+      };
     }
   }, []);
 
@@ -57,8 +78,14 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
     }
   };
 
+  // 检查用户是否有权限访问指定模块
+  const hasPermission = (module: PageModule): boolean => {
+    return accessibleModules.includes(module);
+  };
+
   const menuItems = [
-    {
+    // 设计管理
+    ...(hasPermission(PageModule.DESIGN) ? [{
       key: "design",
       icon: collapsed ? (
         <Tooltip title="设计管理" placement="right">
@@ -81,8 +108,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
           设计管理
         </Link>
       ) : null,
-    },
-    {
+    }] : []),
+    // 拆单管理
+    ...(hasPermission(PageModule.SPLIT) ? [{
       key: "split",
       icon: collapsed ? (
         <Tooltip title="拆单管理" placement="right">
@@ -105,8 +133,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
           拆单管理
         </Link>
       ) : null,
-    },
-    {
+    }] : []),
+    // 生产管理
+    ...(hasPermission(PageModule.PRODUCTION) ? [{
       key: "production",
       icon: collapsed ? (
         <Tooltip title="生产管理" placement="right">
@@ -129,8 +158,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
           生产管理
         </Link>
       ) : null,
-    },
-    {
+    }] : []),
+    // 系统配置
+    ...(hasPermission(PageModule.CONFIG) ? [{
       key: "config",
       icon: collapsed ? (
         <Tooltip title="系统配置" placement="right">
@@ -153,7 +183,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
           系统配置
         </Link>
       ) : null,
-    },
+    }] : []),
   ];
 
   return (

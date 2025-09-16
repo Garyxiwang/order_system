@@ -16,6 +16,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import AuthService, { UserInfo } from "../../services/authService";
 import AuthGuard from "../auth/AuthGuard";
+import PermissionService, { PageModule } from "@/utils/permissions";
 
 const { Content, Sider, Header } = Layout;
 
@@ -31,11 +32,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   // 当前用户信息
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+  const [accessibleModules, setAccessibleModules] = useState<PageModule[]>([]);
 
   // 获取用户信息
   useEffect(() => {
     const userInfo = AuthService.getUserInfo();
     setCurrentUser(userInfo);
+    
+    // 获取用户可访问的模块
+    const modules = PermissionService.getAccessibleModules();
+    setAccessibleModules(modules);
   }, []);
 
   // 监听用户信息变化
@@ -54,6 +60,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     const handleUserInfoUpdate = () => {
       const userInfo = AuthService.getUserInfo();
       setCurrentUser(userInfo);
+      
+      // 更新可访问模块
+      const modules = PermissionService.getAccessibleModules();
+      setAccessibleModules(modules);
     };
 
     window.addEventListener('userInfoUpdated', handleUserInfoUpdate);
@@ -75,6 +85,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     AuthService.clearUserInfo();
     // 立即跳转到登录页，避免显示"未登录"状态
     router.push("/login");
+  };
+
+  // 检查用户是否有权限访问指定模块
+  const hasPermission = (module: PageModule): boolean => {
+    return accessibleModules.includes(module);
   };
 
   // 用户下拉菜单项
@@ -189,7 +204,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     selectedKeys={[pathname.split("/")[1] || ""]}
                     className="border-b-0 font-medium"
                     items={[
-                      {
+                      // 设计管理
+                      ...(hasPermission(PageModule.DESIGN) ? [{
                         key: "design",
                         label: (
                           <Link
@@ -199,8 +215,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             设计管理
                           </Link>
                         ),
-                      },
-                      {
+                      }] : []),
+                      // 拆单管理
+                      ...(hasPermission(PageModule.SPLIT) ? [{
                         key: "split",
                         label: (
                           <Link
@@ -210,8 +227,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             拆单管理
                           </Link>
                         ),
-                      },
-                      {
+                      }] : []),
+                      // 生产管理
+                      ...(hasPermission(PageModule.PRODUCTION) ? [{
                         key: "production",
                         label: (
                           <Link
@@ -221,8 +239,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             生产管理
                           </Link>
                         ),
-                      },
-                      {
+                      }] : []),
+                      // 系统配置
+                      ...(hasPermission(PageModule.CONFIG) ? [{
                         key: "config",
                         label: (
                           <Link
@@ -232,7 +251,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             系统配置
                           </Link>
                         ),
-                      },
+                      }] : []),
                     ]}
                   />
                 </div>

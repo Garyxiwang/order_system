@@ -6,6 +6,7 @@ import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AuthService from "../../services/authService";
+import { PermissionService, PageModule } from "../../utils/permissions";
 
 const { Title, Text } = Typography;
 
@@ -31,8 +32,37 @@ const LoginPage: React.FC = () => {
       // 存储用户信息到localStorage
       AuthService.setUserInfo(userInfo);
 
-      // 跳转到设计页面
-      router.push("/design");
+      // 获取用户可访问的模块
+      const accessibleModules = PermissionService.getAccessibleModules();
+      
+      // 跳转到用户有权限的第一个模块
+      if (accessibleModules.length > 0) {
+        const firstModule = accessibleModules[0];
+        let redirectPath = "/";
+        
+        switch (firstModule) {
+          case PageModule.DESIGN:
+            redirectPath = "/design";
+            break;
+          case PageModule.SPLIT:
+            redirectPath = "/split";
+            break;
+          case PageModule.PRODUCTION:
+            redirectPath = "/production";
+            break;
+          case PageModule.CONFIG:
+            redirectPath = "/config";
+            break;
+          default:
+            redirectPath = "/design";
+        }
+        
+        router.push(redirectPath);
+      } else {
+        // 如果用户没有任何权限，跳转到默认页面或显示错误
+        message.error("您没有访问任何模块的权限，请联系管理员");
+        router.push("/");
+      }
     } catch (error) {
       // 显示错误消息
       const errorMessage =

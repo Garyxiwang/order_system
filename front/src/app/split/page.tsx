@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import RouteGuard from "@/components/auth/RouteGuard";
+import { PageModule } from "@/utils/permissions";
 import {
   Card,
   Table,
@@ -1370,4 +1372,10 @@ const DesignPage: React.FC = () => {
   );
 };
 
-export default DesignPage;
+export default function SplitPageWithGuard() {
+  return (
+    <RouteGuard requiredModule={PageModule.SPLIT}>
+      <DesignPage />
+    </RouteGuard>
+  );
+}

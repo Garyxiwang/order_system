@@ -1,12 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import RouteGuard from "@/components/auth/RouteGuard";
+import { PageModule } from "@/utils/permissions";
 import { Button, Space, Typography, Card, Divider, Row, Col, Statistic } from 'antd';
 import { ShoppingCartOutlined, FileOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;
 
-export default function Dashboard() {
+function Dashboard() {
   const router = useRouter();
   
   // 导航到各个页面的处理函数
@@ -53,83 +55,78 @@ export default function Dashboard() {
           <Col span={6}>
             <Card>
               <Statistic 
-                title="已完成" 
-                value={28} 
-                prefix={<FileOutlined />} 
+                title="生产中" 
+                value={8} 
+                prefix={<UserOutlined />} 
               />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
               <Statistic 
-                title="系统用户" 
-                value={8} 
-                prefix={<UserOutlined />} 
+                title="已完成" 
+                value={23} 
+                prefix={<SettingOutlined />} 
               />
             </Card>
           </Col>
         </Row>
         
-        <Divider orientation="left">快速访问</Divider>
+        <Divider orientation="left">快速操作</Divider>
         
         <Row gutter={16} className="mb-6">
           <Col span={8}>
             <Card 
               hoverable 
-              className="text-center" 
+              className="text-center"
               onClick={navigateToDesign}
             >
-              <FileOutlined style={{ fontSize: '2rem' }} />
-              <Title level={4} className="mt-4">设计页</Title>
-              <Paragraph>管理设计任务和设计流程</Paragraph>
-              <Button type="primary">进入设计页</Button>
+              <FileOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+              <Title level={4}>设计管理</Title>
+              <Paragraph>管理设计任务和进度</Paragraph>
             </Card>
           </Col>
-          
           <Col span={8}>
             <Card 
               hoverable 
-              className="text-center" 
+              className="text-center"
               onClick={navigateToSplit}
             >
-              <ShoppingCartOutlined style={{ fontSize: '2rem' }} />
-              <Title level={4} className="mt-4">拆单页</Title>
-              <Paragraph>管理订单拆分和处理流程</Paragraph>
-              <Button type="primary">进入拆单页</Button>
+              <ShoppingCartOutlined style={{ fontSize: '48px', color: '#52c41a' }} />
+              <Title level={4}>拆单管理</Title>
+              <Paragraph>处理订单拆分和分配</Paragraph>
             </Card>
           </Col>
-          
           <Col span={8}>
             <Card 
               hoverable 
-              className="text-center" 
+              className="text-center"
               onClick={navigateToConfig}
             >
-              <SettingOutlined style={{ fontSize: '2rem' }} />
-              <Title level={4} className="mt-4">配置页</Title>
-              <Paragraph>系统设置和参数配置</Paragraph>
-              <Button type="primary">进入配置页</Button>
+              <SettingOutlined style={{ fontSize: '48px', color: '#fa8c16' }} />
+              <Title level={4}>系统配置</Title>
+              <Paragraph>管理系统设置和用户</Paragraph>
             </Card>
           </Col>
         </Row>
         
         <Divider orientation="left">系统信息</Divider>
         
-        <Card className="mb-6">
+        <Card>
           <Row gutter={16}>
             <Col span={12}>
               <Title level={4}>技术栈</Title>
-              <ul className="list-disc pl-5">
-                <li>Next.js - React框架，提供服务端渲染、路由等功能</li>
-                <li>TypeScript - JavaScript的超集，提供类型检查</li>
-                <li>Ant Design - 企业级UI设计语言和React组件库</li>
-                <li>Tailwind CSS - 实用优先的CSS框架</li>
+              <ul>
+                <li>前端框架: Next.js 14</li>
+                <li>UI组件库: Ant Design</li>
+                <li>开发语言: TypeScript</li>
+                <li>样式方案: Tailwind CSS</li>
               </ul>
             </Col>
             <Col span={12}>
-              <Title level={4}>系统版本</Title>
-              <ul className="list-disc pl-5">
-                <li>当前版本: v1.0.0</li>
+              <Title level={4}>系统状态</Title>
+              <ul>
+                <li>版本号: v1.0.0</li>
                 <li>更新日期: {new Date().toLocaleDateString()}</li>
                 <li>系统状态: 正常运行</li>
               </ul>
@@ -138,5 +135,13 @@ export default function Dashboard() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function DashboardWithGuard() {
+  return (
+    <RouteGuard requiredModule={PageModule.DASHBOARD}>
+      <Dashboard />
+    </RouteGuard>
   );
 }
