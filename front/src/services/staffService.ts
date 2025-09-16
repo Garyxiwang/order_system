@@ -54,6 +54,16 @@ export class StaffService {
     }
   }
 
+  // 重置密码
+  static async resetPassword(username: string): Promise<void> {
+    try {
+      await api.put(`/v1/users/${username}/reset-password`);
+    } catch (error) {
+      console.error('重置密码失败:', error);
+      throw error;
+    }
+  }
+
   // 删除人员
   static async deleteStaff(username: string): Promise<void> {
     try {

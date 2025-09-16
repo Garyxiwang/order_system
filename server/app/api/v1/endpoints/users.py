@@ -71,6 +71,52 @@ async def create_user(
         raise HTTPException(status_code=500, detail="创建用户失败")
 
 
+@router.put("/{username}/reset-password", response_model=dict)
+async def reset_password(
+    username: str,
+    db: Session = Depends(get_db)
+):
+    """
+    重置用户密码接口
+    
+    - **username**: 要重置密码的用户名
+    """
+    try:
+        # 查找用户
+        user = db.query(User).filter(
+            User.username == username
+        ).first()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在"
+            )
+        
+        # 重置密码为默认密码 "123456"
+        default_password = "123456"
+        hashed_password = hash_password(default_password)
+        user.password = hashed_password
+        
+        db.commit()
+        
+        return {
+            "code": 200,
+            "message": f"用户 {username} 密码重置成功，新密码为：{default_password}",
+            "data": {
+                "username": username,
+                "new_password": default_password
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"重置密码失败: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="重置密码失败")
+
+
 @router.delete("/{username}", response_model=dict)
 async def delete_user(
     username: str,

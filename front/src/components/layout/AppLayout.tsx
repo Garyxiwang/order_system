@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Layout, Menu, Avatar, Dropdown, Space, Button } from "antd";
+import { Layout, Menu, Avatar, Dropdown, Space, Button, Modal, Form, Input, message } from "antd";
 import type { MenuProps } from "antd";
 import Image from "next/image";
 import {
@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  KeyOutlined,
 } from "@ant-design/icons";
 import SideMenu from "@/components/layout/SideMenu";
 import AntdRegistry from "../AntdRegistry";
@@ -33,12 +34,14 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   // 当前用户信息
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [accessibleModules, setAccessibleModules] = useState<PageModule[]>([]);
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
+  const [form] = Form.useForm();
 
   // 获取用户信息
   useEffect(() => {
     const userInfo = AuthService.getUserInfo();
     setCurrentUser(userInfo);
-    
+
     // 获取用户可访问的模块
     const modules = PermissionService.getAccessibleModules();
     setAccessibleModules(modules);
@@ -47,32 +50,32 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   // 监听用户信息变化
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'userInfo') {
+      if (e.key === "userInfo") {
         const userInfo = AuthService.getUserInfo();
         setCurrentUser(userInfo);
       }
     };
 
     // 监听localStorage变化
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
 
     // 监听自定义用户信息更新事件
     const handleUserInfoUpdate = () => {
       const userInfo = AuthService.getUserInfo();
       setCurrentUser(userInfo);
-      
+
       // 更新可访问模块
       const modules = PermissionService.getAccessibleModules();
       setAccessibleModules(modules);
     };
 
-    window.addEventListener('userInfoUpdated', handleUserInfoUpdate);
+    window.addEventListener("userInfoUpdated", handleUserInfoUpdate);
 
     return () => {
-       window.removeEventListener('storage', handleStorageChange);
-       window.removeEventListener('userInfoUpdated', handleUserInfoUpdate);
-     };
-   }, []);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("userInfoUpdated", handleUserInfoUpdate);
+    };
+  }, []);
 
   // 切换侧边栏收起状态
   const toggleCollapsed = () => {
@@ -81,10 +84,40 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   // 处理退出登录
   const handleLogout = () => {
-    // 清除用户信息
     AuthService.clearUserInfo();
-    // 立即跳转到登录页，避免显示"未登录"状态
-    router.push("/login");
+    window.location.href = "/login";
+  };
+
+  // 处理修改密码
+  const handleChangePassword = () => {
+    setChangePasswordVisible(true);
+  };
+
+  // 提交修改密码
+  const handlePasswordSubmit = async (values: { oldPassword: string; newPassword: string }) => {
+    try {
+      // 这里调用修改密码的API
+      await AuthService.changePassword(values.oldPassword, values.newPassword);
+      message.success("密码修改成功");
+      setChangePasswordVisible(false);
+      form.resetFields();
+    } catch (error: unknown) {
+      // 显示后端返回的具体错误信息
+      let errorMessage = "密码修改失败";
+      
+      if (error && typeof error === 'object') {
+        const errorObj = error as { response?: { data?: { message?: string } }; message?: string };
+        errorMessage = errorObj.response?.data?.message || errorObj.message || errorMessage;
+      }
+      
+      message.error(errorMessage);
+    }
+  };
+
+  // 取消修改密码
+  const handlePasswordCancel = () => {
+    setChangePasswordVisible(false);
+    form.resetFields();
   };
 
   // 检查用户是否有权限访问指定模块
@@ -94,19 +127,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   // 用户下拉菜单项
   const userMenuItems: MenuProps["items"] = [
-    // {
-    //   key: "profile",
-    //   icon: <UserOutlined />,
-    //   label: "个人信息",
-    // },
-    // {
-    //   key: "settings",
-    //   icon: <SettingOutlined />,
-    //   label: "账户设置",
-    // },
-    // {
-    //   type: "divider",
-    // },
+    {
+      key: "change-password",
+      icon: <KeyOutlined />,
+      label: "修改密码",
+      onClick: handleChangePassword,
+    },
+    {
+      type: "divider",
+    },
     {
       key: "logout",
       icon: <LogoutOutlined />,
@@ -205,53 +234,69 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                     className="border-b-0 font-medium"
                     items={[
                       // 设计管理
-                      ...(hasPermission(PageModule.DESIGN) ? [{
-                        key: "design",
-                        label: (
-                          <Link
-                            href="/design"
-                            className="text-gray-700 hover:text-blue-600"
-                          >
-                            设计管理
-                          </Link>
-                        ),
-                      }] : []),
+                      ...(hasPermission(PageModule.DESIGN)
+                        ? [
+                            {
+                              key: "design",
+                              label: (
+                                <Link
+                                  href="/design"
+                                  className="text-gray-700 hover:text-blue-600"
+                                >
+                                  设计管理
+                                </Link>
+                              ),
+                            },
+                          ]
+                        : []),
                       // 拆单管理
-                      ...(hasPermission(PageModule.SPLIT) ? [{
-                        key: "split",
-                        label: (
-                          <Link
-                            href="/split"
-                            className="text-gray-700 hover:text-blue-600"
-                          >
-                            拆单管理
-                          </Link>
-                        ),
-                      }] : []),
+                      ...(hasPermission(PageModule.SPLIT)
+                        ? [
+                            {
+                              key: "split",
+                              label: (
+                                <Link
+                                  href="/split"
+                                  className="text-gray-700 hover:text-blue-600"
+                                >
+                                  拆单管理
+                                </Link>
+                              ),
+                            },
+                          ]
+                        : []),
                       // 生产管理
-                      ...(hasPermission(PageModule.PRODUCTION) ? [{
-                        key: "production",
-                        label: (
-                          <Link
-                            href="/production"
-                            className="text-gray-700 hover:text-blue-600"
-                          >
-                            生产管理
-                          </Link>
-                        ),
-                      }] : []),
+                      ...(hasPermission(PageModule.PRODUCTION)
+                        ? [
+                            {
+                              key: "production",
+                              label: (
+                                <Link
+                                  href="/production"
+                                  className="text-gray-700 hover:text-blue-600"
+                                >
+                                  生产管理
+                                </Link>
+                              ),
+                            },
+                          ]
+                        : []),
                       // 系统配置
-                      ...(hasPermission(PageModule.CONFIG) ? [{
-                        key: "config",
-                        label: (
-                          <Link
-                            href="/config"
-                            className="text-gray-700 hover:text-blue-600"
-                          >
-                            系统配置
-                          </Link>
-                        ),
-                      }] : []),
+                      ...(hasPermission(PageModule.CONFIG)
+                        ? [
+                            {
+                              key: "config",
+                              label: (
+                                <Link
+                                  href="/config"
+                                  className="text-gray-700 hover:text-blue-600"
+                                >
+                                  系统配置
+                                </Link>
+                              ),
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                 </div>
@@ -290,6 +335,64 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </Layout>
         )}
       </AuthGuard>
+
+      {/* 修改密码弹窗 */}
+      <Modal
+        title="修改密码"
+        open={changePasswordVisible}
+        onOk={() => form.submit()}
+        onCancel={handlePasswordCancel}
+        okText="确认修改"
+        cancelText="取消"
+        destroyOnClose
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handlePasswordSubmit}
+          autoComplete="off"
+        >
+          <Form.Item
+            label="原密码"
+            name="oldPassword"
+            rules={[
+              { required: true, message: "请输入原密码" },
+            ]}
+          >
+            <Input.Password placeholder="请输入原密码" />
+          </Form.Item>
+          
+          <Form.Item
+            label="新密码"
+            name="newPassword"
+            rules={[
+              { required: true, message: "请输入新密码" },
+              { min: 6, message: "密码长度至少6位" },
+            ]}
+          >
+            <Input.Password placeholder="请输入新密码" />
+          </Form.Item>
+          
+          <Form.Item
+            label="确认新密码"
+            name="confirmPassword"
+            dependencies={['newPassword']}
+            rules={[
+              { required: true, message: "请确认新密码" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('newPassword') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('两次输入的密码不一致'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="请再次输入新密码" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </AntdRegistry>
   );
 };

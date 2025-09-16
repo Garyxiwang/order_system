@@ -16,6 +16,19 @@ export interface LoginResponse {
   };
 }
 
+// 修改密码请求数据类型
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}
+
+// 修改密码响应数据类型
+export interface ChangePasswordResponse {
+  code: number;
+  message: string;
+  data: object;
+}
+
 // 用户信息类型
 export interface UserInfo {
   username: string;
@@ -109,6 +122,38 @@ export class AuthService {
   static getRole(): string | null {
     const userInfo = this.getUserInfo();
     return userInfo ? userInfo.role : null;
+  }
+
+  // 修改密码方法
+  static async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    try {
+      const currentUser = this.getUserInfo();
+      if (!currentUser) {
+        throw new Error('用户未登录');
+      }
+
+      const response = await api.post('/v1/auth/change-password', {
+        old_password: oldPassword,
+        new_password: newPassword
+      }, {
+        headers: {
+          'X-Username': encodeURIComponent(currentUser.username)
+        }
+      }) as ChangePasswordResponse;
+      
+      if (response.code === 200) {
+        // 修改密码成功
+        return;
+      } else {
+        // 修改密码失败，抛出包含后端错误信息的错误
+        const error = new Error(response.message || '修改密码失败') as Error & { response?: { data: ChangePasswordResponse } };
+        error.response = { data: response };
+        throw error;
+      }
+    } catch (error) {
+      console.error('修改密码失败:', error);
+      throw error;
+    }
   }
 }
 

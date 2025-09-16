@@ -152,14 +152,22 @@ const ConfigPage: React.FC = () => {
           );
         }
         return (
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteStaff(record.username)}
-          >
-            删除
-          </Button>
+          <Space>
+            <Button
+              type="link"
+              onClick={() => handleResetPassword(record.username)}
+            >
+              重置密码
+            </Button>
+            <Button
+              type="link"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeleteStaff(record.username)}
+            >
+              删除
+            </Button>
+          </Space>
         );
       },
     },
@@ -192,17 +200,40 @@ const ConfigPage: React.FC = () => {
       title: "操作",
       key: "action",
       render: (_: unknown, record: CategoryData) => (
-        <Button
-          type="link"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleDeleteCategory(record.id)}
-        >
-          删除
-        </Button>
+        <>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteCategory(record.id)}
+          >
+            删除
+          </Button>
+        </>
       ),
     },
   ];
+
+  // 重置密码
+  const handleResetPassword = async (username: string) => {
+    Modal.confirm({
+      title: "确认重置密码",
+      content: `确定要重置用户 "${username}" 的密码吗？密码将重置为默认密码 "123456"。`,
+      okText: "确定",
+      cancelText: "取消",
+      onOk: async () => {
+        try {
+          setLoading(true);
+          await StaffService.resetPassword(username);
+          message.success("密码重置成功，新密码为：123456");
+        } catch (error) {
+          message.error("密码重置失败");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
 
   // 删除人员
   const handleDeleteStaff = async (username: string) => {
@@ -266,7 +297,7 @@ const ConfigPage: React.FC = () => {
       // 设置默认密码为123456
       const staffDataWithPassword = {
         ...values,
-        password: values.password || '123456'
+        password: values.password || "123456",
       };
       const newStaff = await StaffService.createStaff(staffDataWithPassword);
       console.log("newStaff", newStaff);
@@ -387,7 +418,7 @@ const ConfigPage: React.FC = () => {
           labelCol={{ span: 6 }}
           wrapperCol={{ span: 18 }}
           onFinish={handleAddStaff}
-          initialValues={{ password: '123456' }}
+          initialValues={{ password: "123456" }}
         >
           <Form.Item
             name="username"

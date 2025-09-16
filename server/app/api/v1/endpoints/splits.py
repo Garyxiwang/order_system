@@ -5,6 +5,7 @@ from typing import List, Optional
 import math
 import json
 from datetime import datetime
+from urllib.parse import unquote
 
 from app.core.database import get_db
 from app.models.user import User, UserRole
@@ -33,6 +34,8 @@ def get_current_user(username: Optional[str] = Header(None, alias="X-Username"),
     """获取当前用户信息"""
     if not username:
         return None
+    # 解码URL编码的用户名
+    username = unquote(username)
     return db.query(User).filter(User.username == username).first()
 
 

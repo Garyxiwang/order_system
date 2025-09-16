@@ -46,6 +46,19 @@ class LoginResponse(BaseModel):
     # 这里可以后续添加token等认证信息
 
 
+class ChangePasswordRequest(BaseModel):
+    """修改密码请求模型"""
+    old_password: str = Field(..., min_length=1, description="原密码")
+    new_password: str = Field(..., min_length=6, description="新密码，最少6位")
+
+
+class ChangePasswordResponse(BaseModel):
+    """修改密码响应模型"""
+    code: int
+    message: str
+    data: dict
+
+
 class DeleteUserResponse(BaseModel):
     """删除用户响应模型"""
     code: int
