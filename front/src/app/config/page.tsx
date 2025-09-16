@@ -111,13 +111,13 @@ const ConfigPage: React.FC = () => {
       render: (role: string) => {
         const roleMap: { [key: string]: string } = {
           superAdmin: "超级管理员",
-          admin: "管理员",
           designer: "设计师",
           splitting: "拆单员",
           salesperson: "销售",
           procurement: "采购",
           workshop: "车间",
           manager: "主管",
+          auditor: "审核员",
           clerk: "录入员",
           finance: "财务",
           shipper: "发货员",
@@ -407,9 +407,8 @@ const ConfigPage: React.FC = () => {
             rules={[{ required: true, message: "请选择角色" }]}
           >
             <Select placeholder="请选择角色">
-              <Option value="admin">管理员</Option>
-              <Option value="designer">设计师</Option>
               <Option value="clerk">录入员</Option>
+              <Option value="designer">设计师</Option>
               <Option value="splitting">拆单员</Option>
               <Option value="salesperson">销售</Option>
               <Option value="procurement">采购</Option>
@@ -417,6 +416,7 @@ const ConfigPage: React.FC = () => {
               <Option value="manager">主管</Option>
               <Option value="finance">财务</Option>
               <Option value="shipper">发货员</Option>
+              <Option value="auditor">审核员</Option>
             </Select>
           </Form.Item>
           <Form.Item wrapperCol={{ offset: 6, span: 18 }}>

@@ -1,3 +1,4 @@
+from logging import Manager
 from sqlalchemy import Column, String, Enum
 from app.models.base import BaseModel
 import enum
@@ -6,8 +7,8 @@ import enum
 class UserRole(str, enum.Enum):
     """用户角色枚举"""
     SUPER_ADMIN = "superAdmin"  # 超级管理员
-    ADMIN = "admin"          # 管理员
-    MANAGER = "manager"      # 经理
+    MANAGER = "manager"          # 主管
+    AUDITOR = "auditor"      # 审核员   
     DESIGNER = "designer"    # 设计师
     SPLITTING = "splitting"  # 拆单员
     CLERK = "clerk"    # 文员
@@ -16,7 +17,6 @@ class UserRole(str, enum.Enum):
     FINANCE = "finance"  # 财务
     WORKSHOP = "workshop"  # 车间
     SHIPPER = "shipper"  # 发货人
-    CUSTOMER = "customer"    # 客户（兼容旧数据）
 
 
 class User(BaseModel):
