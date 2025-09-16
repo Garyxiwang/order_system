@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
 import { PageModule } from "@/utils/permissions";
+import PermissionService from "@/utils/permissions";
 import dayjs from "dayjs";
 import {
   Card,
@@ -621,21 +622,25 @@ const DesignPage: React.FC = () => {
         );
       },
     },
-    {
-      title: "订单金额",
-      dataIndex: "order_amount",
-      key: "order_amount",
-      render: (text: string) => (
-        <div>
-          {text
-            ? `¥${Number(text).toLocaleString("zh-CN", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}`
-            : "-"}
-        </div>
-      ),
-    },
+    ...(PermissionService.canViewOrderAmount()
+      ? [
+          {
+            title: "订单金额",
+            dataIndex: "order_amount",
+            key: "order_amount",
+            render: (text: string) => (
+              <div>
+                {text
+                  ? `¥${Number(text).toLocaleString("zh-CN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : "-"}
+              </div>
+            ),
+          },
+        ]
+      : []),
     {
       title: "备注",
       dataIndex: "remarks",
@@ -679,56 +684,62 @@ const DesignPage: React.FC = () => {
       render: (_: unknown, record: DesignOrder) => (
         <div style={{ width: "50px" }}>
           <Row gutter={[4, 4]}>
-            <Col span={14}>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => showEditModal(record)}
-                disabled={record.order_status === "已下单"}
-                style={{ padding: "0 4px", width: "100%" }}
-              >
-                编辑订单
-              </Button>
-            </Col>
-            <Col span={14}>
-              <Button
-                type="link"
-                size="small"
-                disabled={record.order_status === "已下单"}
-                onClick={() => showProgressModal(record)}
-                style={{ padding: "0 4px", width: "100%" }}
-              >
-                更新进度
-              </Button>
-            </Col>
-            {record.order_status === "已下单" && (
+            {PermissionService.canEditOrder() && (
               <Col span={14}>
                 <Button
                   type="link"
                   size="small"
-                  disabled={record.order_status !== "已下单"}
-                  onClick={() => handleCancelOrder(record)}
+                  onClick={() => showEditModal(record)}
+                  disabled={record.order_status === "已下单"}
                   style={{ padding: "0 4px", width: "100%" }}
                 >
-                  撤销
+                  编辑订单
                 </Button>
               </Col>
             )}
-            {record.order_status !== "已下单" && (
+            {PermissionService.canUpdateProgress() && (
               <Col span={14}>
                 <Button
                   type="link"
                   size="small"
-                  disabled={
-                    record.order_status === "已下单" || !canPlaceOrder(record)
-                  }
-                  onClick={() => handlePlaceOrder(record)}
+                  disabled={record.order_status === "已下单"}
+                  onClick={() => showProgressModal(record)}
                   style={{ padding: "0 4px", width: "100%" }}
                 >
-                  下单
+                  更新进度
                 </Button>
               </Col>
             )}
+            {PermissionService.canCancelOrder() &&
+              record.order_status === "已下单" && (
+                <Col span={14}>
+                  <Button
+                    type="link"
+                    size="small"
+                    disabled={record.order_status !== "已下单"}
+                    onClick={() => handleCancelOrder(record)}
+                    style={{ padding: "0 4px", width: "100%" }}
+                  >
+                    撤销
+                  </Button>
+                </Col>
+              )}
+            {PermissionService.canPlaceOrder() &&
+              record.order_status !== "已下单" && (
+                <Col span={14}>
+                  <Button
+                    type="link"
+                    size="small"
+                    disabled={
+                      record.order_status === "已下单" || !canPlaceOrder(record)
+                    }
+                    onClick={() => handlePlaceOrder(record)}
+                    style={{ padding: "0 4px", width: "100%" }}
+                  >
+                    下单
+                  </Button>
+                </Col>
+              )}
           </Row>
         </div>
       ),
@@ -1013,21 +1024,25 @@ const DesignPage: React.FC = () => {
       <Card variant="outlined">
         {/* 新增按钮 */}
         <div className="flex justify-between items-center mb-4">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={showModal}
-          >
-            创建订单
-          </Button>
-          <Button
-            icon={<ExportOutlined />}
-            size="small"
-            className="border-gray-300 hover:border-blue-500"
-          >
-            导出
-          </Button>
+          {PermissionService.canEditOrder() && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={showModal}
+            >
+              创建订单
+            </Button>
+          )}
+          {PermissionService.canExport() && (
+            <Button
+              icon={<ExportOutlined />}
+              size="small"
+              className="border-gray-300 hover:border-blue-500"
+            >
+              导出
+            </Button>
+          )}
         </div>
 
         {/* 表格区域 */}

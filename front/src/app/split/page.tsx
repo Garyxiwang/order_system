@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
 import { PageModule } from "@/utils/permissions";
+import PermissionService from "@/utils/permissions";
 import {
   Card,
   Table,
@@ -780,22 +781,6 @@ const DesignPage: React.FC = () => {
         return text || "-";
       },
     },
-
-    {
-      title: "订单金额",
-      dataIndex: "order_amount",
-      key: "order_amount",
-      render: (text: string) => (
-        <div>
-          {text
-            ? `¥${Number(text).toLocaleString("zh-CN", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}`
-            : "-"}
-        </div>
-      ),
-    },
     {
       title: "面积信息",
       key: "area_info",
@@ -810,6 +795,25 @@ const DesignPage: React.FC = () => {
         );
       },
     },
+    ...(PermissionService.canViewSplitOrderAmount()
+      ? [
+          {
+            title: "订单金额",
+            dataIndex: "order_amount",
+            key: "order_amount",
+            render: (text: string) => (
+              <div>
+                {text
+                  ? `¥${Number(text).toLocaleString("zh-CN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : "-"}
+              </div>
+            ),
+          },
+        ]
+      : []),
     {
       title: "备注",
       dataIndex: "remarks",
@@ -870,47 +874,56 @@ const DesignPage: React.FC = () => {
               width: "145px",
             }}
           >
-            <Button
-              type="link"
-              size="small"
-              disabled={isRevoked || isOrdered}
-              onClick={() => showEditModal(record)}
-            >
-              编辑订单
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              disabled={isRevoked || isNotStarted}
-              onClick={() => showSplitModal(record)}
-            >
-              更新进度
-            </Button>
-
-            <Button
-              type="link"
-              size="small"
-              disabled={isRevoked}
-              onClick={() => showOrderStatusModal(record)}
-            >
-              订单状态
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              disabled={isRevoked || record.quote_status === "已打款"}
-              onClick={() => showPriceStatusModal(record)}
-            >
-              报价状态
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              disabled={isRevoked || !canPlaceOrder}
-              onClick={() => handlePlaceOrder(record)}
-            >
-              下单
-            </Button>
+            {PermissionService.canEditSplitOrder() && (
+              <Button
+                type="link"
+                size="small"
+                disabled={isRevoked || isOrdered}
+                onClick={() => showEditModal(record)}
+              >
+                编辑订单
+              </Button>
+            )}
+            {PermissionService.canUpdateSplitProgress() && (
+              <Button
+                type="link"
+                size="small"
+                disabled={isRevoked || isNotStarted}
+                onClick={() => showSplitModal(record)}
+              >
+                更新进度
+              </Button>
+            )}
+            {PermissionService.canUpdateOrderStatus() && (
+              <Button
+                type="link"
+                size="small"
+                disabled={isRevoked}
+                onClick={() => showOrderStatusModal(record)}
+              >
+                订单状态
+              </Button>
+            )}
+            {PermissionService.canUpdateQuoteStatus() && (
+              <Button
+                type="link"
+                size="small"
+                disabled={isRevoked || record.quote_status === "已打款"}
+                onClick={() => showPriceStatusModal(record)}
+              >
+                报价状态
+              </Button>
+            )}
+            {PermissionService.canPlaceSplitOrder() && (
+              <Button
+                type="link"
+                size="small"
+                disabled={isRevoked || !canPlaceOrder}
+                onClick={() => handlePlaceOrder(record)}
+              >
+                下单
+              </Button>
+            )}
           </div>
         );
       },
@@ -1117,13 +1130,15 @@ const DesignPage: React.FC = () => {
       <Card variant="outlined">
         {/* 新增按钮 */}
         <div className="flex justify-end items-center mb-4">
-          <Button
-            icon={<ExportOutlined />}
-            size="small"
-            className="border-gray-300 hover:border-blue-500"
-          >
-            导出
-          </Button>
+          {PermissionService.canExportSplit() && (
+            <Button
+              icon={<ExportOutlined />}
+              size="small"
+              className="border-gray-300 hover:border-blue-500"
+            >
+              导出
+            </Button>
+          )}
         </div>
         {/* 表格区域 */}
         <Table<SplitOrder>

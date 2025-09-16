@@ -17,7 +17,6 @@ export enum UserRole {
 
 // 页面模块枚举
 export enum PageModule {
-  DASHBOARD = 'dashboard',
   DESIGN = 'design',
   SPLIT = 'split',
   PRODUCTION = 'production',
@@ -26,19 +25,6 @@ export enum PageModule {
 
 // 模块权限配置
 export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
-  [PageModule.DASHBOARD]: [
-    UserRole.CLERK,
-    UserRole.DESIGNER,
-    UserRole.SPLITTING,
-    UserRole.MANAGER,
-    UserRole.AUDITOR,
-    UserRole.PROCUREMENT,
-    UserRole.SALESPERSON,
-    UserRole.FINANCE,
-    UserRole.WORKSHOP,
-    UserRole.SHIPPER,
-    UserRole.SUPER_ADMIN
-  ],
   [PageModule.DESIGN]: [
     UserRole.CLERK,
     UserRole.DESIGNER,
@@ -69,6 +55,179 @@ export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
   ],
   [PageModule.CONFIG]: [
     UserRole.SUPER_ADMIN
+  ]
+};
+
+// 设计管理操作权限枚举
+export enum DesignAction {
+  EDIT_ORDER = 'editOrder',        // 编辑订单
+  UPDATE_PROGRESS = 'updateProgress', // 更新进度
+  PLACE_ORDER = 'placeOrder',      // 下单
+  CANCEL_ORDER = 'cancelOrder',    // 撤销
+  EXPORT = 'export',               // 导出
+  VIEW_ORDER_AMOUNT = 'viewOrderAmount' // 查看订单金额
+}
+
+// 拆单管理操作权限枚举
+export enum SplitAction {
+  EDIT_ORDER = 'editOrder',        // 编辑订单
+  UPDATE_PROGRESS = 'updateProgress', // 更新进度
+  ORDER_STATUS = 'orderStatus',    // 订单状态
+  QUOTE_STATUS = 'quoteStatus',    // 报价状态
+  PLACE_ORDER = 'placeOrder',      // 下单
+  EXPORT = 'export',               // 导出
+  VIEW_ORDER_AMOUNT = 'viewOrderAmount' // 查看订单金额
+}
+
+// 生产管理操作权限枚举
+export enum ProductionAction {
+  EDIT_ORDER = 'editOrder',        // 编辑订单
+  PURCHASE_STATUS = 'purchaseStatus', // 采购状态
+  PRODUCTION_PROGRESS = 'productionProgress', // 生产进度
+  ORDER_STATUS = 'orderStatus',    // 订单状态
+  EXPORT = 'export'                // 导出
+}
+
+// 设计进度操作权限枚举
+export enum DesignProgressAction {
+  ADD_PROGRESS = 'addProgress',    // 添加进度
+  EDIT_PROGRESS = 'editProgress'   // 编辑进度（实际日期和备注）
+}
+
+// 拆单进度操作权限枚举
+export enum SplitProgressAction {
+  EDIT_INTERNAL_ITEMS = 'editInternalItems',  // 编辑厂内生产项
+  EDIT_EXTERNAL_ITEMS = 'editExternalItems'   // 编辑外购项
+}
+
+// 设计管理操作权限配置
+export const DESIGN_ACTION_PERMISSIONS: Record<DesignAction, UserRole[]> = {
+  [DesignAction.EDIT_ORDER]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [DesignAction.UPDATE_PROGRESS]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.DESIGNER,   // 设计师
+    UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [DesignAction.PLACE_ORDER]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.DESIGNER,   // 设计师
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [DesignAction.CANCEL_ORDER]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.DESIGNER,   // 设计师
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [DesignAction.EXPORT]: [
+    UserRole.FINANCE,    // 财务
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [DesignAction.VIEW_ORDER_AMOUNT]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.FINANCE,    // 财务
+    UserRole.SALESPERSON, // 销售
+    UserRole.SUPER_ADMIN // 超管
+  ]
+};
+
+// 拆单管理操作权限配置
+export const SPLIT_ACTION_PERMISSIONS: Record<SplitAction, UserRole[]> = {
+  [SplitAction.EDIT_ORDER]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [SplitAction.UPDATE_PROGRESS]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.SPLITTING,  // 拆单员
+    UserRole.MANAGER,    // 主管
+    UserRole.PROCUREMENT, // 采购
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [SplitAction.ORDER_STATUS]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.MANAGER,    // 主管
+    UserRole.AUDITOR,    // 审核员
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [SplitAction.QUOTE_STATUS]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [SplitAction.PLACE_ORDER]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [SplitAction.EXPORT]: [
+    UserRole.FINANCE,    // 财务
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [SplitAction.VIEW_ORDER_AMOUNT]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.SALESPERSON, // 销售
+    UserRole.FINANCE,    // 财务
+    UserRole.SUPER_ADMIN // 超管
+  ]
+};
+
+// 生产管理操作权限配置
+export const PRODUCTION_ACTION_PERMISSIONS: Record<ProductionAction, UserRole[]> = {
+  [ProductionAction.EDIT_ORDER]: [
+    UserRole.SHIPPER,    // 发货员
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [ProductionAction.PURCHASE_STATUS]: [
+    UserRole.PROCUREMENT, // 采购
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [ProductionAction.PRODUCTION_PROGRESS]: [
+    UserRole.WORKSHOP,   // 车间
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [ProductionAction.ORDER_STATUS]: [
+    UserRole.SHIPPER,    // 发货员
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [ProductionAction.EXPORT]: [
+    UserRole.FINANCE,    // 财务
+    UserRole.SUPER_ADMIN // 超管
+  ]
+};
+
+// 设计进度操作权限配置
+export const DESIGN_PROGRESS_ACTION_PERMISSIONS: Record<DesignProgressAction, UserRole[]> = {
+  [DesignProgressAction.ADD_PROGRESS]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [DesignProgressAction.EDIT_PROGRESS]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.DESIGNER,   // 设计师
+    UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
+  ]
+};
+
+// 拆单进度操作权限配置
+export const SPLIT_PROGRESS_ACTION_PERMISSIONS: Record<SplitProgressAction, UserRole[]> = {
+  [SplitProgressAction.EDIT_INTERNAL_ITEMS]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.SPLITTING,  // 拆单员
+    UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [SplitProgressAction.EDIT_EXTERNAL_ITEMS]: [
+    UserRole.CLERK,      // 录入员
+    UserRole.PROCUREMENT, // 采购员
+    UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
   ]
 };
 
@@ -105,6 +264,63 @@ export class PermissionService {
   }
 
   /**
+   * 检查用户是否有设计管理特定操作权限
+   * @param action 设计管理操作
+   * @param userRole 用户角色（可选，不传则使用当前登录用户角色）
+   */
+  static hasDesignActionPermission(action: DesignAction, userRole?: UserRole): boolean {
+    const role = userRole || this.getCurrentUserRole();
+    if (!role) {
+      return false;
+    }
+
+    const allowedRoles = DESIGN_ACTION_PERMISSIONS[action];
+    return allowedRoles.includes(role);
+  }
+
+  /**
+   * 检查用户是否可以编辑订单
+   */
+  static canEditOrder(userRole?: UserRole): boolean {
+    return this.hasDesignActionPermission(DesignAction.EDIT_ORDER, userRole);
+  }
+
+  /**
+   * 检查用户是否可以更新进度
+   */
+  static canUpdateProgress(userRole?: UserRole): boolean {
+    return this.hasDesignActionPermission(DesignAction.UPDATE_PROGRESS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以下单
+   */
+  static canPlaceOrder(userRole?: UserRole): boolean {
+    return this.hasDesignActionPermission(DesignAction.PLACE_ORDER, userRole);
+  }
+
+  /**
+   * 检查用户是否可以撤销订单
+   */
+  static canCancelOrder(userRole?: UserRole): boolean {
+    return this.hasDesignActionPermission(DesignAction.CANCEL_ORDER, userRole);
+  }
+
+  /**
+   * 检查用户是否可以导出
+   */
+  static canExport(userRole?: UserRole): boolean {
+    return this.hasDesignActionPermission(DesignAction.EXPORT, userRole);
+  }
+
+  /**
+   * 检查用户是否可以查看订单金额
+   */
+  static canViewOrderAmount(userRole?: UserRole): boolean {
+    return this.hasDesignActionPermission(DesignAction.VIEW_ORDER_AMOUNT, userRole);
+  }
+
+  /**
    * 检查用户是否有拆单管理权限
    */
   static hasSplitPermission(userRole?: UserRole): boolean {
@@ -112,10 +328,170 @@ export class PermissionService {
   }
 
   /**
+   * 检查用户是否有拆单管理特定操作权限
+   * @param action 拆单管理操作
+   * @param userRole 用户角色（可选，不传则使用当前登录用户角色）
+   */
+  static hasSplitActionPermission(action: SplitAction, userRole?: UserRole): boolean {
+    const role = userRole || this.getCurrentUserRole();
+    if (!role) {
+      return false;
+    }
+
+    const allowedRoles = SPLIT_ACTION_PERMISSIONS[action];
+    return allowedRoles.includes(role);
+  }
+
+  /**
+   * 检查用户是否可以编辑拆单订单
+   */
+  static canEditSplitOrder(userRole?: UserRole): boolean {
+    return this.hasSplitActionPermission(SplitAction.EDIT_ORDER, userRole);
+  }
+
+  /**
+   * 检查用户是否可以更新拆单进度
+   */
+  static canUpdateSplitProgress(userRole?: UserRole): boolean {
+    return this.hasSplitActionPermission(SplitAction.UPDATE_PROGRESS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以修改订单状态
+   */
+  static canUpdateOrderStatus(userRole?: UserRole): boolean {
+    return this.hasSplitActionPermission(SplitAction.ORDER_STATUS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以修改报价状态
+   */
+  static canUpdateQuoteStatus(userRole?: UserRole): boolean {
+    return this.hasSplitActionPermission(SplitAction.QUOTE_STATUS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以拆单下单
+   */
+  static canPlaceSplitOrder(userRole?: UserRole): boolean {
+    return this.hasSplitActionPermission(SplitAction.PLACE_ORDER, userRole);
+  }
+
+  /**
+   * 检查用户是否可以导出拆单数据
+   */
+  static canExportSplit(userRole?: UserRole): boolean {
+    return this.hasSplitActionPermission(SplitAction.EXPORT, userRole);
+  }
+
+  /**
+   * 检查用户是否可以查看拆单页面订单金额
+   */
+  static canViewSplitOrderAmount(userRole?: UserRole): boolean {
+    return this.hasSplitActionPermission(SplitAction.VIEW_ORDER_AMOUNT, userRole);
+  }
+
+  /**
    * 检查用户是否有生产管理权限
    */
   static hasProductionPermission(userRole?: UserRole): boolean {
     return this.hasModulePermission(PageModule.PRODUCTION, userRole);
+  }
+
+  /**
+   * 检查用户是否有生产管理操作权限
+   */
+  static hasProductionActionPermission(action: ProductionAction, userRole?: UserRole): boolean {
+    const role = userRole || this.getCurrentUserRole();
+    if (!role) {
+      return false;
+    }
+    return PRODUCTION_ACTION_PERMISSIONS[action]?.includes(role) || false;
+  }
+
+  /**
+   * 检查用户是否可以编辑生产订单
+   */
+  static canEditProductionOrder(userRole?: UserRole): boolean {
+    return this.hasProductionActionPermission(ProductionAction.EDIT_ORDER, userRole);
+  }
+
+  /**
+   * 检查用户是否可以管理采购状态
+   */
+  static canManagePurchaseStatus(userRole?: UserRole): boolean {
+    return this.hasProductionActionPermission(ProductionAction.PURCHASE_STATUS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以管理生产进度
+   */
+  static canManageProductionProgress(userRole?: UserRole): boolean {
+    return this.hasProductionActionPermission(ProductionAction.PRODUCTION_PROGRESS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以管理生产订单状态
+   */
+  static canManageProductionOrderStatus(userRole?: UserRole): boolean {
+    return this.hasProductionActionPermission(ProductionAction.ORDER_STATUS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以导出生产数据
+   */
+  static canExportProduction(userRole?: UserRole): boolean {
+    return this.hasProductionActionPermission(ProductionAction.EXPORT, userRole);
+  }
+
+  /**
+   * 检查用户是否有设计进度操作权限
+   */
+  static hasDesignProgressActionPermission(action: DesignProgressAction, userRole?: UserRole): boolean {
+    const role = userRole || this.getCurrentUserRole();
+    if (!role) {
+      return false;
+    }
+    return DESIGN_PROGRESS_ACTION_PERMISSIONS[action]?.includes(role) || false;
+  }
+
+  /**
+   * 检查用户是否可以添加设计进度
+   */
+  static canAddDesignProgress(userRole?: UserRole): boolean {
+    return this.hasDesignProgressActionPermission(DesignProgressAction.ADD_PROGRESS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以编辑设计进度（实际日期和备注）
+   */
+  static canEditDesignProgress(userRole?: UserRole): boolean {
+    return this.hasDesignProgressActionPermission(DesignProgressAction.EDIT_PROGRESS, userRole);
+  }
+
+  /**
+   * 检查用户是否有拆单进度操作权限
+   */
+  static hasSplitProgressActionPermission(action: SplitProgressAction, userRole?: UserRole): boolean {
+    const role = userRole || this.getCurrentUserRole();
+    if (!role) {
+      return false;
+    }
+    return SPLIT_PROGRESS_ACTION_PERMISSIONS[action]?.includes(role) || false;
+  }
+
+  /**
+   * 检查用户是否可以编辑厂内生产项
+   */
+  static canEditInternalItems(userRole?: UserRole): boolean {
+    return this.hasSplitProgressActionPermission(SplitProgressAction.EDIT_INTERNAL_ITEMS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以编辑外购项
+   */
+  static canEditExternalItems(userRole?: UserRole): boolean {
+    return this.hasSplitProgressActionPermission(SplitProgressAction.EDIT_EXTERNAL_ITEMS, userRole);
   }
 
   /**

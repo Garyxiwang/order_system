@@ -22,6 +22,7 @@ import {
   updateProgress,
   type ProgressData,
 } from "../../services/progressService";
+import PermissionService from "@/utils/permissions";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -270,7 +271,8 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       key: "plannedDate",
       width: 150,
       render: (text: string, record: ProgressItem) => {
-        if (editingId === record.id) {
+        // 只有有添加进度权限的用户才能编辑计划日期（设计师不能修改）
+        if (editingId === record.id && PermissionService.canAddDesignProgress()) {
           return (
             <DatePicker
               value={tempPlannedDate}
@@ -291,7 +293,8 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       key: "actualDate",
       width: 150,
       render: (text: string, record: ProgressItem) => {
-        if (editingId === record.id && record.item !== "下单") {
+        // 只有有编辑权限且正在编辑状态下才显示日期选择器
+        if (editingId === record.id && record.item !== "下单" && PermissionService.canEditDesignProgress()) {
           return (
             <DatePicker
               value={tempDate}
@@ -312,7 +315,8 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       key: "note",
       width: 120,
       render: (text: string, record: ProgressItem) => {
-        if (editingId === record.id) {
+        // 只有有编辑权限且正在编辑状态下才显示文本框
+        if (editingId === record.id && PermissionService.canEditDesignProgress()) {
           return (
             <Input.TextArea
               value={tempNote}
@@ -332,6 +336,11 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       key: "action",
       width: 120,
       render: (text: string, record: ProgressItem) => {
+        // 检查用户是否有编辑进度权限
+        if (!PermissionService.canEditDesignProgress()) {
+          return null; // 没有权限则不显示操作按钮
+        }
+
         if (editingId === record.id) {
           return (
             <div className={styles.buttonContainer}>
@@ -392,77 +401,80 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
         </Card>
       </div>
 
-      <Card title="添加进度" size="small">
-        <Form
-          form={form}
-          layout="horizontal"
-          labelCol={{ span: 4 }}
-          wrapperCol={{ span: 18 }}
-          onFinish={handleAddProgress}
-        >
-          <Form.Item
-            label="进度事项"
-            name="progressType"
-            rules={[{ required: true, message: "请选择进度事项" }]}
+      {/* 只有有添加进度权限的用户才能看到添加进度卡片 */}
+      {PermissionService.canAddDesignProgress() && (
+        <Card title="添加进度" size="small">
+          <Form
+            form={form}
+            layout="horizontal"
+            labelCol={{ span: 4 }}
+            wrapperCol={{ span: 18 }}
+            onFinish={handleAddProgress}
           >
-            <Select
-              placeholder="请选择进度事项"
-              onChange={handleProgressTypeChange}
-            >
-              {progressTypes.map((type) => (
-                <Option key={type} value={type}>
-                  {type}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          {showCustomContent && (
             <Form.Item
-              label="进度内容"
-              name="customContent"
-              rules={[{ required: true, message: "请填写进度内容" }]}
+              label="进度事项"
+              name="progressType"
+              rules={[{ required: true, message: "请选择进度事项" }]}
             >
-              <TextArea placeholder="请填写具体的进度内容" rows={3} />
+              <Select
+                placeholder="请选择进度事项"
+                onChange={handleProgressTypeChange}
+              >
+                {progressTypes.map((type) => (
+                  <Option key={type} value={type}>
+                    {type}
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
-          )}
 
-          <Form.Item
-            label="计划日期"
-            name="plannedDate"
-            rules={[{ required: true, message: "请选择计划日期" }]}
-          >
-            <DatePicker
-              className={styles.fullWidth}
-              placeholder="请选择计划日期"
-            />
-          </Form.Item>
+            {showCustomContent && (
+              <Form.Item
+                label="进度内容"
+                name="customContent"
+                rules={[{ required: true, message: "请填写进度内容" }]}
+              >
+                <TextArea placeholder="请填写具体的进度内容" rows={3} />
+              </Form.Item>
+            )}
 
-          {/* <Form.Item label="实际日期" name="actualDate">
-            <DatePicker
-              className={styles.fullWidth}
-              placeholder="请选择实际日期"
-            />
-          </Form.Item> */}
-          <Form.Item label="备注" name="note">
-            <Input.TextArea
-              className={styles.fullWidth}
-              placeholder="请输入备注"
-            />
-          </Form.Item>
+            <Form.Item
+              label="计划日期"
+              name="plannedDate"
+              rules={[{ required: true, message: "请选择计划日期" }]}
+            >
+              <DatePicker
+                className={styles.fullWidth}
+                placeholder="请选择计划日期"
+              />
+            </Form.Item>
 
-          <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
-            <div className={styles.rightAlign}>
-              <Space>
-                <Button onClick={handleCancel}>取消</Button>
-                <Button type="primary" htmlType="submit" loading={loading}>
-                  确认
-                </Button>
-              </Space>
-            </div>
-          </Form.Item>
-        </Form>
-      </Card>
+            {/* <Form.Item label="实际日期" name="actualDate">
+              <DatePicker
+                className={styles.fullWidth}
+                placeholder="请选择实际日期"
+              />
+            </Form.Item> */}
+            <Form.Item label="备注" name="note">
+              <Input.TextArea
+                className={styles.fullWidth}
+                placeholder="请输入备注"
+              />
+            </Form.Item>
+
+            <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
+              <div className={styles.rightAlign}>
+                <Space>
+                  <Button onClick={handleCancel}>取消</Button>
+                  <Button type="primary" htmlType="submit" loading={loading}>
+                    确认
+                  </Button>
+                </Space>
+              </div>
+            </Form.Item>
+          </Form>
+        </Card>
+      )}
     </Modal>
   );
 };

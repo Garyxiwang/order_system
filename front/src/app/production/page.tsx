@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
-import { PageModule } from "@/utils/permissions";
+import { PageModule, PermissionService } from "@/utils/permissions";
 import {
   Card,
   Table,
@@ -525,38 +525,53 @@ const ProductionPage: React.FC = () => {
             width: "145px",
           }}
         >
-          <Button
-            type="link"
-            size="small"
-            disabled={record.order_status === "已完成"}
-            onClick={() => showEditModal(record)}
-          >
-            编辑订单
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            disabled={record.order_status === "已完成"}
-            onClick={() => showPurchaseModal(record)}
-          >
-            采购状态
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            disabled={record.order_status === "已完成"}
-            onClick={() => showProgressModal(record)}
-          >
-            生产进度
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            disabled={record.order_status === "已完成"}
-            onClick={() => showOrderStatusModal(record)}
-          >
-            订单状态
-          </Button>
+          {/* 编辑订单 - 发货员、超管 */}
+          {PermissionService.canEditProductionOrder() && (
+            <Button
+              type="link"
+              size="small"
+              disabled={record.order_status === "已完成"}
+              onClick={() => showEditModal(record)}
+            >
+              编辑订单
+            </Button>
+          )}
+          
+          {/* 采购状态 - 采购、超管 */}
+          {PermissionService.canManagePurchaseStatus() && (
+            <Button
+              type="link"
+              size="small"
+              disabled={record.order_status === "已完成"}
+              onClick={() => showPurchaseModal(record)}
+            >
+              采购状态
+            </Button>
+          )}
+          
+          {/* 生产进度 - 车间、超管 */}
+          {PermissionService.canManageProductionProgress() && (
+            <Button
+              type="link"
+              size="small"
+              disabled={record.order_status === "已完成"}
+              onClick={() => showProgressModal(record)}
+            >
+              生产进度
+            </Button>
+          )}
+          
+          {/* 订单状态 - 发货员、超管 */}
+          {PermissionService.canManageProductionOrderStatus() && (
+            <Button
+              type="link"
+              size="small"
+              disabled={record.order_status === "已完成"}
+              onClick={() => showOrderStatusModal(record)}
+            >
+              订单状态
+            </Button>
+          )}
         </div>
       ),
     },
@@ -716,16 +731,18 @@ const ProductionPage: React.FC = () => {
 
       {/* 内容Card */}
       <Card variant="outlined">
-        {/* 导出按钮 */}
-        <div className="flex justify-end items-center mb-4">
-          <Button
-            icon={<ExportOutlined />}
-            size="small"
-            className="border-gray-300 hover:border-blue-500"
-          >
-            导出
-          </Button>
-        </div>
+        {/* 导出按钮 - 财务、超管 */}
+        {PermissionService.canExportProduction() && (
+          <div className="flex justify-end items-center mb-4">
+            <Button
+              icon={<ExportOutlined />}
+              size="small"
+              className="border-gray-300 hover:border-blue-500"
+            >
+              导出
+            </Button>
+          </div>
+        )}
         {/* 表格区域 */}
         <Table<ProductionOrder>
           columns={columns}

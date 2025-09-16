@@ -21,6 +21,7 @@ import {
   SplitProgressItem,
 } from "../../services/splitProgressApi";
 import { CategoryService, CategoryData } from "../../services/categoryService";
+import PermissionService from "@/utils/permissions";
 
 interface SplitOrderModalProps {
   visible: boolean;
@@ -305,7 +306,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
         wrapperCol={{ span: 16 }}
       >
         {/* 厂内生产项 */}
-        {internalCategories.length > 0 && (
+        {internalCategories.length > 0 && PermissionService.canEditInternalItems() && (
           <Row style={{ marginBottom: 16 }}>
             <Col span={24}>
               <Card title="厂内生产项" size="small">
@@ -347,7 +348,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
         )}
 
         {/* 外购项 */}
-        {externalCategories.length > 0 && (
+        {externalCategories.length > 0 && PermissionService.canEditExternalItems() && (
           <Row style={{ marginBottom: 16 }}>
             <Col span={24}>
               <Card title="外购项" size="small">

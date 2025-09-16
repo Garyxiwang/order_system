@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Layout, Menu, Button, Drawer } from 'antd';
-import { MenuOutlined, ShoppingCartOutlined, UserOutlined, DashboardOutlined, SettingOutlined } from '@ant-design/icons';
+import { MenuOutlined, ShoppingCartOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
 const { Header } = Layout;
@@ -19,11 +19,6 @@ const Navbar: React.FC = () => {
   };
 
   const menuItems = [
-    {
-      key: 'dashboard',
-      icon: <DashboardOutlined />,
-      label: <Link href="/dashboard">首页</Link>,
-    },
     {
       key: 'design',
       icon: <UserOutlined />,
