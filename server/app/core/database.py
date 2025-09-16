@@ -63,27 +63,16 @@ def create_initial_data():
     
     db = SessionLocal()
     try:
-        # 检查是否已有管理员用户
-        admin_user = db.query(User).filter(User.username == "admin").first()
-        if not admin_user:
-            # 创建默认管理员用户
-            admin_user = User(
-                username="admin",
-                password=get_password_hash("admin123"),
-                role=UserRole.ADMIN
+        # 检查是否已有超级管理员用户
+        super_admin_user = db.query(User).filter(User.username == "superAdmin").first()
+        if not super_admin_user:
+            # 创建默认超级管理员用户
+            super_admin_user = User(
+                username="superAdmin",
+                password=get_password_hash("superAdmin123456"),
+                role=UserRole.SUPER_ADMIN
             )
-            db.add(admin_user)
-            
-        # 检查是否已有测试用户
-        test_user = db.query(User).filter(User.username == "test").first()
-        if not test_user:
-            # 创建测试用户
-            test_user = User(
-                username="test",
-                password=get_password_hash("test123"),
-                role=UserRole.CLERK
-            )
-            db.add(test_user)
+            db.add(super_admin_user)
             
         db.commit()
         logger.info("Initial data created successfully")
