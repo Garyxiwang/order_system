@@ -59,6 +59,7 @@ class SplitListQuery(BaseModel):
     """拆单列表查询模型"""
     page: int = Field(1, ge=1, description="页码")
     page_size: int = Field(10, ge=1, le=100, description="每页数量")
+    no_pagination: Optional[bool] = Field(False, description="是否不分页，获取所有数据")
     order_number: Optional[str] = Field(None, description="订单编号")
     customer_name: Optional[str] = Field(None, description="客户名称")
     designer: Optional[str] = Field(None, description="设计师")

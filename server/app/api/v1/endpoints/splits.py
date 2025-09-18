@@ -106,9 +106,20 @@ async def get_splits(
         # 获取总数
         total = query.count()
 
-        # 分页
-        offset = (query_data.page - 1) * query_data.page_size
-        splits = query.offset(offset).limit(query_data.page_size).all()
+        # 分页处理
+        if query_data.no_pagination:
+            # 不分页，获取所有数据
+            splits = query.all()
+            page = 1
+            page_size = total
+            total_pages = 1
+        else:
+            # 分页
+            offset = (query_data.page - 1) * query_data.page_size
+            splits = query.offset(offset).limit(query_data.page_size).all()
+            page = query_data.page
+            page_size = query_data.page_size
+            total_pages = (total + page_size - 1) // page_size
 
         # 为每个拆单构建internal_production_items和external_purchase_items字段
         split_responses = []
@@ -175,14 +186,17 @@ async def get_splits(
             split_responses.append(split_dict)
 
         # 计算总页数
-        total_pages = math.ceil(
-            total / query_data.page_size) if total > 0 else 0
+        if query_data.no_pagination:
+            total_pages = 1
+        else:
+            total_pages = math.ceil(
+                total / query_data.page_size) if total > 0 else 0
 
         return SplitListResponse(
             items=split_responses,
             total=total,
-            page=query_data.page,
-            page_size=query_data.page_size,
+            page=page,
+            page_size=page_size,
             total_pages=total_pages
         )
 

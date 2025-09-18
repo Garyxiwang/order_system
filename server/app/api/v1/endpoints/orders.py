@@ -131,9 +131,20 @@ async def get_orders(
         # 默认按分单日期倒序排列
         query = query.order_by(Order.assignment_date.desc())
 
-        # 分页
-        offset = (query_data.page - 1) * query_data.page_size
-        orders = query.offset(offset).limit(query_data.page_size).all()
+        # 分页处理
+        if query_data.no_pagination:
+            # 不分页，获取所有数据
+            orders = query.all()
+            page = 1
+            page_size = total
+            total_pages = 1
+        else:
+            # 分页
+            offset = (query_data.page - 1) * query_data.page_size
+            orders = query.offset(offset).limit(query_data.page_size).all()
+            page = query_data.page
+            page_size = query_data.page_size
+            total_pages = (total + page_size - 1) // page_size
 
         # 转换为响应格式
         order_items = []
@@ -176,15 +187,11 @@ async def get_orders(
             )
             order_items.append(order_item)
 
-        # 计算总页数
-        total_pages = (total + query_data.page_size -
-                       1) // query_data.page_size
-
         return OrderListResponse(
             items=order_items,
             total=total,
-            page=query_data.page,
-            page_size=query_data.page_size,
+            page=page,
+            page_size=page_size,
             total_pages=total_pages
         )
 

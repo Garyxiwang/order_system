@@ -7,11 +7,15 @@ class ProductionListQuery(BaseModel):
     """生产管理列表查询参数"""
     page: int = Field(default=1, ge=1, description="页码")
     page_size: int = Field(default=10, ge=1, le=100, description="每页数量")
+    no_pagination: Optional[bool] = Field(default=False, description="是否不分页，返回全部数据")
     
     # 搜索条件
     order_number: Optional[str] = Field(default=None, description="订单编号")
     customer_name: Optional[str] = Field(default=None, description="客户名称")
     order_status: Optional[List[str]] = Field(default=None, description="订单状态（多选）")
+    
+    # 排序字段
+    sort: Optional[str] = Field(default="expected_shipping_date", description="排序字段")
     
     # 日期区间搜索
     expected_delivery_start: Optional[str] = Field(default=None, description="预计交货日期开始")

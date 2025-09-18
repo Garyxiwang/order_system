@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
 import { PageModule, PermissionService } from "@/utils/permissions";
+import dayjs from "dayjs";
+import * as XLSX from "xlsx";
 import {
   Card,
   Table,
@@ -28,16 +30,14 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 import {
   getProductionOrders,
-  searchProductionOrders,
   updateProductionOrder,
   type ProductionOrder,
-  type PaginatedResponse,
-  type ProductionListResponse,
 } from "../../services/productionApi";
 import EditProductionModal from "./editProductionModal";
 import PurchaseStatusModal from "./purchaseStatusModal";
 import ProductionProgressModal from "./productionProgressModal";
 import PurchaseDetailModal from "./purchaseDetailModal";
+import PreviewModal from "./previewModal";
 
 const ProductionPage: React.FC = () => {
   const [productionData, setProductionData] = useState<ProductionOrder[]>([]);
@@ -60,6 +60,11 @@ const ProductionPage: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(
     null
   );
+
+  // 预览功能相关状态
+  const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+  const [previewData, setPreviewData] = useState<ProductionOrder[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const [searchForm] = Form.useForm();
 
@@ -210,21 +215,40 @@ const ProductionPage: React.FC = () => {
     }
   };
 
-  // 处理搜索
-  const handleSearch = async (
+  // 通用的获取查询条件方法
+  const getSearchParams = (
     customParams?: Record<string, string | string[]>,
-    page?: number,
-    size?: number
+    options?: {
+      noPagination?: boolean;
+      useAlternativeFieldNames?: boolean;
+    }
   ) => {
-    setLoading(true);
-    try {
-      const values = customParams || searchForm.getFieldsValue();
-      console.log("搜索条件:", values);
+    const values = customParams || searchForm.getFieldsValue();
+    const { noPagination = false, useAlternativeFieldNames = false } =
+      options || {};
 
-      const searchParams = {
+    let searchParams: Record<string, string | string[] | boolean>;
+
+    if (useAlternativeFieldNames) {
+      // 用于 handleTableChange 的字段名映射
+      searchParams = {
+        orderNumber: values.orderNumber,
+        orderName: values.orderName,
+        splitStatus: values.splitStatus,
+        // 时间筛选参数
+        expectedDeliveryDate: values.expectedDeliveryDate,
+        orderDate: values.orderDate,
+        entryDate: values.entryDate,
+        expectedDate: values.expectedDate,
+        actualDate: values.actualDate,
+      };
+    } else {
+      // 标准的API字段名映射
+      searchParams = {
         order_number: values.orderNumber,
         customer_name: values.orderName,
         order_status: values.splitStatus,
+        sort: values.sort, // 添加排序字段
         // 时间筛选参数
         expected_delivery_start: values.expectedDeliveryDate?.[0]?.format
           ? values.expectedDeliveryDate[0].format("YYYY-MM-DD")
@@ -252,12 +276,34 @@ const ProductionPage: React.FC = () => {
           : values.actualDate?.[1],
       };
 
-      // 过滤掉空值
-      const filteredParams = Object.fromEntries(
-        Object.entries(searchParams).filter(
-          ([_, value]) => value !== undefined && value !== "" && value !== null
-        )
-      );
+      // 如果需要获取全量数据，添加 no_pagination 参数
+      if (noPagination) {
+        searchParams.no_pagination = true;
+      }
+    }
+
+    // 过滤掉空值
+    const filteredParams = Object.fromEntries(
+      Object.entries(searchParams).filter(
+        ([_, value]) => value !== undefined && value !== "" && value !== null
+      )
+    );
+
+    return filteredParams;
+  };
+
+  // 处理搜索
+  const handleSearch = async (
+    customParams?: Record<string, string | string[] | boolean>,
+    page?: number,
+    size?: number
+  ) => {
+    setLoading(true);
+    try {
+      console.log("搜索条件:", customParams || searchForm.getFieldsValue());
+
+      // 如果传入了customParams，直接使用；否则调用getSearchParams获取
+      const filteredParams = customParams || getSearchParams();
 
       const params = {
         ...filteredParams,
@@ -299,6 +345,287 @@ const ProductionPage: React.FC = () => {
     await handleSearch();
   };
 
+  // 显示预览弹窗
+  const showPreviewModal = async () => {
+    try {
+      setPreviewLoading(true);
+      setIsPreviewModalVisible(true);
+
+      const filteredParams = getSearchParams(undefined, { noPagination: true });
+
+      const response = await getProductionOrders(filteredParams);
+      if (response.code === 200) {
+        setPreviewData(response.data || []);
+      } else {
+        message.error(response.message || "获取预览数据失败");
+      }
+    } catch (error) {
+      message.error("获取预览数据失败，请稍后重试");
+      console.error("获取预览数据失败:", error);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // 关闭预览弹窗
+  const handlePreviewModalCancel = () => {
+    setIsPreviewModalVisible(false);
+    setPreviewData([]);
+  };
+
+  // 处理导出Excel功能
+  const handleExportExcel = async () => {
+    try {
+      setLoading(true);
+
+      const filteredParams = getSearchParams(undefined, { noPagination: true });
+
+      const response = await getProductionOrders(filteredParams);
+      if (response.code !== 200) {
+        message.error(response.message || "获取导出数据失败");
+        return;
+      }
+
+      const exportData = response.data || [];
+      if (exportData.length === 0) {
+        message.warning("没有数据可导出");
+        return;
+      }
+
+      // 解析所有采购状态，提取材料类别
+      const allPurchaseCategories = new Set<string>();
+      exportData.forEach((item: ProductionOrder) => {
+        if (item.purchase_status) {
+          // 解析采购状态字符串，格式：材料名称:日期; 材料名称:日期
+          const statusParts = item.purchase_status.split(";");
+          statusParts.forEach((part) => {
+            const trimmedPart = part.trim();
+            if (trimmedPart && trimmedPart !== "暂无进度信息") {
+              const colonIndex = trimmedPart.indexOf(":");
+              if (colonIndex > 0) {
+                const categoryName = trimmedPart
+                  .substring(0, colonIndex)
+                  .trim();
+                allPurchaseCategories.add(categoryName);
+              }
+            }
+          });
+        }
+      });
+
+      const sortedCategories = Array.from(allPurchaseCategories).sort();
+
+      // 处理导出数据格式
+      const excelData = exportData.map(
+        (item: ProductionOrder, index: number) => {
+          const baseData: Record<string, string | number | boolean> = {
+            序号: index + 1,
+            订单编号: item.order_number || "",
+            客户名称: item.customer_name || "",
+            地址: item.address || "",
+            拆单员: item.splitter || "",
+            是否安装: item.is_installation ? "是" : "否",
+            客户打款日期: item.customer_payment_date || "",
+            拆单下单日期: item.split_order_date || "",
+            下单天数: item.order_days || "",
+            预计交货日期: item.expected_delivery_date || "",
+          };
+
+          // 解析采购状态并填充到对应的材料列
+          const purchaseData: { [key: string]: string } = {};
+          if (item.purchase_status && item.purchase_status !== "暂无进度信息") {
+            const statusParts = item.purchase_status.split(";");
+            statusParts.forEach((part) => {
+              const trimmedPart = part.trim();
+              if (trimmedPart) {
+                const colonIndex = trimmedPart.indexOf(":");
+                if (colonIndex > 0) {
+                  const categoryName = trimmedPart
+                    .substring(0, colonIndex)
+                    .trim();
+                  const dateValue = trimmedPart
+                    .substring(colonIndex + 1)
+                    .trim();
+                  purchaseData[categoryName] = dateValue || "";
+                }
+              }
+            });
+          }
+
+          // 为每个材料类别添加列
+          sortedCategories.forEach((category) => {
+            baseData[category] = purchaseData[category] || "";
+          });
+
+          // 添加其余列
+          const remainingData = {
+            "18板": item.board_18 || "",
+            "09板": item.board_09 || "",
+            下料日期: item.cutting_date || "",
+            预计出货日期: item.expected_shipping_date || "",
+            实际出货日期: item.actual_delivery_date || "",
+            订单状态: item.order_status || "",
+            备注: item.remarks || "",
+          };
+
+          return { ...baseData, ...remainingData };
+        }
+      );
+
+      // 创建工作簿和工作表
+      const wb = XLSX.utils.book_new();
+      let ws: XLSX.WorkSheet;
+
+      if (sortedCategories.length > 0) {
+        // 计算采购状态列的起始位置（从第11列开始，即K列）
+        const purchaseStartCol = 10; // 0-based index, K列
+        const purchaseEndCol = purchaseStartCol + sortedCategories.length - 1;
+
+        // 先创建表头
+        ws = XLSX.utils.aoa_to_sheet([
+          [
+            "序号",
+            "订单编号",
+            "客户名称",
+            "地址",
+            "拆单员",
+            "是否安装",
+            "客户打款日期",
+            "拆单下单日期",
+            "下单天数",
+            "预计交货日期",
+            "采购状态",
+            ...Array(sortedCategories.length - 1).fill(""),
+            "18板",
+            "09板",
+            "下料日期",
+            "预计出货日期",
+            "实际出货日期",
+            "订单状态",
+            "备注",
+          ],
+          [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ...sortedCategories,
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+          ],
+        ]);
+
+        // 然后在第3行开始添加数据
+        XLSX.utils.sheet_add_json(ws, excelData, {
+          origin: "A3",
+          skipHeader: true,
+        });
+
+        // 设置合并单元格
+        if (!ws["!merges"]) ws["!merges"] = [];
+
+        // 合并采购状态主表头
+        ws["!merges"].push({
+          s: { r: 0, c: purchaseStartCol }, // 采购状态开始列
+          e: { r: 0, c: purchaseEndCol }, // 采购状态结束列
+        });
+
+        // 合并其他非采购状态的列
+        const nonPurchaseCols = [
+          { col: 0, name: "序号" },
+          { col: 1, name: "订单编号" },
+          { col: 2, name: "客户名称" },
+          { col: 3, name: "地址" },
+          { col: 4, name: "拆单员" },
+          { col: 5, name: "是否安装" },
+          { col: 6, name: "客户打款日期" },
+          { col: 7, name: "拆单下单日期" },
+          { col: 8, name: "下单天数" },
+          { col: 9, name: "预计交货日期" },
+        ];
+
+        nonPurchaseCols.forEach(({ col }) => {
+          if (!ws["!merges"]) ws["!merges"] = [];
+          ws["!merges"].push({
+            s: { r: 0, c: col },
+            e: { r: 1, c: col },
+          });
+        });
+
+        // 合并后续列
+        const afterPurchaseCols = purchaseEndCol + 1;
+        const totalCols =
+          excelData.length > 0 ? Object.keys(excelData[0]).length : 0;
+        for (let col = afterPurchaseCols; col < totalCols; col++) {
+          ws["!merges"].push({
+            s: { r: 0, c: col },
+            e: { r: 1, c: col },
+          });
+        }
+
+        // 调整数据起始行
+        ws["!ref"] = XLSX.utils.encode_range({
+          s: { c: 0, r: 0 },
+          e: { c: totalCols - 1, r: excelData.length + 1 },
+        });
+      } else {
+        // 如果没有采购状态数据，直接创建简单表格
+        ws = XLSX.utils.json_to_sheet(excelData);
+      }
+
+      // 设置列宽
+      const colWidths = [
+        { wch: 6 }, // 序号
+        { wch: 15 }, // 订单编号
+        { wch: 12 }, // 客户名称
+        { wch: 20 }, // 地址
+        { wch: 10 }, // 拆单员
+        { wch: 8 }, // 是否安装
+        { wch: 12 }, // 客户打款日期
+        { wch: 12 }, // 拆单下单日期
+        { wch: 10 }, // 下单天数
+        { wch: 12 }, // 预计交货日期
+        { wch: 25 }, // 采购状态
+        { wch: 10 }, // 18板
+        { wch: 10 }, // 09板
+        { wch: 12 }, // 下料日期
+        { wch: 12 }, // 实际出货日期
+        { wch: 12 }, // 预计出货日期
+        { wch: 10 }, // 订单状态
+        { wch: 20 }, // 备注
+      ];
+      ws["!cols"] = colWidths;
+
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(wb, ws, "生产管理");
+
+      // 生成文件名
+      const timestamp = dayjs().format("YYYY-MM-DD_HH-mm-ss");
+      const fileName = `生产管理_${timestamp}.xlsx`;
+
+      // 导出文件
+      XLSX.writeFile(wb, fileName);
+
+      message.success("导出成功");
+    } catch (error) {
+      message.error("导出失败，请稍后重试");
+      console.error("导出失败:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 处理分页变化
   const handlePageChange = async (page: number, size?: number) => {
     const newPageSize = size || pageSize;
@@ -314,26 +641,11 @@ const ProductionPage: React.FC = () => {
     }
 
     // 获取当前搜索条件
-    const formValues = searchForm.getFieldsValue();
-    const searchParams: Record<string, string | string[]> = {
-      orderNumber: formValues.orderNumber,
-      orderName: formValues.orderName,
-      splitStatus: formValues.splitStatus,
-      // 时间筛选参数
-      expectedDeliveryDate: formValues.expectedDeliveryDate,
-      orderDate: formValues.orderDate,
-      entryDate: formValues.entryDate,
-      expectedDate: formValues.expectedDate,
-      actualDate: formValues.actualDate,
-    };
+    const filteredParams = getSearchParams(undefined, {
+      useAlternativeFieldNames: true,
+    });
 
-    // 过滤掉空值
-    const filteredParams = Object.fromEntries(
-      Object.entries(searchParams).filter(
-        ([_, value]) => value !== undefined && value !== "" && value !== null
-      )
-    );
-
+    // 使用当前的筛选条件和新的分页参数重新搜索数据
     await handleSearch(filteredParams, newPage, newPageSize);
   };
 
@@ -536,7 +848,7 @@ const ProductionPage: React.FC = () => {
               编辑订单
             </Button>
           )}
-          
+
           {/* 采购状态 - 采购、超管 */}
           {PermissionService.canManagePurchaseStatus() && (
             <Button
@@ -548,7 +860,7 @@ const ProductionPage: React.FC = () => {
               采购状态
             </Button>
           )}
-          
+
           {/* 生产进度 - 车间、超管 */}
           {PermissionService.canManageProductionProgress() && (
             <Button
@@ -560,7 +872,7 @@ const ProductionPage: React.FC = () => {
               生产进度
             </Button>
           )}
-          
+
           {/* 订单状态 - 发货员、超管 */}
           {PermissionService.canManageProductionOrderStatus() && (
             <Button
@@ -585,7 +897,8 @@ const ProductionPage: React.FC = () => {
           form={searchForm}
           layout="inline"
           initialValues={{
-            sort: "预计交货日期",
+            sort: "expected_shipping_date",
+            splitStatus: ["未齐料", "已齐料", "已下料", "已入库", "已发货"],
           }}
         >
           <Row gutter={24}>
@@ -618,6 +931,51 @@ const ProductionPage: React.FC = () => {
                   className="rounded-md"
                   size="middle"
                   allowClear
+                  maxTagCount="responsive"
+                  popupRender={(menu) => {
+                    const allStatusOptions = [
+                      "未齐料",
+                      "已齐料",
+                      "已下料",
+                      "已入库",
+                      "已发货",
+                      "已完成",
+                    ];
+                    const currentValues =
+                      searchForm.getFieldValue("splitStatus") || [];
+                    const isAllSelected = allStatusOptions.every((status) =>
+                      currentValues.includes(status)
+                    );
+
+                    return (
+                      <>
+                        <div
+                          style={{
+                            padding: "8px",
+                            borderBottom: "1px solid #f0f0f0",
+                          }}
+                        >
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => {
+                              if (isAllSelected) {
+                                searchForm.setFieldsValue({ splitStatus: [] });
+                              } else {
+                                searchForm.setFieldsValue({
+                                  splitStatus: allStatusOptions,
+                                });
+                              }
+                            }}
+                            style={{ padding: 0, height: "auto" }}
+                          >
+                            {isAllSelected ? "取消全选" : "全选"}
+                          </Button>
+                        </div>
+                        {menu}
+                      </>
+                    );
+                  }}
                 >
                   <Option value="未齐料">未齐料</Option>
                   <Option value="已齐料">已齐料</Option>
@@ -693,13 +1051,12 @@ const ProductionPage: React.FC = () => {
             <Col span={6} className="py-2">
               <Form.Item name="sort" label="排序项" className="mb-0">
                 <Select
-                  placeholder="全部状态"
+                  placeholder="选择排序方式"
                   className="rounded-md"
                   size="middle"
-                  allowClear
                 >
-                  <Option value="预计交货日期">预计交货日期</Option>
-                  <Option value="预计出货日期">预计出货日期</Option>
+                  <Option value="expected_delivery_date">预计交货日期</Option>
+                  <Option value="expected_shipping_date">预计出货日期</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -731,18 +1088,30 @@ const ProductionPage: React.FC = () => {
 
       {/* 内容Card */}
       <Card variant="outlined">
-        {/* 导出按钮 - 财务、超管 */}
-        {PermissionService.canExportProduction() && (
-          <div className="flex justify-end items-center mb-4">
+        <div className="flex justify-end gap-2 items-center mb-4">
+          <Button
+            type="default"
+            icon={<SearchOutlined />}
+            size="small"
+            className="border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200"
+            onClick={showPreviewModal}
+          >
+            数据预览
+          </Button>
+          {/* 导出按钮 - 财务、超管 */}
+          {PermissionService.canExportProduction() && (
             <Button
               icon={<ExportOutlined />}
               size="small"
               className="border-gray-300 hover:border-blue-500"
+              onClick={handleExportExcel}
+              loading={loading}
             >
               导出
             </Button>
-          </div>
-        )}
+          )}
+        </div>
+
         {/* 表格区域 */}
         <Table<ProductionOrder>
           columns={columns}
@@ -838,6 +1207,15 @@ const ProductionPage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* 预览模态框 */}
+      <PreviewModal
+        visible={isPreviewModalVisible}
+        data={previewData}
+        loading={previewLoading}
+        onCancel={handlePreviewModalCancel}
+        title="生产订单数据预览"
+      />
     </div>
   );
 };

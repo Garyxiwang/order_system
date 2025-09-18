@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
 import { PageModule } from "@/utils/permissions";
 import PermissionService from "@/utils/permissions";
+import dayjs from "dayjs";
+import * as XLSX from "xlsx";
 import {
   Card,
   Table,
@@ -33,6 +35,7 @@ import {
   type ProductionItem,
   type SplitListParams,
 } from "../../services/splitApi";
+import { updateDesignOrder } from "../../services/designApi";
 import { formatDateTime } from "../../utils/dateUtils";
 import EditOrderModal from "./editOrderModal";
 import type { EditFormValues } from "./editOrderModal";
@@ -42,6 +45,7 @@ import type { Dayjs } from "dayjs";
 import { UserService, UserData, UserRole } from "../../services/userService";
 import { CategoryService, CategoryData } from "../../services/categoryService";
 import InternalProductionDetailModal from "./progressDetailModal";
+import PreviewModal from "./previewModal";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -76,6 +80,11 @@ const DesignPage: React.FC = () => {
   const [actualPaymentDate, setActualPaymentDate] = useState<Dayjs | null>(
     null
   );
+
+  // 预览功能相关状态
+  const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+  const [previewData, setPreviewData] = useState<SplitOrder[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [dateError, setDateError] = useState<string>("");
 
   // 订单信息补充Modal相关状态
@@ -175,6 +184,44 @@ const DesignPage: React.FC = () => {
     setSelectedOrder(null);
   };
 
+  // 统一的获取搜索参数方法
+  const buildSearchParams = (options?: {
+    no_pagination?: boolean;
+  }): SplitListParams => {
+    const formValues = searchForm.getFieldsValue();
+    const searchParams: SplitListParams = {
+      orderNumber: formValues.orderNumber,
+      customerName: formValues.customerName,
+      designer: formValues.designer,
+      salesperson: formValues.salesperson,
+      splitter: formValues.splitter,
+      orderStatus:
+        formValues.orderStatus && formValues.orderStatus.length > 0
+          ? formValues.orderStatus
+          : undefined,
+      quoteStatus:
+        formValues.quoteStatus && formValues.quoteStatus.length > 0
+          ? formValues.quoteStatus
+          : undefined,
+      orderType: formValues.orderType,
+      orderCategory:
+        formValues.orderCategory && formValues.orderCategory.length > 0
+          ? formValues.orderCategory
+          : undefined,
+      startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
+      endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
+      orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
+      orderDateEnd: formValues.orderDateRange?.[1]?.format("YYYY-MM-DD"),
+    };
+
+    // 如果需要获取全量数据，添加no_pagination参数
+    if (options?.no_pagination) {
+      searchParams.no_pagination = true;
+    }
+
+    return searchParams;
+  };
+
   // 处理搜索
   const handleSearch = async (
     customParams?: SplitListParams,
@@ -191,31 +238,7 @@ const DesignPage: React.FC = () => {
         searchParams = customParams;
       } else {
         // 否则从表单获取参数
-        const formValues = searchForm.getFieldsValue();
-        searchParams = {
-          orderNumber: formValues.orderNumber,
-          customerName: formValues.customerName,
-          designer: formValues.designer,
-          salesperson: formValues.salesperson,
-          splitter: formValues.splitter,
-          orderStatus:
-            formValues.orderStatus && formValues.orderStatus.length > 0
-              ? formValues.orderStatus
-              : undefined,
-          quoteStatus:
-            formValues.quoteStatus && formValues.quoteStatus.length > 0
-              ? formValues.quoteStatus
-              : undefined,
-          orderType: formValues.orderType,
-          orderCategory:
-            formValues.orderCategory && formValues.orderCategory.length > 0
-              ? formValues.orderCategory
-              : undefined,
-          startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
-          endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
-          orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
-          orderDateEnd: formValues.orderDateRange?.[1]?.format("YYYY-MM-DD"),
-        };
+        searchParams = buildSearchParams();
       }
 
       // 过滤掉空值
@@ -350,6 +373,466 @@ const DesignPage: React.FC = () => {
     } catch (error) {
       message.error("订单状态修改失败，请稍后重试");
       console.error("订单状态修改失败:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 显示预览弹窗
+  const showPreviewModal = async () => {
+    try {
+      setPreviewLoading(true);
+      setIsPreviewModalVisible(true);
+
+      // 获取当前搜索条件
+      const searchParams = buildSearchParams({ no_pagination: true });
+
+      // 过滤掉空值
+      const filteredParams = Object.fromEntries(
+        Object.entries(searchParams).filter(
+          ([_, value]) => value !== undefined && value !== "" && value !== null
+        )
+      );
+
+      // 调用接口获取数据
+      const response = await getSplitOrders(filteredParams);
+      setPreviewData(response.items || []);
+    } catch (error) {
+      message.error("获取预览数据失败，请稍后重试");
+      console.error("获取预览数据失败:", error);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // 关闭预览弹窗
+  const handlePreviewModalCancel = () => {
+    setIsPreviewModalVisible(false);
+    setPreviewData([]);
+  };
+
+  // 处理导出Excel功能
+  const handleExportExcel = async () => {
+    try {
+      setLoading(true);
+
+      // 获取当前搜索条件
+      const searchParams = buildSearchParams({ no_pagination: true });
+
+      // 过滤掉空值
+      const filteredParams = Object.fromEntries(
+        Object.entries(searchParams).filter(
+          ([_, value]) => value !== undefined && value !== "" && value !== null
+        )
+      );
+
+      // 调用接口获取全量数据
+      const response = await getSplitOrders(filteredParams);
+      const exportData = response.items || [];
+      if (exportData.length === 0) {
+        message.destroy();
+        message.warning("没有数据可导出");
+        return;
+      }
+
+      // 解析生产项目，分离项目名、实际时间和消耗时间（格式："类目:实际时间:消耗时间"）
+      const parseProductionItem = (item: string) => {
+        if (item.includes(":")) {
+          const parts = item.split(":");
+          if (parts.length >= 3) {
+            return { 
+              name: parts[0].trim(), 
+              date: parts[1].trim(), 
+              cycle: parts[2].trim() 
+            };
+          } else if (parts.length >= 2) {
+            return { 
+              name: parts[0].trim(), 
+              date: parts[1].trim(), 
+              cycle: null 
+            };
+          }
+        }
+        return { name: item, date: null, cycle: null };
+      };
+
+      // 分别循环处理厂内生产项和外购项，各自去重
+      const allInternalItems = new Set<string>();
+      const allExternalItems = new Set<string>();
+
+      exportData.forEach((item: SplitOrder) => {
+        // 处理厂内生产项
+        if (item.internal_production_items) {
+          let internalItems: string[] = [];
+          if (typeof item.internal_production_items === "string") {
+            internalItems = item.internal_production_items
+              .split(",")
+              .map((item) => item.trim())
+              .filter((item) => item);
+          } else if (Array.isArray(item.internal_production_items)) {
+            internalItems = item.internal_production_items
+              .map((prod) => prod.category_name)
+              .filter((name) => name);
+          }
+
+          internalItems.forEach((internalItem) => {
+            const parsed = parseProductionItem(internalItem);
+            if (parsed.name) {
+              allInternalItems.add(parsed.name);
+            }
+          });
+        }
+
+        // 处理外购项
+        if (item.external_purchase_items) {
+          let externalItems: string[] = [];
+          if (typeof item.external_purchase_items === "string") {
+            externalItems = item.external_purchase_items
+              .split(",")
+              .map((item) => item.trim())
+              .filter((item) => item);
+          } else if (Array.isArray(item.external_purchase_items)) {
+            externalItems = item.external_purchase_items
+              .map((prod) => prod.category_name)
+              .filter((name) => name);
+          }
+
+          externalItems.forEach((externalItem) => {
+            const parsed = parseProductionItem(externalItem);
+            if (parsed.name) {
+              allExternalItems.add(parsed.name);
+            }
+          });
+        }
+      });
+
+      // 转换为数组，保持厂内和外购项目的独立性
+      const sortedInternalItems = Array.from(allInternalItems);
+      const sortedExternalItems = Array.from(allExternalItems);
+      console.log("sortedInternalItems", sortedInternalItems);
+      console.log("sortedExternalItems", sortedExternalItems);
+
+      // 处理导出数据格式
+      const excelData = exportData.map((item: SplitOrder, index: number) => {
+        // 解析厂内生产项
+        const internalMap = new Map<string, string>();
+        if (item.internal_production_items) {
+          let internalItems: string[] = [];
+          if (typeof item.internal_production_items === "string") {
+            internalItems = item.internal_production_items
+              .split(",")
+              .map((item) => item.trim())
+              .filter((item) => item);
+          } else if (Array.isArray(item.internal_production_items)) {
+            internalItems = item.internal_production_items.map((prod) =>
+              prod.planned_date
+                ? `${prod.category_name}:${prod.planned_date}:`
+                : prod.category_name
+            );
+          }
+
+          internalItems.forEach((internalItem) => {
+            const parsed = parseProductionItem(internalItem);
+            if (parsed.name) {
+              // 存储完整的时间信息：实际时间:消耗时间
+              const timeInfo = parsed.date && parsed.cycle 
+                ? `${parsed.date}:${parsed.cycle}`
+                : parsed.date || "";
+              internalMap.set(parsed.name, timeInfo);
+            }
+          });
+        }
+
+        // 解析外购项
+        const externalMap = new Map<string, string>();
+        if (item.external_purchase_items) {
+          let externalItems: string[] = [];
+          if (typeof item.external_purchase_items === "string") {
+            externalItems = item.external_purchase_items
+              .split(",")
+              .map((item) => item.trim())
+              .filter((item) => item);
+          } else if (Array.isArray(item.external_purchase_items)) {
+            externalItems = item.external_purchase_items.map((prod) =>
+              prod.planned_date
+                ? `${prod.category_name}:${prod.planned_date}:`
+                : prod.category_name
+            );
+          }
+
+          externalItems.forEach((externalItem) => {
+            const parsed = parseProductionItem(externalItem);
+            if (parsed.name) {
+              // 存储完整的时间信息：实际时间:消耗时间
+              const timeInfo = parsed.date && parsed.cycle 
+                ? `${parsed.date}:${parsed.cycle}`
+                : parsed.date || "";
+              externalMap.set(parsed.name, timeInfo);
+            }
+          });
+        }
+
+        // 构建基础数据
+        const baseData: Record<string, string | number> = {
+          序号: index + 1,
+          订单编号: item.order_number || "",
+          客户名称: item.customer_name || "",
+          地址: item.address || "",
+          下单日期: item.order_date || "",
+          拆单员: item.splitter || "",
+          设计师: item.designer || "",
+          销售员: item.salesperson || "",
+        };
+
+        // 添加厂内生产项的各个类型
+        sortedInternalItems.forEach((itemName) => {
+          baseData[`厂内-${itemName}`] = internalMap.get(itemName) || "";
+        });
+
+        // 添加外购项的各个类型
+        sortedExternalItems.forEach((itemName) => {
+          baseData[`外购-${itemName}`] = externalMap.get(itemName) || "";
+        });
+
+        // 添加其他字段
+        Object.assign(baseData, {
+          报价状态: item.quote_status || "",
+          完成日期: item.completion_date || "",
+          柜体面积: `${item.cabinet_area || 0}㎡`,
+          墙板面积: `${item.wall_panel_area || 0}㎡`,
+          订单金额: item.order_amount
+            ? `${Number(item.order_amount).toLocaleString("zh-CN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}`
+            : "",
+          订单状态: item.order_status || "",
+          备注: item.remarks || "",
+        });
+
+        return baseData;
+      });
+      console.log("excelData", excelData);
+
+      // 创建工作簿和工作表
+      const wb = XLSX.utils.book_new();
+      let ws: XLSX.WorkSheet;
+
+      // 创建合并单元格的表头结构
+      if (sortedInternalItems.length > 0 || sortedExternalItems.length > 0) {
+        // 计算厂内生产项和外购项列的起始位置
+        const internalStartCol = 8; // 从第9列开始（0-based index）
+        const internalEndCol =
+          internalStartCol + sortedInternalItems.length - 1;
+        const externalStartCol = internalEndCol + 1;
+        const externalEndCol =
+          externalStartCol + sortedExternalItems.length - 1;
+
+        // 构建表头
+        const header1 = [
+          "序号",
+          "订单编号",
+          "客户名称",
+          "地址",
+          "下单日期",
+          "设计师",
+          "销售员",
+          "拆单员",
+        ];
+
+        // 添加厂内生产项表头
+        if (sortedInternalItems.length > 0) {
+          header1.push("厂内生产项");
+          header1.push(...Array(sortedInternalItems.length - 1).fill(""));
+        }
+
+        // 添加外购项表头
+        if (sortedExternalItems.length > 0) {
+          header1.push("外购项");
+          header1.push(...Array(sortedExternalItems.length - 1).fill(""));
+        }
+
+        // 添加其他列表头
+        header1.push(
+          "报价状态",
+          "完成日期",
+          "柜体面积",
+          "墙板面积",
+          "订单金额",
+          "订单状态",
+          "备注"
+        );
+
+        // 构建第二行表头
+        const header2 = ["", "", "", "", "", "", "", ""];
+
+        // 添加厂内生产项子表头
+        sortedInternalItems.forEach((itemName) => {
+          header2.push(itemName);
+        });
+
+        // 添加外购项子表头
+        sortedExternalItems.forEach((itemName) => {
+          header2.push(itemName);
+        });
+
+        // 添加其他列的空占位
+        header2.push("", "", "", "", "", "", "");
+
+        // 计算总列数
+        const totalCols = header1.length;
+
+        // 创建工作表
+        ws = XLSX.utils.aoa_to_sheet([header1, header2]);
+
+        // 在第3行开始添加数据
+        XLSX.utils.sheet_add_json(ws, excelData, {
+          origin: "A3",
+          skipHeader: true,
+        });
+
+        // 设置合并单元格
+        if (!ws["!merges"]) ws["!merges"] = [];
+
+        // 合并厂内生产项主表头
+        if (sortedInternalItems.length > 0) {
+          ws["!merges"].push({
+            s: { r: 0, c: internalStartCol },
+            e: { r: 0, c: internalEndCol },
+          });
+        }
+
+        // 合并外购项主表头
+        if (sortedExternalItems.length > 0) {
+          ws["!merges"].push({
+            s: { r: 0, c: externalStartCol },
+            e: { r: 0, c: externalEndCol },
+          });
+        }
+
+        // 合并其他非生产项的列（前8列：序号到拆单员）
+        const beforeProductionCols = [
+          { col: 0, name: "序号" },
+          { col: 1, name: "订单编号" },
+          { col: 2, name: "客户名称" },
+          { col: 3, name: "地址" },
+          { col: 4, name: "下单日期" },
+          { col: 5, name: "设计师" },
+          { col: 6, name: "销售员" },
+          { col: 7, name: "拆单员" },
+        ];
+
+        beforeProductionCols.forEach(({ col }) => {
+          if (ws["!merges"]) {
+            ws["!merges"].push({
+              s: { r: 0, c: col },
+              e: { r: 1, c: col },
+            });
+          }
+        });
+
+        // 合并生产项后面的列（完成日期到订单状态）
+        const afterProductionStartCol = externalEndCol + 1;
+        const afterProductionCols = [
+          { col: afterProductionStartCol, name: "完成日期" },
+          { col: afterProductionStartCol + 1, name: "柜体面积" },
+          { col: afterProductionStartCol + 2, name: "墙板面积" },
+          { col: afterProductionStartCol + 3, name: "订单金额" },
+          { col: afterProductionStartCol + 4, name: "备注" },
+          { col: afterProductionStartCol + 5, name: "订单状态" },
+        ];
+
+        afterProductionCols.forEach(({ col }) => {
+          if (ws["!merges"]) {
+            ws["!merges"].push({
+              s: { r: 0, c: col },
+              e: { r: 1, c: col },
+            });
+          }
+        });
+
+        // 调整数据起始行
+        ws["!ref"] = XLSX.utils.encode_range({
+          s: { c: 0, r: 0 },
+          e: { c: totalCols - 1, r: excelData.length + 2 - 1 }, // 2行表头 + 数据行数 - 1
+        });
+      } else {
+        // 如果没有生产项，直接创建简单表格
+        ws = XLSX.utils.json_to_sheet(excelData);
+      }
+
+      // 设置列宽
+      const colWidths = [
+        { wch: 6 }, // 序号
+        { wch: 15 }, // 订单编号
+        { wch: 12 }, // 客户名称
+        { wch: 20 }, // 地址
+        { wch: 12 }, // 下单日期
+        { wch: 10 }, // 设计师
+        { wch: 10 }, // 销售员
+        { wch: 10 }, // 拆单员
+      ];
+
+      // 为每个厂内生产项添加列宽
+      sortedInternalItems.forEach(() => {
+        colWidths.push({ wch: 12 });
+      });
+
+      // 为每个外购项添加列宽
+      sortedExternalItems.forEach(() => {
+        colWidths.push({ wch: 12 });
+      });
+
+      // 添加其他列的列宽（按照header1的顺序：报价状态、完成日期、柜体面积、墙板面积、订单金额、订单状态、备注）
+      colWidths.push(
+        { wch: 12 }, // 报价状态
+        { wch: 12 }, // 完成日期
+        { wch: 13 }, // 柜体面积
+        { wch: 14 }, // 墙板面积
+        { wch: 15 }, // 订单金额
+        { wch: 16 }, // 订单状态
+        { wch: 17 } // 备注
+      );
+
+      ws["!cols"] = colWidths;
+
+      // 设置表头样式 - 居中对齐
+      if (sortedInternalItems.length > 0 || sortedExternalItems.length > 0) {
+        // 获取工作表的范围
+        const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+
+        // 为表头行设置样式
+        for (let row = 0; row <= 1; row++) {
+          for (let col = 0; col <= range.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+            if (!ws[cellAddress]) continue;
+
+            // 设置单元格样式
+            if (!ws[cellAddress].s) ws[cellAddress].s = {};
+            ws[cellAddress].s.alignment = {
+              horizontal: "center",
+              vertical: "center",
+            };
+          }
+        }
+      }
+
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(wb, ws, "拆单管理");
+
+      // 生成文件名
+      const timestamp = dayjs().format("YYYY-MM-DD_HH-mm-ss");
+      const fileName = `拆单管理_${timestamp}.xlsx`;
+
+      // 导出文件
+      XLSX.writeFile(wb, fileName);
+
+      message.destroy();
+      message.success("导出成功");
+    } catch (error) {
+      message.destroy();
+      message.error("导出失败，请稍后重试");
+      console.error("导出失败:", error);
     } finally {
       setLoading(false);
     }
@@ -523,7 +1006,6 @@ const DesignPage: React.FC = () => {
       setLoading(true);
 
       // 调用设计订单更新API
-      const { updateDesignOrder } = await import("../../services/designApi");
       await updateDesignOrder(orderInfoEditingRecord.id.toString(), {
         cabinet_area: values.cabinet_area,
         wall_panel_area: values.wall_panel_area,
@@ -934,7 +1416,13 @@ const DesignPage: React.FC = () => {
     <div className="space-y-6">
       {/* 搜索Card */}
       <Card variant="outlined" style={{ marginBottom: 20 }}>
-        <Form form={searchForm} layout="inline">
+        <Form
+          form={searchForm}
+          layout="inline"
+          initialValues={{
+            orderStatus: ["未开始", "拆单中", "撤销中", "未审核", "已审核"],
+          }}
+        >
           <Row gutter={24}>
             <Col span={6} className="py-2">
               <Form.Item name="orderNumber" label="订单编号" className="mb-0">
@@ -1062,6 +1550,51 @@ const DesignPage: React.FC = () => {
                   className="rounded-md"
                   size="middle"
                   allowClear
+                  maxTagCount="responsive"
+                  popupRender={(menu) => {
+                    const allStatusOptions = [
+                      "未开始",
+                      "拆单中",
+                      "撤销中",
+                      "未审核",
+                      "已审核",
+                      "已下单",
+                    ];
+                    const currentValues =
+                      searchForm.getFieldValue("orderStatus") || [];
+                    const isAllSelected = allStatusOptions.every((status) =>
+                      currentValues.includes(status)
+                    );
+
+                    return (
+                      <>
+                        <div
+                          style={{
+                            padding: "8px",
+                            borderBottom: "1px solid #f0f0f0",
+                          }}
+                        >
+                          <Button
+                            type="link"
+                            size="small"
+                            onClick={() => {
+                              if (isAllSelected) {
+                                searchForm.setFieldsValue({ orderStatus: [] });
+                              } else {
+                                searchForm.setFieldsValue({
+                                  orderStatus: allStatusOptions,
+                                });
+                              }
+                            }}
+                            style={{ padding: 0, height: "auto" }}
+                          >
+                            {isAllSelected ? "取消全选" : "全选"}
+                          </Button>
+                        </div>
+                        {menu}
+                      </>
+                    );
+                  }}
                 >
                   <Option value="未开始">未开始</Option>
                   <Option value="拆单中">拆单中</Option>
@@ -1128,18 +1661,29 @@ const DesignPage: React.FC = () => {
 
       {/* 内容Card */}
       <Card variant="outlined">
-        {/* 新增按钮 */}
-        <div className="flex justify-end items-center mb-4">
+        <div className="flex justify-end gap-2 items-center mb-4">
+          <Button
+            type="default"
+            icon={<SearchOutlined />}
+            size="small"
+            className="border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200"
+            onClick={showPreviewModal}
+          >
+            数据预览
+          </Button>
           {PermissionService.canExportSplit() && (
             <Button
               icon={<ExportOutlined />}
               size="small"
               className="border-gray-300 hover:border-blue-500"
+              onClick={handleExportExcel}
+              loading={loading}
             >
               导出
             </Button>
           )}
         </div>
+
         {/* 表格区域 */}
         <Table<SplitOrder>
           columns={columns}
@@ -1382,6 +1926,14 @@ const DesignPage: React.FC = () => {
         order={internalDetailOrder}
         onCancel={handleInternalDetailCancel}
         itemType={detailModalItemType}
+      />
+
+      {/* 数据预览Modal */}
+      <PreviewModal
+        visible={isPreviewModalVisible}
+        data={previewData}
+        loading={previewLoading}
+        onCancel={handlePreviewModalCancel}
       />
     </div>
   );

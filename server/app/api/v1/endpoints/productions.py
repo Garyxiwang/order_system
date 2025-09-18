@@ -78,10 +78,30 @@ async def get_productions(
         # 获取总数
         total = query.count()
 
-        # 分页
-        offset = (query_data.page - 1) * query_data.page_size
-        productions = query.order_by(Production.created_at.desc()).offset(
-            offset).limit(query_data.page_size).all()
+        # 排序处理
+        sort_field = query_data.sort or "expected_shipping_date"
+        
+        # 定义排序字段映射
+        sort_mapping = {
+            "expected_delivery_date": Production.expected_delivery_date,
+            "expected_shipping_date": Production.expected_shipping_date,
+            "created_at": Production.created_at,
+            "cutting_date": Production.cutting_date,
+            "actual_delivery_date": Production.actual_delivery_date
+        }
+        
+        # 获取排序字段，如果不存在则使用默认排序
+        order_column = sort_mapping.get(sort_field, Production.expected_shipping_date)
+
+        # 分页处理
+        if query_data.no_pagination:
+            # 不分页，返回全部数据
+            productions = query.order_by(order_column.desc()).all()
+        else:
+            # 分页
+            offset = (query_data.page - 1) * query_data.page_size
+            productions = query.order_by(order_column.desc()).offset(
+                offset).limit(query_data.page_size).all()
 
         # 转换为响应格式
         production_items = []
@@ -141,14 +161,17 @@ async def get_productions(
             production_items.append(ProductionListItem(**item_data))
 
         # 计算总页数
-        total_pages = math.ceil(
-            total / query_data.page_size) if total > 0 else 0
+        if query_data.no_pagination:
+            total_pages = 1  # 不分页时总页数为1
+        else:
+            total_pages = math.ceil(
+                total / query_data.page_size) if total > 0 else 0
 
         return ProductionListResponse(
             data=production_items,
             total=total,
-            page=query_data.page,
-            page_size=query_data.page_size,
+            page=query_data.page if not query_data.no_pagination else 1,
+            page_size=len(production_items) if query_data.no_pagination else query_data.page_size,
             total_pages=total_pages
         )
 

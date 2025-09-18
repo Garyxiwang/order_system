@@ -48,6 +48,7 @@ export interface SplitListParams {
   orderDateEnd?: string;
   page?: number;
   pageSize?: number;
+  no_pagination?: boolean; // 添加不分页参数
 }
 
 // API响应接口
@@ -91,6 +92,7 @@ export const getSplitOrders = async (
   if (params?.orderDateEnd) requestData.order_date_end = params.orderDateEnd;
   if (params?.startDate) requestData.completion_date_start = params.startDate;
   if (params?.endDate) requestData.completion_date_end = params.endDate;
+  if (params?.no_pagination) requestData.no_pagination = params.no_pagination;
 
   return await api.post("/v1/splits/list", requestData);
 };

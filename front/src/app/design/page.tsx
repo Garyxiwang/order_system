@@ -5,6 +5,7 @@ import RouteGuard from "@/components/auth/RouteGuard";
 import { PageModule } from "@/utils/permissions";
 import PermissionService from "@/utils/permissions";
 import dayjs from "dayjs";
+import * as XLSX from "xlsx";
 import {
   Card,
   Table,
@@ -30,6 +31,7 @@ import {
 import CreateOrderModal from "./createOrderModal";
 import UpdateProgressModal from "./updateProgressModal";
 import ProgressDetailModal from "./progressDetailModal";
+import PreviewModal from "./previewModal";
 import {
   getDesignOrders,
   createDesignOrder,
@@ -56,6 +58,9 @@ const DesignPage: React.FC = () => {
   const [selectedProgressData, setSelectedProgressData] = useState<string[]>(
     []
   );
+  const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+  const [previewData, setPreviewData] = useState<DesignOrder[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [designData, setDesignData] = useState<DesignOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -72,7 +77,6 @@ const DesignPage: React.FC = () => {
   };
 
   const showEditModal = (record: DesignOrder) => {
-    console.log("record", record);
     setEditingRecord(record);
     setIsModalVisible(true);
   };
@@ -145,7 +149,6 @@ const DesignPage: React.FC = () => {
             record.order_number,
             "已撤销"
           );
-          console.log("response", response);
           if (response.code === 200) {
             message.success("撤销成功");
             await handleSearch(); // 重新加载数据
@@ -192,6 +195,32 @@ const DesignPage: React.FC = () => {
     setSelectedOrderNumber("");
     setSelectedOrderName("");
     setSelectedProgressData([]);
+  };
+
+  // 显示预览弹窗
+  const showPreviewModal = async () => {
+    try {
+      setPreviewLoading(true);
+      setIsPreviewModalVisible(true);
+
+      // 获取当前搜索条件并构建查询参数
+      const formValues = searchForm.getFieldsValue();
+      const previewParams = buildSearchParams(formValues);
+
+      const response = await getDesignOrders(previewParams);
+      setPreviewData(response.items || []);
+    } catch (error) {
+      message.error("获取预览数据失败，请稍后重试");
+      console.error("获取预览数据失败:", error);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // 关闭预览弹窗
+  const handlePreviewModalCancel = () => {
+    setIsPreviewModalVisible(false);
+    setPreviewData([]);
   };
 
   const handleOk = async (values: {
@@ -300,7 +329,6 @@ const DesignPage: React.FC = () => {
         page: page || currentPage,
         pageSize: size || pageSize,
       };
-      console.log("searchParams", searchParams);
       const response = await getDesignOrders(params);
       // 后端直接返回OrderListResponse对象，不是包装在ApiResponse中
       setDesignData(response.items || []);
@@ -315,10 +343,23 @@ const DesignPage: React.FC = () => {
     }
   };
 
-  // 处理搜索功能
-  const handleSearch = async () => {
-    const formValues = searchForm.getFieldsValue();
-    const searchParams: OrderListParams = {
+  // 提取公共的查询参数构建函数
+  const buildSearchParams = (
+    formValues: {
+      orderNumber?: string;
+      customerName?: string;
+      designer?: string;
+      salesperson?: string;
+      orderStatus?: string[];
+      orderType?: string;
+      orderCategory?: string[];
+      designCycleFilter?: string;
+      splitDateRange?: dayjs.Dayjs[];
+      orderDateRange?: dayjs.Dayjs[];
+    },
+    options: { pagination?: boolean } = {}
+  ): OrderListParams => {
+    const params: OrderListParams = {
       orderNumber: formValues.orderNumber,
       customerName: formValues.customerName,
       designer: formValues.designer,
@@ -339,12 +380,29 @@ const DesignPage: React.FC = () => {
       orderDateEnd: formValues.orderDateRange?.[1]?.format("YYYY-MM-DD"),
     };
 
+    // 如果需要分页，添加分页参数
+    if (options.pagination) {
+      params.page = currentPage;
+      params.pageSize = pageSize;
+    } else {
+      // 不分页时使用 no_pagination 字段
+      params.no_pagination = true;
+    }
+
     // 过滤掉空值
     const filteredParams = Object.fromEntries(
-      Object.entries(searchParams).filter(
+      Object.entries(params).filter(
         ([_, value]) => value !== undefined && value !== "" && value !== null
       )
     );
+
+    return filteredParams as OrderListParams;
+  };
+
+  // 处理搜索功能
+  const handleSearch = async () => {
+    const formValues = searchForm.getFieldsValue();
+    const filteredParams = buildSearchParams(formValues, { pagination: true });
 
     // 搜索时重置到第一页
     setCurrentPage(1);
@@ -378,38 +436,252 @@ const DesignPage: React.FC = () => {
 
     // 获取当前搜索条件
     const formValues = searchForm.getFieldsValue();
-    const searchParams: OrderListParams = {
-      orderNumber: formValues.orderNumber,
-      customerName: formValues.customerName,
-      designer: formValues.designer,
-      salesperson: formValues.salesperson,
-      orderStatus:
-        formValues.orderStatus && formValues.orderStatus.length > 0
-          ? formValues.orderStatus
-          : undefined,
-      orderType: formValues.orderType,
-      orderCategory:
-        formValues.orderCategory && formValues.orderCategory.length > 0
-          ? formValues.orderCategory
-          : undefined,
-      designCycleFilter: formValues.designCycleFilter,
-      startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
-      endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
-      orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
-      orderDateEnd: formValues.orderDateRange?.[1]?.format("YYYY-MM-DD"),
-    };
+    const searchParams = buildSearchParams(formValues, { pagination: true });
 
-    // 过滤掉空值
-    const filteredParams = Object.fromEntries(
-      Object.entries(searchParams).filter(
-        ([_, value]) => value !== undefined && value !== "" && value !== null
-      )
-    );
-
-    await loadDesignData(filteredParams, newPage, newPageSize);
+    await loadDesignData(searchParams, newPage, newPageSize);
   };
 
-  // 加载用户数据
+  // 处理导出Excel功能
+  const handleExportExcel = async () => {
+    try {
+      setLoading(true);
+
+      // 获取当前搜索条件并构建查询参数
+      const formValues = searchForm.getFieldsValue();
+      const params = buildSearchParams(formValues, { pagination: false });
+
+      // 调用接口获取全量数据
+      const response = await getDesignOrders(params);
+      const exportData = response.items || [];
+      if (exportData.length === 0) {
+        message.destroy();
+        message.warning('没有数据可导出');
+        return;
+      }
+
+      // 解析进度项目，分离事件名和实际时间
+      const parseProgressItem = (item: string) => {
+        if (item.includes(":")) {
+          const [status, time] = item.split(":");
+          return { status: status.trim(), time: time.trim() };
+        }
+        return { status: item, time: null };
+      };
+
+      // 解析设计进度，提取所有可能的进度阶段
+      const allProgressStages = new Set<string>();
+      exportData.forEach((item: DesignOrder) => {
+        if (item.design_process && item.design_process !== '暂无进度') {
+          const progressItems = item.design_process.split(',').map(item => item.trim()).filter(item => item);
+          progressItems.forEach(progressItem => {
+            const parsed = parseProgressItem(progressItem);
+            if (parsed.status) {
+              allProgressStages.add(parsed.status);
+            }
+          });
+        }
+      });
+
+      // 转换为数组（不需要特殊排序，按出现顺序即可）
+      const sortedStages = Array.from(allProgressStages);
+
+      // 处理导出数据格式
+      const excelData = exportData.map((item: DesignOrder, index: number) => {
+        // 解析设计进度
+        const progressMap = new Map<string, string>();
+        if (item.design_process && item.design_process !== '暂无进度') {
+          const progressItems = item.design_process.split(',').map(item => item.trim()).filter(item => item);
+          progressItems.forEach(progressItem => {
+            const parsed = parseProgressItem(progressItem);
+            if (parsed.status) {
+              progressMap.set(parsed.status, parsed.time || '');
+            }
+          });
+        }
+
+        // 构建基础数据
+         const baseData: Record<string, string | number> = {
+          '序号': index + 1,
+          '订单编号': item.order_number || '',
+          '客户名称': item.customer_name || '',
+          '地址': item.address || '',
+          '设计师': item.designer || '',
+          '销售员': item.salesperson || '',
+          '分单日期': item.assignment_date || '',
+          '设计周期': item.design_cycle || '',
+        };
+
+        // 添加设计进度的各个阶段
+        sortedStages.forEach(stage => {
+          baseData[stage] = progressMap.get(stage) || '';
+        });
+
+        // 添加其他字段
+        Object.assign(baseData, {
+          '下单类目': item.category_name || '',
+          '下单日期': item.order_date || '',
+          '订单类型': item.order_type || '',
+          '是否安装': item.is_installation ? '是' : '否',
+          '橱柜面积': item.cabinet_area || '',
+          '墙板面积': item.wall_panel_area || '',
+          '订单金额': item.order_amount || '',
+          '订单状态': item.order_status || '',
+          '备注': item.remarks || '',
+        });
+
+        return baseData;
+      });
+
+      // 创建工作簿和工作表
+      const wb = XLSX.utils.book_new();
+      let ws: XLSX.WorkSheet;
+      
+      // 创建合并单元格的表头结构
+      if (sortedStages.length > 0) {
+        // 计算设计进度列的起始位置（从第8列开始，即H列）
+        const progressStartCol = 7; // 0-based index, H列
+        const progressEndCol = progressStartCol + sortedStages.length - 1;
+
+        // 先创建表头
+        ws = XLSX.utils.aoa_to_sheet([
+          [
+            '序号', '订单编号', '客户名称', '地址', '设计师', '销售员', '分单日期', 
+            '设计周期', '设计进度', ...Array(sortedStages.length - 1).fill(''), 
+            '下单类目', '下单日期', '订单类型', '是否安装', '橱柜面积', '墙板面积', '订单金额', '订单状态', '备注'
+          ],
+          [
+            '', '', '', '', '', '', '', 
+            '', ...sortedStages, 
+            '', '', '', '', '', '', '', '', ''
+          ]
+        ]);
+
+        // 然后在第3行开始添加数据
+        XLSX.utils.sheet_add_json(ws, excelData, { origin: 'A3', skipHeader: true });
+
+        // 设置合并单元格
+        if (!ws['!merges']) ws['!merges'] = [];
+        
+        // 合并设计进度主表头
+        ws['!merges'].push({
+          s: { r: 0, c: progressStartCol + 1 }, // 设计进度开始列
+          e: { r: 0, c: progressEndCol + 1 }     // 设计进度结束列
+        });
+
+        // 合并其他非设计进度的列
+        const nonProgressCols = [
+          { col: 0, name: '序号' },
+          { col: 1, name: '订单编号' },
+          { col: 2, name: '客户名称' },
+          { col: 3, name: '地址' },
+          { col: 4, name: '设计师' },
+          { col: 5, name: '销售员' },
+          { col: 6, name: '分单日期' },
+          { col: 7, name: '设计周期' },
+        ];
+
+        nonProgressCols.forEach(({ col }) => {
+          if (!ws['!merges']) ws['!merges'] = [];
+          ws['!merges'].push({
+            s: { r: 0, c: col },
+            e: { r: 1, c: col }
+          });
+        });
+
+        // 合并后续列
+        const afterProgressCols = progressEndCol + 2;
+        const totalCols = excelData.length > 0 ? Object.keys(excelData[0]).length : 0;
+        for (let col = afterProgressCols; col < totalCols; col++) {
+          ws['!merges'].push({
+            s: { r: 0, c: col },
+            e: { r: 1, c: col }
+          });
+        }
+
+        // 调整数据起始行
+        ws['!ref'] = XLSX.utils.encode_range({
+          s: { c: 0, r: 0 },
+          e: { c: totalCols - 1, r: excelData.length + 1 }
+        });
+      } else {
+        // 如果没有设计进度阶段，直接创建简单表格
+        ws = XLSX.utils.json_to_sheet(excelData);
+      }
+
+      // 设置列宽
+      const colWidths = [
+        { wch: 6 },   // 序号
+        { wch: 15 },  // 订单编号
+        { wch: 12 },  // 客户名称
+        { wch: 20 },  // 地址
+        { wch: 10 },  // 设计师
+        { wch: 10 },  // 销售员
+        { wch: 12 },  // 分单日期
+        { wch: 10 },  // 设计周期
+      ];
+
+      // 为每个设计进度阶段添加列宽
+      sortedStages.forEach(() => {
+        colWidths.push({ wch: 12 });
+      });
+
+      // 添加其他列的列宽
+      colWidths.push(
+        { wch: 15 },  // 下单类目
+        { wch: 12 },  // 下单日期
+        { wch: 10 },  // 订单类型
+        { wch: 8 },   // 是否安装
+        { wch: 10 },  // 橱柜面积
+        { wch: 10 },  // 墙板面积
+        { wch: 12 },  // 订单金额
+        { wch: 10 },  // 订单状态
+        { wch: 15 }   // 备注
+      );
+
+      ws['!cols'] = colWidths;
+
+      // 设置表头样式 - 居中对齐
+      if (sortedStages.length > 0) {
+        // 获取工作表的范围
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+        
+        // 为表头行设置样式
+        for (let row = 0; row <= 1; row++) {
+          for (let col = 0; col <= range.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+            if (!ws[cellAddress]) continue;
+            
+            // 设置单元格样式
+            if (!ws[cellAddress].s) ws[cellAddress].s = {};
+            ws[cellAddress].s.alignment = {
+              horizontal: 'center',
+              vertical: 'center'
+            };
+          }
+        }
+      }
+
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(wb, ws, '设计订单');
+
+      // 生成文件名
+      const timestamp = dayjs().format('YYYY-MM-DD_HH-mm-ss');
+      const fileName = `设计订单_${timestamp}.xlsx`;
+
+      // 导出文件
+      XLSX.writeFile(wb, fileName);
+
+      message.destroy();
+      message.success('导出成功');
+    } catch (error) {
+      message.destroy();
+      message.error('导出失败，请稍后重试');
+      console.error('导出失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadUserData = async () => {
     try {
       const allUsers = await UserService.getUserList();
@@ -437,7 +709,6 @@ const DesignPage: React.FC = () => {
       message.error("加载类目数据失败");
     }
   };
-
   // 组件挂载时加载数据
   useEffect(() => {
     handleSearch();
@@ -1024,25 +1295,40 @@ const DesignPage: React.FC = () => {
       <Card variant="outlined">
         {/* 新增按钮 */}
         <div className="flex justify-between items-center mb-4">
-          {PermissionService.canEditOrder() && (
+          <div>
+            {PermissionService.canEditOrder() && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={showModal}
+              >
+                创建订单
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
             <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={showModal}
-            >
-              创建订单
-            </Button>
-          )}
-          {PermissionService.canExport() && (
-            <Button
-              icon={<ExportOutlined />}
+              type="default"
+              icon={<SearchOutlined />}
               size="small"
-              className="border-gray-300 hover:border-blue-500"
+              className="border-blue-300 text-blue-600 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50 transition-all duration-200"
+              onClick={showPreviewModal}
             >
-              导出
+              数据预览
             </Button>
-          )}
+            {PermissionService.canExport() && (
+              <Button
+                icon={<ExportOutlined />}
+                size="small"
+                className="border-gray-300 hover:border-blue-500"
+                onClick={handleExportExcel}
+                loading={loading}
+              >
+                导出
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* 表格区域 */}
@@ -1120,6 +1406,14 @@ const DesignPage: React.FC = () => {
         orderNumber={selectedOrderNumber}
         orderName={selectedOrderName}
         progressData={selectedProgressData}
+      />
+
+      {/* 预览Modal */}
+      <PreviewModal
+        visible={isPreviewModalVisible}
+        onCancel={handlePreviewModalCancel}
+        data={previewData}
+        loading={previewLoading}
       />
     </div>
   );

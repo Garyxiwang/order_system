@@ -44,6 +44,7 @@ export interface ApiResponse<T> {
 export interface OrderListParams {
   page?: number;
   pageSize?: number;
+  no_pagination?: boolean;
   orderNumber?: string;
   customerName?: string;
   designer?: string;
@@ -74,6 +75,7 @@ export const getDesignOrders = async (params?: OrderListParams): Promise<OrderLi
   const requestData = {
     page: params?.page || 1,
     page_size: params?.pageSize || 10,
+    no_pagination: params?.no_pagination,
     order_number: params?.orderNumber,
     customer_name: params?.customerName,
     designer: params?.designer,
@@ -93,7 +95,7 @@ export const getDesignOrders = async (params?: OrderListParams): Promise<OrderLi
   const filteredData: {
     page: number;
     page_size: number;
-    [key: string]: string | number | string[] | undefined;
+    [key: string]: string | number | string[] | boolean | undefined;
   } = {
     page: requestData.page,
     page_size: requestData.page_size

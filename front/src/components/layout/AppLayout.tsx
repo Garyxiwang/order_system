@@ -344,7 +344,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         onCancel={handlePasswordCancel}
         okText="确认修改"
         cancelText="取消"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={form}
