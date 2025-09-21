@@ -18,8 +18,8 @@ SET timezone = 'Asia/Shanghai';
 DO $$ BEGIN
     CREATE TYPE user_role AS ENUM (
         'superAdmin',
-        'admin', 
         'manager', 
+        'auditor',
         'designer', 
         'splitting', 
         'clerk', 
@@ -27,8 +27,7 @@ DO $$ BEGIN
         'salesperson', 
         'finance', 
         'workshop', 
-        'shipper', 
-        'customer'
+        'shipper'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
