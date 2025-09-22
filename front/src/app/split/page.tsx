@@ -1070,17 +1070,20 @@ const DesignPage: React.FC = () => {
       dataIndex: "order_number",
       key: "order_number",
       width: 90,
+      fixed: "left",
     },
     {
       title: "客户名称",
       dataIndex: "customer_name",
       key: "customer_name",
-      width: 150,
+      width: 120,
+      fixed: "left",
     },
     {
       title: "地址",
       dataIndex: "address",
       key: "address",
+      width: 60,
     },
 
     {
@@ -1088,12 +1091,14 @@ const DesignPage: React.FC = () => {
       dataIndex: "order_date",
       key: "order_date",
       render: (date: string) => formatDateTime(date),
+      width: 120,
     },
     {
       title: "拆单员",
       dataIndex: "splitter",
       key: "splitter",
       render: (text: string) => text || "-",
+      width: 80,
     },
     {
       title: "厂内生产项",
@@ -1707,7 +1712,7 @@ const DesignPage: React.FC = () => {
           rowKey={(record) =>
             record.id?.toString() || record.order_number || "unknown"
           }
-          scroll={{ y: 700, x: "max-content" }}
+          scroll={{ x: "max-content" }}
         />
       </Card>
 

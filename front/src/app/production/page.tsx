@@ -37,6 +37,7 @@ import EditProductionModal from "./editProductionModal";
 import PurchaseStatusModal from "./purchaseStatusModal";
 import ProductionProgressModal from "./productionProgressModal";
 import PurchaseDetailModal from "./purchaseDetailModal";
+import FinishedGoodsDetailModal from "./finishedGoodsDetailModal";
 import PreviewModal from "./previewModal";
 
 const ProductionPage: React.FC = () => {
@@ -52,8 +53,10 @@ const ProductionPage: React.FC = () => {
     setIsProductionProgressModalVisible,
   ] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [isOrderStatusModalVisible, setIsOrderStatusModalVisible] =
-    useState(false);
+  const [
+    isFinishedGoodsDetailModalVisible,
+    setIsFinishedGoodsDetailModalVisible,
+  ] = useState(false);
   const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>("");
   const [orderStatusEditingRecord, setOrderStatusEditingRecord] =
     useState<ProductionOrder | null>(null);
@@ -133,9 +136,21 @@ const ProductionPage: React.FC = () => {
     setIsDetailModalVisible(true);
   };
 
+  // 显示成品入库详情模态框
+  const showFinishedGoodsDetailModal = (record: ProductionOrder) => {
+    setSelectedOrder(record);
+    setIsFinishedGoodsDetailModalVisible(true);
+  };
+
   // 处理详情模态框取消
   const handleDetailModalCancel = () => {
     setIsDetailModalVisible(false);
+    setSelectedOrder(null);
+  };
+
+  // 处理成品入库详情模态框取消
+  const handleFinishedGoodsDetailModalCancel = () => {
+    setIsFinishedGoodsDetailModalVisible(false);
     setSelectedOrder(null);
   };
 
@@ -167,52 +182,6 @@ const ProductionPage: React.FC = () => {
     setSelectedOrder(null);
     // 重新加载数据
     await handleSearch();
-  };
-
-  // 显示订单状态修改弹窗
-  const showOrderStatusModal = (record: ProductionOrder) => {
-    setOrderStatusEditingRecord(record);
-    setSelectedOrderStatus(record.order_status || "");
-    setIsOrderStatusModalVisible(true);
-  };
-
-  // 关闭订单状态修改弹窗
-  const handleOrderStatusModalCancel = () => {
-    setIsOrderStatusModalVisible(false);
-    setOrderStatusEditingRecord(null);
-    setSelectedOrderStatus("");
-  };
-
-  // 处理订单状态修改
-  const handleUpdateOrderStatus = async () => {
-    if (!orderStatusEditingRecord || !selectedOrderStatus) {
-      message.warning("请选择订单状态");
-      return;
-    }
-    try {
-      setLoading(true);
-
-      // 调用API更新订单状态
-      const response = await updateProductionOrder(
-        orderStatusEditingRecord.id.toString(),
-        {
-          order_status: selectedOrderStatus,
-        }
-      );
-
-      if (response.code === 200) {
-        message.success(`订单状态修改成功`);
-        await handleSearch(); // 重新加载数据
-        handleOrderStatusModalCancel();
-      } else {
-        message.error(response.message || "订单状态修改失败");
-      }
-    } catch (error) {
-      message.error("订单状态修改失败，请稍后重试");
-      console.error("订单状态修改失败:", error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   // 通用的获取查询条件方法
@@ -655,12 +624,15 @@ const ProductionPage: React.FC = () => {
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",
+      width: 90,
+      fixed: "left",
     },
     {
       title: "客户名称",
       dataIndex: "customer_name",
       key: "customer_name",
       width: 150,
+      fixed: "left",
     },
     {
       title: "地址",
@@ -759,6 +731,41 @@ const ProductionPage: React.FC = () => {
                 size="small"
                 onClick={() => showDetailModal(record)}
                 style={{ padding: "0 4px", fontSize: "12px" }}
+              >
+                详情
+              </Button>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: "成品入库数量",
+      dataIndex: "finished_goods_quantity",
+      key: "finished_goods_quantity",
+      render: (text: string, record: ProductionOrder) => {
+        if (!text) return "-";
+
+        const statusParts = text.split(";");
+        return (
+          <div>
+            {statusParts.map((part, index) => {
+              const [item, quantity] = part.split(":");
+              if (!item || !quantity) return null;
+
+              return (
+                <div key={index} style={{ marginBottom: 4 }}>
+                  <span>{item.trim()}: </span>
+                  <span>{quantity.trim()}件</span>
+                </div>
+              );
+            })}
+            <div style={{ textAlign: "right", marginTop: "4px" }}>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => showFinishedGoodsDetailModal(record)}
+                style={{ padding: 0, height: "auto" }}
               >
                 详情
               </Button>
@@ -879,9 +886,26 @@ const ProductionPage: React.FC = () => {
               type="link"
               size="small"
               disabled={record.order_status === "已完成"}
-              onClick={() => showOrderStatusModal(record)}
+              onClick={() => {
+                Modal.confirm({
+                  title: "确认完成订单",
+                  content: `确定要将订单 ${record.order_number} 标记为已完成吗？`,
+                  onOk: async () => {
+                    try {
+                      await updateProductionOrder(record.id.toString(), {
+                        order_status: "已完成",
+                      });
+                      message.success("订单状态更新成功");
+                      handleSearch();
+                    } catch (error) {
+                      console.error("更新订单状态失败:", error);
+                      message.error("更新订单状态失败");
+                    }
+                  },
+                });
+              }}
             >
-              订单状态
+              完成订单
             </Button>
           )}
         </div>
@@ -1165,47 +1189,12 @@ const ProductionPage: React.FC = () => {
         onCancel={handleDetailModalCancel}
       />
 
-      {/* 订单状态修改Modal */}
-      <Modal
-        title="修改订单状态"
-        open={isOrderStatusModalVisible}
-        onOk={handleUpdateOrderStatus}
-        onCancel={handleOrderStatusModalCancel}
-        okText="确认"
-        cancelText="取消"
-        width={400}
-      >
-        <div style={{ padding: "20px 0" }}>
-          <div style={{ marginBottom: "16px" }}>
-            <strong>订单号：</strong>
-            {orderStatusEditingRecord?.order_number}
-          </div>
-          <div style={{ marginBottom: "16px" }}>
-            <strong>客户名称：</strong>
-            {orderStatusEditingRecord?.customer_name}
-          </div>
-          <div style={{ marginBottom: "16px" }}>
-            <strong>当前状态：</strong>
-            {orderStatusEditingRecord?.order_status}
-          </div>
-          <div style={{ marginBottom: "16px" }}>
-            <strong>选择新状态：</strong>
-            <Select
-              value={selectedOrderStatus}
-              onChange={setSelectedOrderStatus}
-              placeholder="请选择订单状态"
-              style={{ width: "100%", marginTop: "8px" }}
-            >
-              <Option value="未齐料">未齐料</Option>
-              <Option value="已齐料">已齐料</Option>
-              <Option value="已下料">已下料</Option>
-              <Option value="已入库">已入库</Option>
-              <Option value="已发货">已发货</Option>
-              <Option value="已完成">已完成</Option>
-            </Select>
-          </div>
-        </div>
-      </Modal>
+      {/* 成品入库详情模态框 */}
+      <FinishedGoodsDetailModal
+        visible={isFinishedGoodsDetailModalVisible}
+        order={selectedOrder}
+        onCancel={handleFinishedGoodsDetailModalCancel}
+      />
 
       {/* 预览模态框 */}
       <PreviewModal

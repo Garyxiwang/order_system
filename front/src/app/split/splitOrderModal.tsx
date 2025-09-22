@@ -173,10 +173,10 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           formattedValues.internalItems[categoryName] = {
             plannedDate: item.plannedDate
               ? dayjs(item.plannedDate).format("YYYY-MM-DD")
-              : undefined,
+              : "",
             splitDate: item.splitDate
               ? dayjs(item.splitDate).format("YYYY-MM-DD")
-              : undefined,
+              : "",
           };
         });
       }
@@ -188,10 +188,10 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           formattedValues.externalItems[categoryName] = {
             plannedDate: item.plannedDate
               ? dayjs(item.plannedDate).format("YYYY-MM-DD")
-              : undefined,
+              : "",
             purchaseDate: item.purchaseDate
               ? dayjs(item.purchaseDate).format("YYYY-MM-DD")
-              : undefined,
+              : "",
           };
         });
       }

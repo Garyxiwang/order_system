@@ -55,6 +55,9 @@ class ProductionListItem(BaseModel):
     # 采购状态
     purchase_status: Optional[str] = Field(default=None, description="采购状态")
     
+    # 成品入库数量
+    finished_goods_quantity: Optional[str] = Field(default=None, description="成品入库数量")
+    
     created_at: datetime
     updated_at: datetime
 

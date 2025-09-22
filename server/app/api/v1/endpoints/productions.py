@@ -79,7 +79,7 @@ async def get_productions(
         total = query.count()
 
         # 排序处理
-        sort_field = query_data.sort or "expected_shipping_date"
+        sort_field = query_data.sort
         
         # 定义排序字段映射
         sort_mapping = {
@@ -90,18 +90,24 @@ async def get_productions(
             "actual_delivery_date": Production.actual_delivery_date
         }
         
-        # 获取排序字段，如果不存在则使用默认排序
-        order_column = sort_mapping.get(sort_field, Production.expected_shipping_date)
+        # 获取排序字段，如果页面没有传入排序字段则不进行排序
+        order_column = sort_mapping.get(sort_field) if sort_field else None
 
         # 分页处理
         if query_data.no_pagination:
             # 不分页，返回全部数据
-            productions = query.order_by(order_column.desc()).all()
+            if order_column:
+                productions = query.order_by(order_column.desc()).all()
+            else:
+                productions = query.all()
         else:
             # 分页
             offset = (query_data.page - 1) * query_data.page_size
-            productions = query.order_by(order_column.desc()).offset(
-                offset).limit(query_data.page_size).all()
+            if order_column:
+                productions = query.order_by(order_column.desc()).offset(
+                    offset).limit(query_data.page_size).all()
+            else:
+                productions = query.offset(offset).limit(query_data.page_size).all()
 
         # 转换为响应格式
         production_items = []
@@ -113,6 +119,9 @@ async def get_productions(
 
             # 生成采购状态字符串
             purchase_status_parts = []
+            # 生成成品入库数量字符串
+            finished_goods_quantity_parts = []
+            
             for progress in progress_items:
                 if progress.item_type == ItemType.INTERNAL:
                     # 厂内项目：检查实际入库日期
@@ -122,6 +131,15 @@ async def get_productions(
                     else:
                         purchase_status_parts.append(
                             f"{progress.category_name}材料:")
+                    
+                    # 厂内项目：生成成品入库数量信息
+                    if progress.quantity:
+                        finished_goods_quantity_parts.append(
+                            f"{progress.category_name}:{progress.quantity}")
+                    else:
+                        finished_goods_quantity_parts.append(
+                            f"{progress.category_name}:")
+                        
                 elif progress.item_type == ItemType.EXTERNAL:
                     # 外购项目：检查实际到厂日期
                     if progress.actual_arrival_date:
@@ -130,9 +148,19 @@ async def get_productions(
                     else:
                         purchase_status_parts.append(
                             f"{progress.category_name}:")
+                    
+                    # 外购项目：也生成成品入库数量信息
+                    if progress.quantity:
+                        finished_goods_quantity_parts.append(
+                            f"{progress.category_name}:{progress.quantity}")
+                    else:
+                        finished_goods_quantity_parts.append(
+                            f"{progress.category_name}:")
 
             purchase_status = "; ".join(
                 purchase_status_parts) if purchase_status_parts else "暂无进度信息"
+            finished_goods_quantity = "; ".join(
+                finished_goods_quantity_parts) if finished_goods_quantity_parts else "暂无数量信息"
             print(purchase_status)
             item_data = {
                 "id": production.id,
@@ -155,6 +183,7 @@ async def get_productions(
                 "remarks": production.remarks,
                 "order_status": production.order_status,
                 "purchase_status": purchase_status,
+                "finished_goods_quantity": finished_goods_quantity,
                 "created_at": production.created_at,
                 "updated_at": production.updated_at
             }

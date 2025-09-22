@@ -767,45 +767,42 @@ const DesignPage: React.FC = () => {
       dataIndex: "order_number",
       key: "order_number",
       width: 90,
+      fixed: "left",
     },
     {
       title: "客户名称",
       dataIndex: "customer_name",
       key: "customer_name",
-      width: 150,
+      width: 120,
+      fixed: "left",
     },
     {
       title: "地址",
       dataIndex: "address",
       key: "address",
-      width: 60,
     },
     {
       title: "设计师",
       dataIndex: "designer",
       key: "designer",
       render: (text: string) => (text ? text : "-"),
-      width: 80,
     },
     {
       title: "销售员",
       dataIndex: "salesperson",
       key: "salesperson",
       render: (text: string) => (text ? text : "-"),
-      width: 80,
     },
     {
       title: "分单日期",
       dataIndex: "assignment_date",
       key: "assignment_date",
       render: (date: string) => formatDateTime(date),
-      width: 120,
     },
     {
       title: "设计过程",
       dataIndex: "design_process",
       key: "design_process",
-      width: 150,
       render: (text: string, record: DesignOrder) => {
         if (!text || text === "暂无进度") return "-";
         const items = text
@@ -872,7 +869,6 @@ const DesignPage: React.FC = () => {
       title: "下单类目",
       dataIndex: "category_name",
       key: "category_name",
-      width: 110,
       render: (categories: string[] | string) => {
         if (!categories) return "-";
 
@@ -901,13 +897,11 @@ const DesignPage: React.FC = () => {
       dataIndex: "order_date",
       key: "order_date",
       render: (date: string) => formatDateTime(date),
-      width: 120,
     },
     {
       title: "设计周期",
       dataIndex: "design_cycle",
       key: "design_cycle",
-      width: 90,
       render: (cycle: string) => {
         if (!cycle) return "-";
         const days = parseInt(cycle);
@@ -926,19 +920,16 @@ const DesignPage: React.FC = () => {
       title: "订单类型",
       dataIndex: "order_type",
       key: "order_type",
-      width: 90,
     },
     {
       title: "是否安装",
       dataIndex: "is_installation",
       key: "is_installation",
-      width: 90,
       render: (text: boolean) => <div>{text ? "是" : "否"}</div>,
     },
     {
       title: "面积信息",
       key: "area_info",
-      width: 100,
       render: (text: string, record: DesignOrder) => {
         const cabinetArea = record.cabinet_area;
         const wallPanelArea = record.wall_panel_area;
@@ -974,7 +965,6 @@ const DesignPage: React.FC = () => {
       title: "备注",
       dataIndex: "remarks",
       key: "remarks",
-      width: 100,
       render: (text: string) => (
         <div
           style={{
@@ -992,7 +982,6 @@ const DesignPage: React.FC = () => {
       dataIndex: "order_status",
       fixed: "right",
       key: "order_status",
-      width: 110,
       render: (text: string) => {
         // 如果已下单，显示已完成
         if (text === "下单") {
@@ -1090,12 +1079,15 @@ const DesignPage: React.FC = () => {
             onClick={() => setIsSearchCollapsed(!isSearchCollapsed)}
             className="text-gray-600 hover:text-blue-600"
           >
-            {isSearchCollapsed ? '展开' : '收起'}
+            {isSearchCollapsed ? "展开" : "收起"}
           </Button>
         </div>
         {/* 搜索条件摘要 */}
         {isSearchCollapsed && (
-          <div key={searchSummaryKey} className="mb-4 p-3 bg-gray-50 rounded-md">
+          <div
+            key={searchSummaryKey}
+            className="mb-4 p-3 bg-gray-50 rounded-md"
+          >
             <div className="flex flex-wrap gap-2">
               {(() => {
                 const formValues = searchForm.getFieldsValue();
@@ -1138,10 +1130,16 @@ const DesignPage: React.FC = () => {
                 }
 
                 // 订单状态
-                if (formValues.orderStatus && formValues.orderStatus.length > 0) {
-                  const statusText = formValues.orderStatus.length > 3 
-                    ? `${formValues.orderStatus.slice(0, 3).join(', ')}等${formValues.orderStatus.length}项`
-                    : formValues.orderStatus.join(', ');
+                if (
+                  formValues.orderStatus &&
+                  formValues.orderStatus.length > 0
+                ) {
+                  const statusText =
+                    formValues.orderStatus.length > 3
+                      ? `${formValues.orderStatus.slice(0, 3).join(", ")}等${
+                          formValues.orderStatus.length
+                        }项`
+                      : formValues.orderStatus.join(", ");
                   summaryItems.push(
                     <Tag key="orderStatus" color="red">
                       订单状态: {statusText}
@@ -1159,10 +1157,16 @@ const DesignPage: React.FC = () => {
                 }
 
                 // 下单类目
-                if (formValues.orderCategory && formValues.orderCategory.length > 0) {
-                  const categoryText = formValues.orderCategory.length > 2
-                    ? `${formValues.orderCategory.slice(0, 2).join(', ')}等${formValues.orderCategory.length}项`
-                    : formValues.orderCategory.join(', ');
+                if (
+                  formValues.orderCategory &&
+                  formValues.orderCategory.length > 0
+                ) {
+                  const categoryText =
+                    formValues.orderCategory.length > 2
+                      ? `${formValues.orderCategory.slice(0, 2).join(", ")}等${
+                          formValues.orderCategory.length
+                        }项`
+                      : formValues.orderCategory.join(", ");
                   summaryItems.push(
                     <Tag key="orderCategory" color="magenta">
                       下单类目: {categoryText}
@@ -1173,9 +1177,9 @@ const DesignPage: React.FC = () => {
                 // 设计周期
                 if (formValues.designCycleFilter) {
                   const cycleMap: { [key: string]: string } = {
-                    'lte20': '小于20天',
-                    'gt20': '大于20天',
-                    'lt50': '小于50天'
+                    lte20: "小于20天",
+                    gt20: "大于20天",
+                    lt50: "小于50天",
                   };
                   summaryItems.push(
                     <Tag key="designCycleFilter" color="volcano">
@@ -1185,24 +1189,36 @@ const DesignPage: React.FC = () => {
                 }
 
                 // 分单日期
-                if (formValues.splitDateRange && formValues.splitDateRange.length === 2) {
+                if (
+                  formValues.splitDateRange &&
+                  formValues.splitDateRange.length === 2
+                ) {
                   summaryItems.push(
                     <Tag key="splitDateRange" color="geekblue">
-                      分单日期: {formValues.splitDateRange[0].format('YYYY-MM-DD')} ~ {formValues.splitDateRange[1].format('YYYY-MM-DD')}
+                      分单日期:{" "}
+                      {formValues.splitDateRange[0].format("YYYY-MM-DD")} ~{" "}
+                      {formValues.splitDateRange[1].format("YYYY-MM-DD")}
                     </Tag>
                   );
                 }
 
                 // 下单日期
-                if (formValues.orderDateRange && formValues.orderDateRange.length === 2) {
+                if (
+                  formValues.orderDateRange &&
+                  formValues.orderDateRange.length === 2
+                ) {
                   summaryItems.push(
                     <Tag key="orderDateRange" color="lime">
-                      下单日期: {formValues.orderDateRange[0].format('YYYY-MM-DD')} ~ {formValues.orderDateRange[1].format('YYYY-MM-DD')}
+                      下单日期:{" "}
+                      {formValues.orderDateRange[0].format("YYYY-MM-DD")} ~{" "}
+                      {formValues.orderDateRange[1].format("YYYY-MM-DD")}
                     </Tag>
                   );
                 }
 
-                return summaryItems.length > 0 ? summaryItems : (
+                return summaryItems.length > 0 ? (
+                  summaryItems
+                ) : (
                   <span className="text-gray-500">暂无搜索条件</span>
                 );
               })()}
@@ -1229,8 +1245,8 @@ const DesignPage: React.FC = () => {
               "其他",
             ],
           }}
-          style={{ display: isSearchCollapsed ? 'none' : 'block' }}
-          onValuesChange={() => setSearchSummaryKey(prev => prev + 1)}
+          style={{ display: isSearchCollapsed ? "none" : "block" }}
+          onValuesChange={() => setSearchSummaryKey((prev) => prev + 1)}
         >
           <Row gutter={24}>
             <Col span={6} className="py-2">
@@ -1456,7 +1472,10 @@ const DesignPage: React.FC = () => {
             </Col>
           </Row>
         </Form>
-        <Row className="mt-4" style={{ display: isSearchCollapsed ? 'none' : 'flex' }}>
+        <Row
+          className="mt-4"
+          style={{ display: isSearchCollapsed ? "none" : "flex" }}
+        >
           <Col span={24} className="text-right">
             <Space>
               <Button
@@ -1539,7 +1558,7 @@ const DesignPage: React.FC = () => {
           }}
           rowClassName="hover:bg-blue-50"
           rowKey={(record) => record.order_number}
-          scroll={{ y: 700 }}
+          scroll={{ x: "max-content" }}
         />
       </Card>
 

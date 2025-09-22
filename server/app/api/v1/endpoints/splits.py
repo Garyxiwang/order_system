@@ -103,8 +103,8 @@ async def get_splits(
             query = query.filter(Split.completion_date <=
                                  query_data.completion_date_end)
 
-        # 排序处理：按更新时间降序，然后按下单日期降序
-        query = query.order_by(Split.updated_at.desc(), Split.order_date.desc())
+        # 按下单日期降序排序
+        query = query.order_by(Split.order_date.desc())
 
         # 获取总数
         total = query.count()
@@ -797,7 +797,7 @@ async def place_split_order(
                      )
                     db.add(progress_item)
                 elif item.item_type == ItemType.EXTERNAL:
-                    purchase_date = item.purchase_date if item.purchase_date else (split.completion_date if split.completion_date else datetime.now().strftime('%Y-%m-%d'))
+                    purchase_date = item.purchase_date if item.purchase_date else None
                     
                     progress_item = ProductionProgress(
                          production_id=production.id,

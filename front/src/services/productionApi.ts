@@ -22,6 +22,7 @@ export interface ProductionOrder {
   remarks?: string; // 备注
   order_status: string; // 订单状态
   purchase_status?: string; // 采购状态
+  finished_goods_quantity?: string; // 成品入库数量
   created_at: string; // 创建时间
   updated_at: string; // 更新时间
 }

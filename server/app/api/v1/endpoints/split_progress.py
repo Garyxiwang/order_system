@@ -121,11 +121,11 @@ async def batch_update_split_progress(
                     )
                     db.add(progress)
                 
-                # 更新日期
-                if dates.get('plannedDate'):
-                    progress.planned_date = dates['plannedDate']
-                if dates.get('splitDate'):
-                    progress.split_date = dates['splitDate']
+                # 更新日期（支持删除/清空）
+                if 'plannedDate' in dates:
+                    progress.planned_date = dates['plannedDate'] if dates['plannedDate'] else None
+                if 'splitDate' in dates:
+                    progress.split_date = dates['splitDate'] if dates['splitDate'] else None
                     
                     # 计算厂内项周期（从订单下单日期到拆单日期）
                     if progress.split_date:
@@ -140,6 +140,9 @@ async def batch_update_split_progress(
                                 progress.cycle_days = f"{cycle_days}天"
                         except:
                             pass
+                    else:
+                        # 如果拆单日期被清空，也清空周期天数
+                        progress.cycle_days = None
                 
                 progress.updated_at = datetime.utcnow()
         
@@ -163,11 +166,11 @@ async def batch_update_split_progress(
                     )
                     db.add(progress)
                 
-                # 更新日期
-                if dates.get('plannedDate'):
-                    progress.planned_date = dates['plannedDate']
-                if dates.get('purchaseDate'):
-                    progress.purchase_date = dates['purchaseDate']
+                # 更新日期（支持删除/清空）
+                if 'plannedDate' in dates:
+                    progress.planned_date = dates['plannedDate'] if dates['plannedDate'] else None
+                if 'purchaseDate' in dates:
+                    progress.purchase_date = dates['purchaseDate'] if dates['purchaseDate'] else None
                     
                     # 计算外购项周期（从订单下单日期到采购日期）
                     if progress.purchase_date:
@@ -182,6 +185,9 @@ async def batch_update_split_progress(
                                 progress.cycle_days = f"{cycle_days}天"
                         except:
                             pass
+                    else:
+                        # 如果采购日期被清空，也清空周期天数
+                        progress.cycle_days = None
                 
                 progress.updated_at = datetime.utcnow()
         
