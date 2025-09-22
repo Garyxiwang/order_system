@@ -73,7 +73,7 @@ const ProgressDetailModal: React.FC<
       ),
     },
     {
-      title: "计划日期",
+        title: itemType === "internal" ? "计划拆单日期" : "计划下单日期",
       dataIndex: "planned_date",
       key: "planned_date",
       render: (date: string) => (
@@ -81,7 +81,7 @@ const ProgressDetailModal: React.FC<
       ),
     },
     {
-      title: itemType === "internal" ? "实际拆单日期" : "实际采购日期",
+      title: itemType === "internal" ? "实际拆单日期" : "实际下单日期",
       dataIndex: itemType === "internal" ? "split_date" : "purchase_date",
       key: itemType === "internal" ? "split_date" : "purchase_date",
       render: (date: string) => (

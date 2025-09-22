@@ -32,7 +32,7 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",
-      width: 120,
+      width: 90,
     },
     {
       title: "客户名称",

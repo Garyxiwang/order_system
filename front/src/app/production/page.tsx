@@ -895,7 +895,6 @@ const ProductionPage: React.FC = () => {
       <Card variant="outlined" style={{ marginBottom: 20 }}>
         <Form
           form={searchForm}
-          layout="inline"
           initialValues={{
             sort: "expected_shipping_date",
             splitStatus: ["未齐料", "已齐料", "已下料", "已入库", "已发货"],
@@ -1055,8 +1054,8 @@ const ProductionPage: React.FC = () => {
                   className="rounded-md"
                   size="middle"
                 >
-                  <Option value="expected_delivery_date">预计交货日期</Option>
                   <Option value="expected_shipping_date">预计出货日期</Option>
+                  <Option value="expected_delivery_date">预计交货日期</Option>
                 </Select>
               </Form.Item>
             </Col>

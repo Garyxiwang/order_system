@@ -35,6 +35,15 @@ const LoginPage: React.FC = () => {
       // 获取用户可访问的模块
       const accessibleModules = PermissionService.getAccessibleModules();
       console.log('accessibleModules', accessibleModules)
+      
+      // 针对采购员和车间角色，直接跳转到生产管理页面
+      if (userInfo.role === 'procurement' || userInfo.role === 'workshop') {
+        if (accessibleModules.includes(PageModule.PRODUCTION)) {
+          router.push('/production');
+          return;
+        }
+      }
+      
       // 跳转到用户有权限的第一个模块
       if (accessibleModules.length > 0) {
         const firstModule = accessibleModules[0];

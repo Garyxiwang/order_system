@@ -128,8 +128,8 @@ async def get_orders(
         # 获取总数
         total = query.count()
 
-        # 默认按分单日期倒序排列
-        query = query.order_by(Order.assignment_date.desc())
+        # 按更新时间降序，然后按下单日期降序排序
+        query = query.order_by(Order.updated_at.desc(), Order.order_date.desc())
 
         # 分页处理
         if query_data.no_pagination:

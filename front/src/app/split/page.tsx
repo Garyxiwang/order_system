@@ -440,16 +440,16 @@ const DesignPage: React.FC = () => {
         if (item.includes(":")) {
           const parts = item.split(":");
           if (parts.length >= 3) {
-            return { 
-              name: parts[0].trim(), 
-              date: parts[1].trim(), 
-              cycle: parts[2].trim() 
+            return {
+              name: parts[0].trim(),
+              date: parts[1].trim(),
+              cycle: parts[2].trim(),
             };
           } else if (parts.length >= 2) {
-            return { 
-              name: parts[0].trim(), 
-              date: parts[1].trim(), 
-              cycle: null 
+            return {
+              name: parts[0].trim(),
+              date: parts[1].trim(),
+              cycle: null,
             };
           }
         }
@@ -535,9 +535,10 @@ const DesignPage: React.FC = () => {
             const parsed = parseProductionItem(internalItem);
             if (parsed.name) {
               // 存储完整的时间信息：实际时间:消耗时间
-              const timeInfo = parsed.date && parsed.cycle 
-                ? `${parsed.date}:${parsed.cycle}`
-                : parsed.date || "";
+              const timeInfo =
+                parsed.date && parsed.cycle
+                  ? `${parsed.date}:${parsed.cycle}`
+                  : parsed.date || "";
               internalMap.set(parsed.name, timeInfo);
             }
           });
@@ -564,9 +565,10 @@ const DesignPage: React.FC = () => {
             const parsed = parseProductionItem(externalItem);
             if (parsed.name) {
               // 存储完整的时间信息：实际时间:消耗时间
-              const timeInfo = parsed.date && parsed.cycle 
-                ? `${parsed.date}:${parsed.cycle}`
-                : parsed.date || "";
+              const timeInfo =
+                parsed.date && parsed.cycle
+                  ? `${parsed.date}:${parsed.cycle}`
+                  : parsed.date || "";
               externalMap.set(parsed.name, timeInfo);
             }
           });
@@ -1067,6 +1069,7 @@ const DesignPage: React.FC = () => {
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",
+      width: 90,
     },
     {
       title: "客户名称",
@@ -1241,6 +1244,7 @@ const DesignPage: React.FC = () => {
       dataIndex: "completion_date",
       key: "completion_date",
       render: (date: string) => formatDateTime(date),
+      width: 120,
     },
     {
       title: "订单类型",
@@ -1418,7 +1422,6 @@ const DesignPage: React.FC = () => {
       <Card variant="outlined" style={{ marginBottom: 20 }}>
         <Form
           form={searchForm}
-          layout="inline"
           initialValues={{
             orderStatus: ["未开始", "拆单中", "撤销中", "未审核", "已审核"],
           }}
@@ -1512,7 +1515,6 @@ const DesignPage: React.FC = () => {
                 </Select>
               </Form.Item>
             </Col>
-
             <Col span={6} className="py-2">
               <Form.Item name="quoteStatus" label="报价状态" className="mb-0">
                 <Select
@@ -1705,7 +1707,7 @@ const DesignPage: React.FC = () => {
           rowKey={(record) =>
             record.id?.toString() || record.order_number || "unknown"
           }
-          scroll={{ x: "max-content" }}
+          scroll={{ y: 700, x: "max-content" }}
         />
       </Card>
 

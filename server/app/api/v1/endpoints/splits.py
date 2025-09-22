@@ -103,6 +103,9 @@ async def get_splits(
             query = query.filter(Split.completion_date <=
                                  query_data.completion_date_end)
 
+        # 排序处理：按更新时间降序，然后按下单日期降序
+        query = query.order_by(Split.updated_at.desc(), Split.order_date.desc())
+
         # 获取总数
         total = query.count()
 

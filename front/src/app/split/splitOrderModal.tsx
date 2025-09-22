@@ -361,7 +361,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                     >
                       <Card title={category.name} size="small" type="inner">
                         <Form.Item
-                          label="计划日期"
+                          label="计划下单日期"
                           name={["externalItems", category.name, "plannedDate"]}
                           style={{ marginBottom: 12 }}
                         >
@@ -371,7 +371,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                           />
                         </Form.Item>
                         <Form.Item
-                          label="采购日期"
+                          label="实际下单日期"
                           name={[
                             "externalItems",
                             category.name,

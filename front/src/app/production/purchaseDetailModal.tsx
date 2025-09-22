@@ -78,7 +78,7 @@ const PurchaseDetailModal: React.FC<PurchaseDetailModalProps> = ({
       render: (date: string) => <span>{date || "-"}</span>,
     },
     {
-      title: "预计日期",
+      title: "预计齐料日期",
       dataIndex: "expected_date",
       key: "expected_date",
       render: (_, record: ProductionProgressData) => {
@@ -90,7 +90,7 @@ const PurchaseDetailModal: React.FC<PurchaseDetailModalProps> = ({
       },
     },
     {
-      title: "实际日期",
+      title: "实际齐料日期",
       dataIndex: "actual_date",
       key: "actual_date",
       render: (_, record: ProductionProgressData) => {
@@ -105,12 +105,12 @@ const PurchaseDetailModal: React.FC<PurchaseDetailModalProps> = ({
         );
       },
     },
-    {
-      title: "数量",
-      dataIndex: "quantity",
-      key: "quantity",
-      render: (quantity: string) => <span>{quantity || "-"}</span>,
-    },
+    // {
+    //   title: "数量",
+    //   dataIndex: "quantity",
+    //   key: "quantity",
+    //   render: (quantity: string) => <span>{quantity || "-"}</span>,
+    // },
   ];
 
   return (
