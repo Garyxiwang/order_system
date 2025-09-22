@@ -27,6 +27,8 @@ import {
   PlusOutlined,
   ExportOutlined,
   CheckOutlined,
+  UpOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 import CreateOrderModal from "./createOrderModal";
 import UpdateProgressModal from "./updateProgressModal";
@@ -70,6 +72,8 @@ const DesignPage: React.FC = () => {
   const [designers, setDesigners] = useState<UserData[]>([]);
   const [salespersons, setSalespersons] = useState<UserData[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [isSearchCollapsed, setIsSearchCollapsed] = useState(false);
+  const [searchSummaryKey, setSearchSummaryKey] = useState(0); // 用于强制刷新搜索摘要
 
   const showModal = () => {
     setEditingRecord(null);
@@ -1078,6 +1082,133 @@ const DesignPage: React.FC = () => {
     <div className="space-y-6">
       {/* 搜索Card */}
       <Card variant="outlined" style={{ marginBottom: 20 }}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-800 m-0">搜索条件</h3>
+          <Button
+            type="text"
+            icon={isSearchCollapsed ? <DownOutlined /> : <UpOutlined />}
+            onClick={() => setIsSearchCollapsed(!isSearchCollapsed)}
+            className="text-gray-600 hover:text-blue-600"
+          >
+            {isSearchCollapsed ? '展开' : '收起'}
+          </Button>
+        </div>
+        {/* 搜索条件摘要 */}
+        {isSearchCollapsed && (
+          <div key={searchSummaryKey} className="mb-4 p-3 bg-gray-50 rounded-md">
+            <div className="flex flex-wrap gap-2">
+              {(() => {
+                const formValues = searchForm.getFieldsValue();
+                const summaryItems = [];
+
+                // 订单编号
+                if (formValues.orderNumber) {
+                  summaryItems.push(
+                    <Tag key="orderNumber" color="blue">
+                      订单编号: {formValues.orderNumber}
+                    </Tag>
+                  );
+                }
+
+                // 客户名称
+                if (formValues.customerName) {
+                  summaryItems.push(
+                    <Tag key="customerName" color="green">
+                      客户名称: {formValues.customerName}
+                    </Tag>
+                  );
+                }
+
+                // 设计师
+                if (formValues.designer) {
+                  summaryItems.push(
+                    <Tag key="designer" color="purple">
+                      设计师: {formValues.designer}
+                    </Tag>
+                  );
+                }
+
+                // 销售员
+                if (formValues.salesperson) {
+                  summaryItems.push(
+                    <Tag key="salesperson" color="orange">
+                      销售员: {formValues.salesperson}
+                    </Tag>
+                  );
+                }
+
+                // 订单状态
+                if (formValues.orderStatus && formValues.orderStatus.length > 0) {
+                  const statusText = formValues.orderStatus.length > 3 
+                    ? `${formValues.orderStatus.slice(0, 3).join(', ')}等${formValues.orderStatus.length}项`
+                    : formValues.orderStatus.join(', ');
+                  summaryItems.push(
+                    <Tag key="orderStatus" color="red">
+                      订单状态: {statusText}
+                    </Tag>
+                  );
+                }
+
+                // 订单类型
+                if (formValues.orderType) {
+                  summaryItems.push(
+                    <Tag key="orderType" color="cyan">
+                      订单类型: {formValues.orderType}
+                    </Tag>
+                  );
+                }
+
+                // 下单类目
+                if (formValues.orderCategory && formValues.orderCategory.length > 0) {
+                  const categoryText = formValues.orderCategory.length > 2
+                    ? `${formValues.orderCategory.slice(0, 2).join(', ')}等${formValues.orderCategory.length}项`
+                    : formValues.orderCategory.join(', ');
+                  summaryItems.push(
+                    <Tag key="orderCategory" color="magenta">
+                      下单类目: {categoryText}
+                    </Tag>
+                  );
+                }
+
+                // 设计周期
+                if (formValues.designCycleFilter) {
+                  const cycleMap: { [key: string]: string } = {
+                    'lte20': '小于20天',
+                    'gt20': '大于20天',
+                    'lt50': '小于50天'
+                  };
+                  summaryItems.push(
+                    <Tag key="designCycleFilter" color="volcano">
+                      设计周期: {cycleMap[formValues.designCycleFilter]}
+                    </Tag>
+                  );
+                }
+
+                // 分单日期
+                if (formValues.splitDateRange && formValues.splitDateRange.length === 2) {
+                  summaryItems.push(
+                    <Tag key="splitDateRange" color="geekblue">
+                      分单日期: {formValues.splitDateRange[0].format('YYYY-MM-DD')} ~ {formValues.splitDateRange[1].format('YYYY-MM-DD')}
+                    </Tag>
+                  );
+                }
+
+                // 下单日期
+                if (formValues.orderDateRange && formValues.orderDateRange.length === 2) {
+                  summaryItems.push(
+                    <Tag key="orderDateRange" color="lime">
+                      下单日期: {formValues.orderDateRange[0].format('YYYY-MM-DD')} ~ {formValues.orderDateRange[1].format('YYYY-MM-DD')}
+                    </Tag>
+                  );
+                }
+
+                return summaryItems.length > 0 ? summaryItems : (
+                  <span className="text-gray-500">暂无搜索条件</span>
+                );
+              })()}
+            </div>
+          </div>
+        )}
         <Form
           form={searchForm}
           initialValues={{
@@ -1098,6 +1229,8 @@ const DesignPage: React.FC = () => {
               "其他",
             ],
           }}
+          style={{ display: isSearchCollapsed ? 'none' : 'block' }}
+          onValuesChange={() => setSearchSummaryKey(prev => prev + 1)}
         >
           <Row gutter={24}>
             <Col span={6} className="py-2">
@@ -1323,7 +1456,7 @@ const DesignPage: React.FC = () => {
             </Col>
           </Row>
         </Form>
-        <Row className="mt-4">
+        <Row className="mt-4" style={{ display: isSearchCollapsed ? 'none' : 'flex' }}>
           <Col span={24} className="text-right">
             <Space>
               <Button
