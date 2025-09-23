@@ -106,6 +106,21 @@ async def batch_update_production_progress(
                                     external_item.purchase_date = item_data.order_date
                                     external_item.updated_at = datetime.utcnow()
                                     
+                                    # 计算并更新周期时间
+                                    if external_item.purchase_date:
+                                        try:
+                                            from datetime import datetime as dt
+                                            # 直接使用拆单记录中的下单日期
+                                            if split.order_date:
+                                                order_dt = dt.strptime(split.order_date, '%Y-%m-%d')
+                                                purchase_dt = dt.fromisoformat(external_item.purchase_date.replace('Z', '+00:00'))
+                                                cycle_days = (purchase_dt.date() - order_dt.date()).days
+                                                external_item.cycle_days = f"{cycle_days}天"
+                                        except Exception as cycle_e:
+                                            print(f"计算周期时间失败: {str(cycle_e)}")
+                                    else:
+                                        external_item.cycle_days = None
+                                    
                         except Exception as e:
                             # 记录错误但不影响主要流程
                             print(f"同步order_date到拆单进度purchase_date失败: {str(e)}")

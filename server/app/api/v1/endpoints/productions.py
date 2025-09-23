@@ -98,17 +98,17 @@ async def get_productions(
         if query_data.no_pagination:
             # 不分页，返回全部数据
             if order_column:
-                productions = query.order_by(order_column.desc()).all()
+                productions = query.order_by(order_column.desc(), Production.order_number.desc()).all()
             else:
-                productions = query.all()
+                productions = query.order_by(Production.order_number.desc()).all()
         else:
             # 分页
             offset = (query_data.page - 1) * query_data.page_size
             if order_column:
-                productions = query.order_by(order_column.desc()).offset(
+                productions = query.order_by(order_column.desc(), Production.order_number.desc()).offset(
                     offset).limit(query_data.page_size).all()
             else:
-                productions = query.offset(offset).limit(query_data.page_size).all()
+                productions = query.order_by(Production.order_number.desc()).offset(offset).limit(query_data.page_size).all()
 
         # 转换为响应格式
         production_items = []

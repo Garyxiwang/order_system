@@ -196,6 +196,46 @@ async def batch_update_split_progress(
             split.remarks = progress_data.remarks
             split.updated_at = datetime.utcnow()
         
+        # 同步到生产管理进度
+        try:
+            from app.models.production import Production
+            from app.models.production_progress import ProductionProgress, ItemType as ProductionItemType
+            
+            # 检查该订单是否存在生产管理记录
+            production = db.query(Production).filter(Production.order_number == split.order_number).first()
+            if production:
+                # 处理厂内项的同步
+                if progress_data.internal_items:
+                    for category_name, dates in progress_data.internal_items.items():
+                        if 'splitDate' in dates and dates['splitDate']:
+                            # 查找对应的生产进度记录
+                            production_progress = db.query(ProductionProgress).filter(
+                                ProductionProgress.production_id == production.id,
+                                ProductionProgress.category_name == category_name,
+                                ProductionProgress.item_type == ProductionItemType.INTERNAL
+                            ).first()
+                            
+                            if production_progress:
+                                production_progress.order_date = dates['splitDate']
+                                production_progress.updated_at = datetime.utcnow()
+                
+                # 处理外购项的同步
+                if progress_data.external_items:
+                    for category_name, dates in progress_data.external_items.items():
+                        if 'purchaseDate' in dates and dates['purchaseDate']:
+                            # 查找对应的生产进度记录
+                            production_progress = db.query(ProductionProgress).filter(
+                                ProductionProgress.production_id == production.id,
+                                ProductionProgress.category_name == category_name,
+                                ProductionProgress.item_type == ProductionItemType.EXTERNAL
+                            ).first()
+                            
+                            if production_progress:
+                                production_progress.order_date = dates['purchaseDate']
+                                production_progress.updated_at = datetime.utcnow()
+        except Exception as sync_e:
+            print(f"同步到生产管理进度失败: {str(sync_e)}")
+        
 
         db.commit()
         
