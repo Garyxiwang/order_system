@@ -23,13 +23,6 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
   // 创建预览用的列定义，去除操作列
   const previewColumns: ColumnsType<ProductionOrder> = [
     {
-      title: "序号",
-      key: "index",
-      width: 60,
-      align: "center" as const,
-      render: (_: unknown, __: ProductionOrder, index: number) => index + 1,
-    },
-    {
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",
@@ -145,6 +138,30 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
       },
     },
     {
+      title: "成品入库数量",
+      dataIndex: "finished_goods_quantity",
+      key: "finished_goods_quantity",
+      render: (text: string, record: ProductionOrder) => {
+        if (!text) return "-";
+
+        const statusParts = text.split(";");
+        return (
+          <div>
+            {statusParts.map((part, index) => {
+              const [item, quantity] = part.split(":");
+
+              return (
+                <div key={index} style={{ marginBottom: 4 }}>
+                  <span>{item.trim()}: </span>
+                  <span>{quantity ? `${quantity.trim()}件` : "-"}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      },
+    },
+    {
       title: "材料数量",
       dataIndex: "materialQuantity",
       key: "materialQuantity",
@@ -199,7 +216,6 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
       dataIndex: "remarks",
       key: "remarks",
       width: 150,
-      ellipsis: true,
       render: (text: string) => text || "-",
     },
   ];

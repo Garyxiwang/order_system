@@ -4,6 +4,7 @@ import type { ColumnsType } from "antd/es/table";
 import { SplitOrder, ProductionItem } from "../../services/splitApi";
 import { formatDateTime } from "../../utils/dateUtils";
 import PermissionService from "@/utils/permissions";
+import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
 
 interface PreviewModalProps {
   visible: boolean;
@@ -21,13 +22,6 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
   // 创建预览用的列定义，与拆单管理页面保持一致，去除操作列
   const previewColumns: ColumnsType<SplitOrder> = [
     {
-      title: "序号",
-      key: "index",
-      width: 60,
-      align: "center" as const,
-      render: (_: unknown, __: SplitOrder, index: number) => index + 1,
-    },
-    {
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",
@@ -43,7 +37,7 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
       title: "地址",
       dataIndex: "address",
       key: "address",
-      width: 200,
+      width: 90,
     },
     {
       title: "下单日期",
@@ -64,22 +58,10 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
       dataIndex: "internal_production_items",
       key: "internal_production_items",
       width: 200,
-      render: (
-        items:
-          | {
-              category_name?: string;
-              actual_date?: string;
-              cycle_days?: string;
-            }[]
-          | string
-      ) => {
+      render: (items: ProductionItem[] | string, record: SplitOrder) => {
         if (!items) return "-";
 
-        let productionItems: {
-          category_name?: string;
-          actual_date?: string;
-          cycle_days?: string;
-        }[] = [];
+        let productionItems: ProductionItem[] = [];
 
         // 处理字符串格式的数据（格式："类目:实际时间:消耗时间"）
         if (typeof items === "string" && items) {
@@ -97,37 +79,57 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
 
         return (
           <div>
-            {productionItems.map(
-              (
-                item: {
-                  category_name?: string;
-                  actual_date?: string;
-                  cycle_days?: string;
-                },
-                index: number
-              ) => {
-                const name = item.category_name || "";
-                const actualDate = item.actual_date;
-                const cycleDays = item.cycle_days;
+            {productionItems.map((item: ProductionItem, index: number) => {
+              const name = item.category_name || "";
+              const actualDate = item.actual_date;
+              const cycleDays = item.cycle_days;
 
-                if (actualDate) {
-                  const cycleNumber = parseInt(cycleDays || "0") || 0;
-                  const isOverThreeDays = cycleNumber >= 3;
-                  return (
-                    <div key={index}>
-                      ✓ {name}: {actualDate}:{" "}
-                      <span
-                        style={{ color: isOverThreeDays ? "red" : "inherit" }}
-                      >
-                        {cycleDays}
-                      </span>
-                    </div>
-                  );
-                } else {
-                  return <div key={index}>{name}:-</div>;
-                }
+              if (actualDate) {
+                const cycleNumber = parseInt(cycleDays || "0") || 0;
+                const isOverThreeDays = cycleNumber >= 3;
+                return (
+                  <div key={index}>
+                    <CheckOutlined
+                      style={{ color: "green", marginRight: "4px" }}
+                    />
+                    {name}: {actualDate}:{" "}
+                    <span
+                      style={{ color: isOverThreeDays ? "red" : "inherit" }}
+                    >
+                      {cycleDays}
+                    </span>
+                  </div>
+                );
+              } else {
+                const currentDate = new Date();
+                const orderDate = record.order_date
+                  ? new Date(record.order_date)
+                  : null;
+                const daysPassed = orderDate
+                  ? Math.floor(
+                      (currentDate.getTime() - orderDate.getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    )
+                  : 0;
+
+                return (
+                  <div key={index}>
+                    <CloseOutlined
+                      style={{ color: "red", marginRight: "4px" }}
+                    />
+                    {name}: -{" "}
+                    <span
+                      style={{
+                        color: daysPassed >= 3 ? "red" : "inherit",
+                        marginLeft: "4px",
+                      }}
+                    >
+                      逾期: {daysPassed}天
+                    </span>
+                  </div>
+                );
               }
-            )}
+            })}
           </div>
         );
       },
@@ -137,7 +139,7 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
       dataIndex: "external_purchase_items",
       key: "external_purchase_items",
       width: 200,
-      render: (items: ProductionItem[] | string) => {
+      render: (items: ProductionItem[] | string, record: SplitOrder) => {
         if (!items) return "-";
         let purchaseItems: ProductionItem[] = [];
 
@@ -167,7 +169,10 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
                 const isOverThreeDays = cycleNumber >= 3;
                 return (
                   <div key={index}>
-                    ✓ {name}: {actualDate}:{" "}
+                    <CheckOutlined
+                      style={{ color: "green", marginRight: "4px" }}
+                    />
+                    {name}: {actualDate}:{" "}
                     <span
                       style={{ color: isOverThreeDays ? "red" : "inherit" }}
                     >
@@ -176,7 +181,33 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
                   </div>
                 );
               } else {
-                return <div key={index}>{name}: -</div>;
+                const currentDate = new Date();
+                const orderDate = record.order_date
+                  ? new Date(record.order_date)
+                  : null;
+                const daysPassed = orderDate
+                  ? Math.floor(
+                      (currentDate.getTime() - orderDate.getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    )
+                  : 0;
+
+                return (
+                  <div key={index}>
+                    <CloseOutlined
+                      style={{ color: "red", marginRight: "4px" }}
+                    />
+                    {name}: -{" "}
+                    <span
+                      style={{
+                        color: daysPassed >= 3 ? "red" : "inherit",
+                        marginLeft: "4px",
+                      }}
+                    >
+                      逾期: {daysPassed}天
+                    </span>
+                  </div>
+                );
               }
             })}
           </div>

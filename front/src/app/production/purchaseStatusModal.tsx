@@ -122,6 +122,9 @@ const PurchaseStatusModal: React.FC<PurchaseStatusModalProps> = ({
           });
           console.log("formValues", formValues);
           form.setFieldsValue(formValues);
+          
+          // 重置编辑状态，确保有值的字段显示为非编辑状态
+          setEditingOrderDate({});
         } catch (error) {
           console.error("加载生产进度数据失败:", error);
           message.error("加载生产进度数据失败");
@@ -248,6 +251,7 @@ const PurchaseStatusModal: React.FC<PurchaseStatusModalProps> = ({
 
   const handleCancel = () => {
     form.resetFields();
+    setEditingOrderDate({}); // 重置编辑状态
     onCancel();
   };
 

@@ -5,6 +5,8 @@ from datetime import datetime
 from app.core.database import get_db
 from app.models.production_progress import ProductionProgress, ItemType
 from app.models.production import Production
+from app.models.split import Split
+from app.models.split_progress import SplitProgress, ItemType
 from app.schemas.production import (
     ProductionProgressBase,
     ProductionProgressBatchUpdate,
@@ -84,6 +86,30 @@ async def batch_update_production_progress(
                     # 更新所有非None的字段
                     if item_data.order_date is not None:
                         progress_item.order_date = item_data.order_date
+                        
+                        # 同步order_date到拆单进度中的purchase_date（外购项）
+                        try:
+                            # 查找对应的拆单记录
+                            split = db.query(Split).filter(
+                                Split.order_number == production.order_number
+                            ).first()
+                            
+                            if split:
+                                # 只更新相同category_name的外购项的采购日期
+                                external_progress_items = db.query(SplitProgress).filter(
+                                    SplitProgress.split_id == split.id,
+                                    SplitProgress.item_type == ItemType.EXTERNAL,
+                                    SplitProgress.category_name == progress_item.category_name
+                                ).all()
+                                
+                                for external_item in external_progress_items:
+                                    external_item.purchase_date = item_data.order_date
+                                    external_item.updated_at = datetime.utcnow()
+                                    
+                        except Exception as e:
+                            # 记录错误但不影响主要流程
+                            print(f"同步order_date到拆单进度purchase_date失败: {str(e)}")
+                            
                     if item_data.expected_material_date is not None:
                         progress_item.expected_material_date = item_data.expected_material_date
                     if item_data.actual_storage_date is not None:

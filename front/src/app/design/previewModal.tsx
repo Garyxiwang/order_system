@@ -22,13 +22,6 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
   // 创建预览用的列定义，去除操作列
   const previewColumns: ColumnsType<DesignOrder> = [
     {
-      title: "序号",
-      key: "index",
-      width: 60,
-      align: "center" as const,
-      render: (_: unknown, __: DesignOrder, index: number) => index + 1,
-    },
-    {
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",

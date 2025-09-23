@@ -820,7 +820,6 @@ const ProductionPage: React.FC = () => {
       dataIndex: "remarks",
       key: "remarks",
       width: 150,
-      ellipsis: true,
       render: (text: string) => text || "-",
     },
 

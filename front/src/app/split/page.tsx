@@ -1170,14 +1170,16 @@ const DesignPage: React.FC = () => {
                       style={{ color: "red", marginRight: "4px" }}
                     />
                     {name}: -{" "}
-                    <span
-                      style={{
-                        color: daysPassed >= 3 ? "red" : "inherit",
-                        marginLeft: "4px",
-                      }}
-                    >
-                      逾期: {daysPassed}天
-                    </span>
+                    {daysPassed >= 1 && (
+                      <span
+                        style={{
+                          color: daysPassed >= 3 ? "red" : "inherit",
+                          marginLeft: "4px",
+                        }}
+                      >
+                        逾期: {daysPassed}天
+                      </span>
+                    )}
                   </div>
                 );
               }
@@ -1261,14 +1263,18 @@ const DesignPage: React.FC = () => {
                       style={{ color: "red", marginRight: "4px" }}
                     />
                     {name}: -{" "}
-                    <span
-                      style={{
-                        color: daysPassed >= 3 ? "red" : "inherit",
-                        marginLeft: "4px",
-                      }}
-                    >
-                      逾期: {daysPassed}天
-                    </span>
+                    {
+                      daysPassed >= 1 && (
+                        <span
+                          style={{
+                            color: daysPassed >= 3 ? "red" : "inherit",
+                            marginLeft: "4px",
+                          }}
+                        >
+                          逾期: {daysPassed}天
+                        </span>
+                      )
+                    }
                   </div>
                 );
               }

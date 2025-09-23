@@ -10,19 +10,20 @@ import {
   Row,
   Col,
   message,
-  Input,
   Descriptions,
+  Select,
 } from "antd";
-const { TextArea } = Input;
 import dayjs, { Dayjs } from "dayjs";
 import type { SplitOrder } from "../../services/splitApi";
+import { updateSplitStatus } from "../../services/splitApi";
 import {
   splitProgressApi,
   SplitProgressItem,
 } from "../../services/splitProgressApi";
-import { CategoryService, CategoryData } from "../../services/categoryService";
+import { CategoryData } from "../../services/categoryService";
 import PermissionService from "@/utils/permissions";
 
+const { Option } = Select;
 interface SplitOrderModalProps {
   visible: boolean;
   onCancel: () => void;
@@ -63,6 +64,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
   const [externalCategories, setExternalCategories] = useState<CategoryData[]>(
     []
   );
+  const [currentOrderStatus, setCurrentOrderStatus] = useState<string>("");
 
   // 初始化表单数据
   useEffect(() => {
@@ -135,6 +137,9 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           internalItems,
           externalItems,
         });
+        
+        // 初始化订单状态
+        setCurrentOrderStatus(orderData.order_status || "");
       }
     };
 
@@ -213,6 +218,13 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           formattedValues.externalItems[categoryName];
       });
 
+      // 调用API更新订单状态（仅在状态有变化时）
+      if (currentOrderStatus && currentOrderStatus !== orderData.order_status) {
+        await updateSplitStatus(orderData.id, {
+          order_status: currentOrderStatus,
+        });
+      }
+
       console.log("拆单进度更新成功:", formattedValues);
       onOk(legacyFormattedValues);
       message.success("拆单进度更新成功！");
@@ -235,7 +247,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
 
   return (
     <Modal
-      title="拆单操作"
+      title="更新进度"
       open={visible}
       onCancel={handleCancel}
       width={1000}
@@ -297,6 +309,21 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           ]}
         />
       </div>
+      {PermissionService.canUpdateOrderStatus() && (
+        <Card title="订单状态" style={{ marginBottom: 24 }} size="small">
+          <Select
+            value={currentOrderStatus}
+            onChange={(value) => setCurrentOrderStatus(value)}
+            placeholder="请选择订单状态"
+            style={{ width: "50%", marginTop: "8px" }}
+          >
+            <Option value="未开始">未开始</Option>
+            <Option value="拆单中">拆单中</Option>
+            <Option value="未审核">未审核</Option>
+            <Option value="已审核">已审核</Option>
+          </Select>
+        </Card>
+      )}
 
       {/* 拆单操作表单区域 */}
       <Form
@@ -306,92 +333,102 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
         wrapperCol={{ span: 16 }}
       >
         {/* 厂内生产项 */}
-        {internalCategories.length > 0 && PermissionService.canEditInternalItems() && (
-          <Row style={{ marginBottom: 16 }}>
-            <Col span={24}>
-              <Card title="厂内生产项" size="small">
-                <Row gutter={16}>
-                  {internalCategories.map((category) => (
-                    <Col
-                      span={12}
-                      key={category.id}
-                      style={{ marginBottom: 16 }}
-                    >
-                      <Card title={category.name} size="small" type="inner">
-                        <Form.Item
-                          label="计划日期"
-                          name={["internalItems", category.name, "plannedDate"]}
-                          style={{ marginBottom: 12 }}
-                        >
-                          <DatePicker
-                            placeholder="请选择日期"
-                            style={{ width: "100%" }}
-                          />
-                        </Form.Item>
-                        <Form.Item
-                          label="拆单日期"
-                          name={["internalItems", category.name, "splitDate"]}
-                          style={{ marginBottom: 12 }}
-                        >
-                          <DatePicker
-                            placeholder="请选择日期"
-                            style={{ width: "100%" }}
-                          />
-                        </Form.Item>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              </Card>
-            </Col>
-          </Row>
-        )}
+        {internalCategories.length > 0 &&
+          PermissionService.canEditInternalItems() && (
+            <Row style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <Card title="厂内生产项" size="small">
+                  <Row gutter={16}>
+                    {internalCategories.map((category) => (
+                      <Col
+                        span={12}
+                        key={category.id}
+                        style={{ marginBottom: 16 }}
+                      >
+                        <Card title={category.name} size="small" type="inner">
+                          <Form.Item
+                            label="计划日期"
+                            name={[
+                              "internalItems",
+                              category.name,
+                              "plannedDate",
+                            ]}
+                            style={{ marginBottom: 12 }}
+                          >
+                            <DatePicker
+                              placeholder="请选择日期"
+                              style={{ width: "100%" }}
+                            />
+                          </Form.Item>
+                          <Form.Item
+                            label="拆单日期"
+                            name={["internalItems", category.name, "splitDate"]}
+                            style={{ marginBottom: 12 }}
+                          >
+                            <DatePicker
+                              placeholder="请选择日期"
+                              style={{ width: "100%" }}
+                            />
+                          </Form.Item>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
+          )}
 
         {/* 外购项 */}
-        {externalCategories.length > 0 && PermissionService.canEditExternalItems() && (
-          <Row style={{ marginBottom: 16 }}>
-            <Col span={24}>
-              <Card title="外购项" size="small">
-                <Row gutter={16}>
-                  {externalCategories.map((category) => (
-                    <Col
-                      span={12}
-                      key={category.id}
-                      style={{ marginBottom: 16 }}
-                    >
-                      <Card title={category.name} size="small" type="inner">
-                        <Form.Item
-                          label="计划下单日期"
-                          name={["externalItems", category.name, "plannedDate"]}
-                          style={{ marginBottom: 12 }}
-                        >
-                          <DatePicker
-                            placeholder="请选择日期"
-                            style={{ width: "100%" }}
-                          />
-                        </Form.Item>
-                        <Form.Item
-                          label="实际下单日期"
-                          name={[
-                            "externalItems",
-                            category.name,
-                            "purchaseDate",
-                          ]}
-                          style={{ marginBottom: 12 }}
-                        >
-                          <DatePicker
-                            placeholder="请选择日期"
-                            style={{ width: "100%" }}
-                          />
-                        </Form.Item>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              </Card>
-            </Col>
-          </Row>
-        )}
+        {externalCategories.length > 0 &&
+          PermissionService.canEditExternalItems() && (
+            <Row style={{ marginBottom: 16 }}>
+              <Col span={24}>
+                <Card title="外购项" size="small">
+                  <Row gutter={16}>
+                    {externalCategories.map((category) => (
+                      <Col
+                        span={12}
+                        key={category.id}
+                        style={{ marginBottom: 16 }}
+                      >
+                        <Card title={category.name} size="small" type="inner">
+                          <Form.Item
+                            label="计划下单日期"
+                            name={[
+                              "externalItems",
+                              category.name,
+                              "plannedDate",
+                            ]}
+                            style={{ marginBottom: 12 }}
+                          >
+                            <DatePicker
+                              placeholder="请选择日期"
+                              style={{ width: "100%" }}
+                            />
+                          </Form.Item>
+                          <Form.Item
+                            label="实际下单日期"
+                            name={[
+                              "externalItems",
+                              category.name,
+                              "purchaseDate",
+                            ]}
+                            style={{ marginBottom: 12 }}
+                          >
+                            <DatePicker
+                              placeholder="请选择日期"
+                              style={{ width: "100%" }}
+                            />
+                          </Form.Item>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
+          )}
       </Form>
     </Modal>
   );
