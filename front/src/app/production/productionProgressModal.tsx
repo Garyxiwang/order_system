@@ -129,13 +129,19 @@ const ProductionProgressModal: React.FC<ProductionProgressModalProps> = ({
 
       // 1. 更新生产表中的下料日期和预计出货日期
       const productionUpdates: Partial<ProductionOrder> = {};
-      if (values.cuttingDate) {
-        productionUpdates.cutting_date =
-          values.cuttingDate.format("YYYY-MM-DD");
+      
+      // 处理下料日期 - 包括删除的情况
+      if (values.hasOwnProperty('cuttingDate')) {
+        productionUpdates.cutting_date = values.cuttingDate
+          ? values.cuttingDate.format("YYYY-MM-DD")
+          : ""; // 删除时设为空字符串
       }
-      if (values.expectedShipmentDate) {
-        productionUpdates.expected_shipping_date =
-          values.expectedShipmentDate.format("YYYY-MM-DD");
+      
+      // 处理预计出货日期 - 包括删除的情况
+      if (values.hasOwnProperty('expectedShipmentDate')) {
+        productionUpdates.expected_shipping_date = values.expectedShipmentDate
+          ? values.expectedShipmentDate.format("YYYY-MM-DD")
+          : ""; // 删除时设为空字符串
       }
 
       if (Object.keys(productionUpdates).length > 0 && order?.id) {

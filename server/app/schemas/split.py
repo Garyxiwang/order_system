@@ -36,6 +36,9 @@ class SplitUpdate(BaseModel):
     internal_production_items: Optional[str] = Field(None, description="厂内生产项（兼容旧版本）")
     external_purchase_items: Optional[str] = Field(None, description="外购项（兼容旧版本）")
     remarks: Optional[str] = Field(None, description="备注")
+    cabinet_area: Optional[float] = Field(None, description="柜体面积")
+    wall_panel_area: Optional[float] = Field(None, description="墙板面积")
+    order_amount: Optional[float] = Field(None, description="订单金额")
 
 
 class SplitProgressUpdate(BaseModel):

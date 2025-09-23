@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Dict, Any
 from datetime import datetime
-
 from app.core.database import get_db
-from app.models.production import Production
 from app.models.production_progress import ProductionProgress, ItemType
+from app.models.production import Production
 from app.schemas.production import (
     ProductionProgressBase,
     ProductionProgressBatchUpdate,
     ProductionProgressResponse
 )
 from app.core.response import success_response, error_response
+from app.utils.production_status_validator import validate_production_status
 
 router = APIRouter()
 
@@ -26,20 +26,21 @@ async def get_production_progress(
     """
     try:
         # 检查生产记录是否存在
-        production = db.query(Production).filter(Production.id == production_id).first()
+        production = db.query(Production).filter(
+            Production.id == production_id).first()
         if not production:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="生产记录不存在"
             )
-        
+
         # 获取进度列表
         progress_items = db.query(ProductionProgress).filter(
             ProductionProgress.production_id == production_id
         ).all()
-        
+
         return [ProductionProgressResponse.model_validate(item) for item in progress_items]
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -60,13 +61,14 @@ async def batch_update_production_progress(
     """
     try:
         # 检查生产记录是否存在
-        production = db.query(Production).filter(Production.id == production_id).first()
+        production = db.query(Production).filter(
+            Production.id == production_id).first()
         if not production:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="生产记录不存在"
             )
-        
+
         # 更新现有的进度记录
         updated_progress_items = []
         for item_data in progress_data:
@@ -77,7 +79,7 @@ async def batch_update_production_progress(
                     ProductionProgress.id == item_data.id,
                     ProductionProgress.production_id == production_id
                 ).first()
-                
+
                 if progress_item:
                     # 更新所有非None的字段
                     if item_data.order_date is not None:
@@ -94,12 +96,12 @@ async def batch_update_production_progress(
                         progress_item.expected_arrival_date = item_data.expected_arrival_date
                     if item_data.actual_arrival_date is not None:
                         progress_item.actual_arrival_date = item_data.actual_arrival_date
-                    
+
                     updated_progress_items.append(progress_item)
             else:
                 # 如果没有ID，创建新记录（保持向后兼容）
                 item_type_enum = ItemType.INTERNAL if item_data.item_type == "internal" else ItemType.EXTERNAL
-                
+
                 progress_item = ProductionProgress(
                     production_id=production_id,
                     order_number=production.order_number,
@@ -115,40 +117,18 @@ async def batch_update_production_progress(
                 )
                 db.add(progress_item)
                 updated_progress_items.append(progress_item)
-        
-        # 检查所有厂内生产项的状态并更新订单状态
-        internal_items = db.query(ProductionProgress).filter(
-            ProductionProgress.production_id == production_id,
-            ProductionProgress.item_type == ItemType.INTERNAL
-        ).all()
-        
-        if internal_items:
-            # 检查是否所有厂内生产项都有storage_time
-            all_have_storage_time = all(
-                item.storage_time and item.storage_time.strip() 
-                for item in internal_items
-            )
-            
-            # 检查是否所有厂内生产项都有actual_storage_date
-            all_have_actual_storage_date = all(
-                item.actual_storage_date and item.actual_storage_date.strip() 
-                for item in internal_items
-            )
-            
-            # 更新订单状态
-            if all_have_storage_time:
-                production.order_status = "已入库"
-            elif all_have_actual_storage_date:
-                production.order_status = "已齐料"
-        
+
+        # 使用新的状态校验方法自动更新状态
+        validate_production_status(db, production_id)
+
         db.commit()
-        
+
         # 刷新数据以获取ID
         for item in updated_progress_items:
             db.refresh(item)
-        
+
         return [ProductionProgressResponse.model_validate(item) for item in updated_progress_items]
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -172,23 +152,23 @@ async def update_progress_item(
         progress_item = db.query(ProductionProgress).filter(
             ProductionProgress.id == progress_id
         ).first()
-        
+
         if not progress_item:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="进度项不存在"
             )
-        
+
         # 更新字段
         for field, value in progress_data.model_dump(exclude_unset=True).items():
             setattr(progress_item, field, value)
-        
+
         progress_item.updated_at = datetime.now()
         db.commit()
         db.refresh(progress_item)
-        
+
         return ProductionProgressResponse.model_validate(progress_item)
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -211,18 +191,18 @@ async def delete_progress_item(
         progress_item = db.query(ProductionProgress).filter(
             ProductionProgress.id == progress_id
         ).first()
-        
+
         if not progress_item:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="进度项不存在"
             )
-        
+
         db.delete(progress_item)
         db.commit()
-        
+
         return {"message": "删除进度项成功"}
-        
+
     except HTTPException:
         raise
     except Exception as e:

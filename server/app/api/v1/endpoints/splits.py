@@ -103,8 +103,8 @@ async def get_splits(
             query = query.filter(Split.completion_date <=
                                  query_data.completion_date_end)
 
-        # 按下单日期降序排序
-        query = query.order_by(Split.order_date.desc())
+        # 按下单日期降序排序，再按订单编号降序排序
+        query = query.order_by(Split.order_date.desc(), Split.order_number.desc())
 
         # 获取总数
         total = query.count()
@@ -477,6 +477,18 @@ async def update_split(
         for field, value in update_data.items():
             if field not in ['production_items', 'internal_production_items', 'external_purchase_items'] and hasattr(split, field):
                 setattr(split, field, value)
+
+        # 同步更新设计订单的三个字段
+        order_updates = {}
+        if 'cabinet_area' in update_data:
+            order_updates['cabinet_area'] = update_data['cabinet_area']
+        if 'wall_panel_area' in update_data:
+            order_updates['wall_panel_area'] = update_data['wall_panel_area']
+        if 'order_amount' in update_data:
+            order_updates['order_amount'] = update_data['order_amount']
+        
+        if order_updates:
+            db.query(Order).filter(Order.order_number == split.order_number).update(order_updates)
 
         # 检查是否更新了拆单员字段，如果拆单员存在且不为空，则自动将订单状态改为拆单中
         if 'splitter' in update_data and update_data['splitter'] and update_data['splitter'].strip():

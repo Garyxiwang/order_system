@@ -757,12 +757,11 @@ const ProductionPage: React.FC = () => {
           <div>
             {statusParts.map((part, index) => {
               const [item, quantity] = part.split(":");
-              if (!item || !quantity) return null;
 
               return (
                 <div key={index} style={{ marginBottom: 4 }}>
                   <span>{item.trim()}: </span>
-                  <span>{quantity.trim()}件</span>
+                  <span>{quantity ? `${quantity.trim()}件` : "-"}</span>
                 </div>
               );
             })}
@@ -784,7 +783,8 @@ const ProductionPage: React.FC = () => {
       title: "材料数量",
       dataIndex: "materialQuantity",
       key: "materialQuantity",
-      width: 90,
+      minWidth: 90,
+      width: "auto",
       render: (value, record: ProductionOrder) => {
         return (
           <div>
@@ -893,7 +893,10 @@ const ProductionPage: React.FC = () => {
             <Button
               type="link"
               size="small"
-              disabled={record.order_status === "已完成"}
+              disabled={
+                record.order_status === "已完成" ||
+                record.order_status !== "已发货"
+              }
               onClick={() => {
                 Modal.confirm({
                   title: "确认完成订单",

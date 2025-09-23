@@ -26,10 +26,12 @@ import {
   SearchOutlined,
   CheckOutlined,
   ExportOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import {
   getSplitOrders,
   updateSplitStatus,
+  updateSplitOrder,
   placeSplitOrder,
   type SplitOrder,
   type ProductionItem,
@@ -1007,11 +1009,12 @@ const DesignPage: React.FC = () => {
       const values = await orderInfoForm.validateFields();
       setLoading(true);
 
-      // 调用设计订单更新API
-      await updateDesignOrder(orderInfoEditingRecord.id.toString(), {
-        cabinet_area: values.cabinet_area,
-        wall_panel_area: values.wall_panel_area,
-        order_amount: values.order_amount,
+      // 调用拆单更新API，后端会自动同步更新设计订单
+      await updateSplitOrder(orderInfoEditingRecord.id, {
+        // 传递需要更新的三个字段，后端会同步到设计订单
+        cabinet_area: parseFloat(values.cabinet_area),
+        wall_panel_area: parseFloat(values.wall_panel_area),
+        order_amount: parseFloat(values.order_amount),
       });
 
       message.success("订单信息更新成功");
@@ -1025,9 +1028,9 @@ const DesignPage: React.FC = () => {
       // 继续下单流程
       handlePlaceOrder({
         ...orderInfoEditingRecord,
-        cabinet_area: parseFloat(values.cabinet_area) || 0,
-        wall_panel_area: parseFloat(values.wall_panel_area) || 0,
-        order_amount: parseFloat(values.order_amount) || 0,
+        cabinet_area: parseFloat(values.cabinet_area),
+        wall_panel_area: parseFloat(values.wall_panel_area),
+        order_amount: parseFloat(values.order_amount),
       });
     } catch (error) {
       console.error("更新订单信息失败:", error);
@@ -1150,7 +1153,33 @@ const DesignPage: React.FC = () => {
                   </div>
                 );
               } else {
-                return <div key={index}>{name}:-</div>;
+                const currentDate = new Date();
+                const orderDate = record.order_date
+                  ? new Date(record.order_date)
+                  : null;
+                const daysPassed = orderDate
+                  ? Math.floor(
+                      (currentDate.getTime() - orderDate.getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    )
+                  : 0;
+
+                return (
+                  <div key={index}>
+                    <CloseOutlined
+                      style={{ color: "red", marginRight: "4px" }}
+                    />
+                    {name}: -{" "}
+                    <span
+                      style={{
+                        color: daysPassed >= 3 ? "red" : "inherit",
+                        marginLeft: "4px",
+                      }}
+                    >
+                      逾期: {daysPassed}天
+                    </span>
+                  </div>
+                );
               }
             })}
             <div style={{ textAlign: "right", marginTop: "4px" }}>
@@ -1215,7 +1244,33 @@ const DesignPage: React.FC = () => {
                   </div>
                 );
               } else {
-                return <div key={index}>{name}: -</div>;
+                const currentDate = new Date();
+                const orderDate = record.order_date
+                  ? new Date(record.order_date)
+                  : null;
+                const daysPassed = orderDate
+                  ? Math.floor(
+                      (currentDate.getTime() - orderDate.getTime()) /
+                        (1000 * 60 * 60 * 24)
+                    )
+                  : 0;
+
+                return (
+                  <div key={index}>
+                    <CloseOutlined
+                      style={{ color: "red", marginRight: "4px" }}
+                    />
+                    {name}: -{" "}
+                    <span
+                      style={{
+                        color: daysPassed >= 3 ? "red" : "inherit",
+                        marginLeft: "4px",
+                      }}
+                    >
+                      逾期: {daysPassed}天
+                    </span>
+                  </div>
+                );
               }
             })}
             <div style={{ textAlign: "right", marginTop: "4px" }}>
@@ -1365,6 +1420,7 @@ const DesignPage: React.FC = () => {
         const canPlaceOrder =
           checkAllInternalItemsHaveSplitDate(record) &&
           record.quote_status === "已打款" &&
+          record.order_status === "已审核" &&
           !isOrdered;
 
         return (
@@ -1399,7 +1455,7 @@ const DesignPage: React.FC = () => {
               <Button
                 type="link"
                 size="small"
-                disabled={isRevoked}
+                disabled={isRevoked || isNotStarted}
                 onClick={() => showOrderStatusModal(record)}
               >
                 订单状态

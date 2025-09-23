@@ -116,6 +116,9 @@ export const updateSplitOrder = async (
     splitter?: string;
     production_items?: ProductionItem[];
     remarks?: string;
+    cabinet_area?: number;
+    wall_panel_area?: number;
+    order_amount?: number;
   }
 ): Promise<ApiResponse<SplitOrder>> => {
   return await api.put(`/v1/splits/${splitId}`, updates);

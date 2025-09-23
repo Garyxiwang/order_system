@@ -16,6 +16,7 @@ from app.schemas.production import (
     ProductionResponse
 )
 from app.core.response import success_response, error_response
+from app.utils.production_status_validator import validate_production_status
 
 router = APIRouter()
 
@@ -235,17 +236,8 @@ async def update_production(
         for field, value in update_data.items():
             setattr(production, field, value)
 
-        # 如果存在下料日期，自动更新订单状态为已下料
-        if production.cutting_date and production.cutting_date.strip():
-            production.order_status = "已下料"
-
-            # 如果存在实际出货日期，自动更新订单状态为已发货
-        if production.actual_delivery_date and production.actual_delivery_date.strip():
-            production.order_status = "已发货"
-
-         # 如果前端传入的订单状态是已完成，保持已完成状态
-        if update_data.get('order_status') == "已完成":
-            production.order_status = "已完成"
+        # 使用新的状态校验方法自动更新状态
+        validate_production_status(db, production_id)
 
         db.commit()
         db.refresh(production)
