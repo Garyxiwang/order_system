@@ -624,7 +624,8 @@ const ProductionPage: React.FC = () => {
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",
-      width: 90,
+      width: "auto",
+      minWidth: 90,
       fixed: "left",
     },
     {
@@ -650,6 +651,7 @@ const ProductionPage: React.FC = () => {
       title: "是否安装",
       dataIndex: "is_installation",
       key: "is_installation",
+      width: 90,
       render: (value: boolean) => <span>{value ? "是" : "否"}</span>,
     },
     {
@@ -657,17 +659,20 @@ const ProductionPage: React.FC = () => {
       dataIndex: "customer_payment_date",
       key: "customer_payment_date",
       render: (text: string) => text || "-",
+      width: 130,
     },
     {
       title: "拆单下单日期",
       dataIndex: "split_order_date",
       key: "split_order_date",
       render: (text: string) => text || "-",
+      width: 130,
     },
     {
       title: "下单天数",
       dataIndex: "order_days",
       key: "order_days",
+      width: 90,
       render: (value: string, record: ProductionOrder) => {
         if (record.split_order_date && record.customer_payment_date) {
           const splitDate = new Date(record.split_order_date);
@@ -685,6 +690,7 @@ const ProductionPage: React.FC = () => {
       dataIndex: "expected_delivery_date",
       key: "expected_delivery_date",
       render: (text: string) => text || "-",
+      width: 130,
     },
     {
       title: "采购状态",
@@ -778,6 +784,7 @@ const ProductionPage: React.FC = () => {
       title: "材料数量",
       dataIndex: "materialQuantity",
       key: "materialQuantity",
+      width: 90,
       render: (value, record: ProductionOrder) => {
         return (
           <div>
@@ -792,6 +799,7 @@ const ProductionPage: React.FC = () => {
       dataIndex: "cutting_date",
       key: "cutting_date",
       render: (text: string) => text || "-",
+      width: 130,
     },
 
     {
@@ -1155,6 +1163,7 @@ const ProductionPage: React.FC = () => {
           rowClassName="hover:bg-blue-50"
           rowKey={(record) => record.id}
           scroll={{ x: "max-content" }}
+          sticky={{ offsetHeader: -20 }}
         />
       </Card>
 

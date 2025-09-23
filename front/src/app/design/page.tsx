@@ -766,7 +766,8 @@ const DesignPage: React.FC = () => {
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",
-      width: 90,
+      width: "auto",
+      minWidth: 90,
       fixed: "left",
     },
     {
@@ -803,6 +804,8 @@ const DesignPage: React.FC = () => {
       title: "设计过程",
       dataIndex: "design_process",
       key: "design_process",
+      minWidth: 120,
+      width: "auto",
       render: (text: string, record: DesignOrder) => {
         if (!text || text === "暂无进度") return "-";
         const items = text
@@ -897,11 +900,13 @@ const DesignPage: React.FC = () => {
       dataIndex: "order_date",
       key: "order_date",
       render: (date: string) => formatDateTime(date),
+      width: 130,
     },
     {
       title: "设计周期",
       dataIndex: "design_cycle",
       key: "design_cycle",
+      width: 90,
       render: (cycle: string) => {
         if (!cycle) return "-";
         const days = parseInt(cycle);
@@ -920,11 +925,13 @@ const DesignPage: React.FC = () => {
       title: "订单类型",
       dataIndex: "order_type",
       key: "order_type",
+      width: 90,
     },
     {
       title: "是否安装",
       dataIndex: "is_installation",
       key: "is_installation",
+      width: 90,
       render: (text: boolean) => <div>{text ? "是" : "否"}</div>,
     },
     {
@@ -965,6 +972,7 @@ const DesignPage: React.FC = () => {
       title: "备注",
       dataIndex: "remarks",
       key: "remarks",
+      width: 80,
       render: (text: string) => (
         <div
           style={{
@@ -1559,6 +1567,7 @@ const DesignPage: React.FC = () => {
           rowClassName="hover:bg-blue-50"
           rowKey={(record) => record.order_number}
           scroll={{ x: "max-content" }}
+          sticky={{ offsetHeader: -20 }}
         />
       </Card>
 

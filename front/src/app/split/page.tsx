@@ -1069,7 +1069,8 @@ const DesignPage: React.FC = () => {
       title: "订单编号",
       dataIndex: "order_number",
       key: "order_number",
-      width: 90,
+      width: "auto",
+      minWidth: 120,
       fixed: "left",
     },
     {
@@ -1104,6 +1105,8 @@ const DesignPage: React.FC = () => {
       title: "厂内生产项",
       dataIndex: "internal_production_items",
       key: "internal_production_items",
+      minWidth: 120,
+      width: "auto",
       render: (items: ProductionItem[] | string, record: SplitOrder) => {
         if (!items) return "-";
 
@@ -1168,6 +1171,8 @@ const DesignPage: React.FC = () => {
       title: "外购项",
       dataIndex: "external_purchase_items",
       key: "external_purchase_items",
+      minWidth: 120,
+      width: "auto",
       render: (items: ProductionItem[] | string, record: SplitOrder) => {
         if (!items) return "-";
         let purchaseItems: ProductionItem[] = [];
@@ -1231,6 +1236,7 @@ const DesignPage: React.FC = () => {
       title: "报价状态",
       dataIndex: "quote_status",
       key: "quote_status",
+      width: 90,
       render: (text: string) => {
         // 向后兼容旧字段
         const status = text || "";
@@ -1255,6 +1261,7 @@ const DesignPage: React.FC = () => {
       title: "订单类型",
       dataIndex: "order_type",
       key: "order_type",
+      width: 90,
     },
 
     {
@@ -1292,6 +1299,7 @@ const DesignPage: React.FC = () => {
             title: "订单金额",
             dataIndex: "order_amount",
             key: "order_amount",
+            width: 90,
             render: (text: string) => (
               <div>
                 {text
@@ -1309,6 +1317,8 @@ const DesignPage: React.FC = () => {
       title: "备注",
       dataIndex: "remarks",
       key: "remarks",
+      width: "auto",
+      minWidth: 80,
       render: (text: string) => {
         const remark = text;
         return (
@@ -1713,6 +1723,7 @@ const DesignPage: React.FC = () => {
             record.id?.toString() || record.order_number || "unknown"
           }
           scroll={{ x: "max-content" }}
+          sticky={{ offsetHeader: -20 }}
         />
       </Card>
 
