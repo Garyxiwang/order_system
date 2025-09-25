@@ -33,7 +33,6 @@ class Order(Base):
     category_name = Column(String(100), nullable=False, comment="类目名称")
     
     order_type = Column(String(50), nullable=False, comment="订单类型")
-    design_cycle = Column(String(50), nullable=True, comment="设计周期")
     
     # 面积和金额
     cabinet_area = Column(Numeric(10, 2), nullable=True, comment="柜体面积")

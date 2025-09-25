@@ -1,0 +1,114 @@
+# AWS 生产环境部署配置
+# 使用 AWS ECS + RDS + CloudFront + ALB
+
+version: '3.8'
+
+services:
+  # 前端服务 - 部署到 ECS Fargate
+  frontend:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/order-system-frontend:latest
+    cpu: 512
+    memory: 1024
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+      - NEXT_TELEMETRY_DISABLED=1
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /ecs/order-system-frontend
+        awslogs-region: ${AWS_REGION}
+        awslogs-stream-prefix: ecs
+
+  # 后端服务 - 部署到 ECS Fargate
+  backend:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/order-system-backend:latest
+    cpu: 1024
+    memory: 2048
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${RDS_ENDPOINT}:5432/${DB_NAME}
+      - SECRET_KEY=${SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      - S3_BUCKET=${S3_BUCKET}
+      - REDIS_URL=redis://${ELASTICACHE_ENDPOINT}:6379
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /ecs/order-system-backend
+        awslogs-region: ${AWS_REGION}
+        awslogs-stream-prefix: ecs
+
+# AWS 基础设施配置
+aws_infrastructure:
+  # VPC 配置
+  vpc:
+    cidr: "10.0.0.0/16"
+    availability_zones: 2
+    public_subnets: ["10.0.1.0/24", "10.0.2.0/24"]
+    private_subnets: ["10.0.3.0/24", "10.0.4.0/24"]
+    
+  # RDS 数据库配置
+  rds:
+    engine: postgres
+    engine_version: "15.4"
+    instance_class: db.t3.medium
+    allocated_storage: 100
+    storage_encrypted: true
+    multi_az: true
+    backup_retention_period: 7
+    
+  # ElastiCache Redis 配置
+  elasticache:
+    engine: redis
+    node_type: cache.t3.micro
+    num_cache_nodes: 1
+    
+  # S3 存储配置
+  s3:
+    bucket_name: order-system-uploads-${ENVIRONMENT}
+    versioning: true
+    encryption: AES256
+    
+  # CloudFront CDN 配置
+  cloudfront:
+    price_class: PriceClass_100
+    compress: true
+    viewer_protocol_policy: redirect-to-https
+    
+  # Application Load Balancer 配置
+  alb:
+    scheme: internet-facing
+    type: application
+    health_check_path: /health
+    health_check_interval: 30
+    
+  # ECS 集群配置
+  ecs:
+    cluster_name: order-system-cluster
+    launch_type: FARGATE
+    platform_version: LATEST
+    
+  # Auto Scaling 配置
+  auto_scaling:
+    min_capacity: 2
+    max_capacity: 10
+    target_cpu_utilization: 70
+    scale_out_cooldown: 300
+    scale_in_cooldown: 300

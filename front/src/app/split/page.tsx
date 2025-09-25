@@ -1148,7 +1148,7 @@ const DesignPage: React.FC = () => {
                     <span
                       style={{ color: isOverThreeDays ? "red" : "inherit" }}
                     >
-                      {cycleDays}
+                      {cycleDays}天
                     </span>
                   </div>
                 );
@@ -1241,7 +1241,7 @@ const DesignPage: React.FC = () => {
                     <span
                       style={{ color: isOverThreeDays ? "red" : "inherit" }}
                     >
-                      {cycleDays}
+                      {cycleDays}天
                     </span>
                   </div>
                 );

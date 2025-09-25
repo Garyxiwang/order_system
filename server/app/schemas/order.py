@@ -5,6 +5,7 @@ from decimal import Decimal
 
 # from app.schemas.category import CategoryResponse  # 不再需要
 from app.schemas.progress import ProgressResponse
+from app.utils.scheduler import calculate_design_cycle_days
 
 
 class OrderBase(BaseModel):
@@ -18,7 +19,6 @@ class OrderBase(BaseModel):
     order_date: Optional[str] = Field(None, description="下单日期")
     category_name: str = Field(..., description="类目名称")
     order_type: str = Field(..., description="订单类型")
-    design_cycle: str = Field("0", description="设计周期")
     cabinet_area: Optional[Decimal] = Field(None, description="柜体面积")
     wall_panel_area: Optional[Decimal] = Field(None, description="墙板面积")
     order_amount: Optional[Decimal] = Field(None, description="订单金额")
@@ -42,7 +42,6 @@ class OrderUpdate(BaseModel):
     order_date: Optional[str] = Field(None, description="下单日期")
     category_name: Optional[str] = Field(None, description="类目名称")
     order_type: Optional[str] = Field(None, description="订单类型")
-    design_cycle: Optional[str] = Field(None, description="设计周期")
     cabinet_area: Optional[Decimal] = Field(None, description="柜体面积")
     wall_panel_area: Optional[Decimal] = Field(None, description="墙板面积")
     order_amount: Optional[Decimal] = Field(None, description="订单金额")
@@ -58,6 +57,7 @@ class OrderStatusUpdate(BaseModel):
 class OrderResponse(OrderBase):
     """订单响应模型"""
     id: int = Field(..., description="订单ID")
+    design_cycle: str = Field("1", description="设计周期")
     order_status: str = Field(..., description="订单状态")
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="更新时间")
@@ -66,6 +66,13 @@ class OrderResponse(OrderBase):
     
     @classmethod
     def from_orm(cls, obj):
+        # 动态计算设计周期
+        calculated_design_cycle = str(calculate_design_cycle_days(
+            obj.assignment_date, 
+            obj.order_date, 
+            obj.order_status
+        ))
+            
         # 处理assignment_date字段的转换
         data = {
             'id': obj.id,
@@ -78,7 +85,7 @@ class OrderResponse(OrderBase):
             'order_date': obj.order_date,
             'category_name': obj.category_name,
             'order_type': obj.order_type,
-            'design_cycle': obj.design_cycle or "0",
+            'design_cycle': calculated_design_cycle,
             'cabinet_area': obj.cabinet_area,
             'wall_panel_area': obj.wall_panel_area,
             'order_amount': obj.order_amount,

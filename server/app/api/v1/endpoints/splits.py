@@ -144,9 +144,16 @@ async def get_splits(
                             split_date = item.split_date
                         else:
                             split_date = item.split_date.strftime('%Y-%m-%d')
+                         # 动态计算拆单周期：split_date - order_date
+                        try:
+                            split_dt = datetime.strptime(split_date, '%Y-%m-%d')
+                            order_dt = datetime.strptime(split.order_date, '%Y-%m-%d')
+                            cycle_days = (split_dt - order_dt).days
+                        except ValueError:
+                            cycle_days = 0
                     else:
                         split_date = ''
-                    cycle_days = item.cycle_days if item.cycle_days else '-'
+                        cycle_days = 0  # 没有split_date时为0
                     item_str = f"{item.category_name}:{split_date}:{cycle_days}"
                     internal_items.append(item_str)
                 elif item.item_type == ItemType.EXTERNAL:
@@ -157,9 +164,16 @@ async def get_splits(
                         else:
                             purchase_date = item.purchase_date.strftime(
                                 '%Y-%m-%d')
+                        # 动态计算拆单周期：purchase_date - order_date
+                        try:
+                            purchase_dt = datetime.strptime(purchase_date, '%Y-%m-%d')
+                            order_dt = datetime.strptime(split.order_date, '%Y-%m-%d')
+                            cycle_days = (purchase_dt - order_dt).days
+                        except ValueError:
+                            cycle_days = 0
                     else:
                         purchase_date = ''
-                    cycle_days = item.cycle_days if item.cycle_days else '-'
+                        cycle_days = 0  # 没有purchase_date时为0
                     item_str = f"{item.category_name}:{purchase_date}:{cycle_days}"
                     external_items.append(item_str)
             # 创建响应对象
@@ -236,26 +250,42 @@ async def get_split(
 
     for item in progress_items:
         if item.item_type == ItemType.INTERNAL:
-            # 格式："类目:实际时间:消耗时间"
+            # 格式："类目:实际时间:拆单周期"
             if item.split_date:
                 if isinstance(item.split_date, str):
                     split_date = item.split_date
                 else:
                     split_date = item.split_date.strftime('%Y-%m-%d')
+                # 动态计算拆单周期：split_date - order_date
+                try:
+                    split_dt = datetime.strptime(split_date, '%Y-%m-%d')
+                    order_dt = datetime.strptime(split.order_date, '%Y-%m-%d')
+                    cycle_days = (split_dt - order_dt).days
+                except ValueError:
+                    cycle_days = 0
             else:
                 split_date = ''
-            item_str = f"{item.category_name}:{split_date}:-"
+                cycle_days = 0  # 没有split_date时为0
+            item_str = f"{item.category_name}:{split_date}:{cycle_days}"
             internal_items.append(item_str)
         elif item.item_type == ItemType.EXTERNAL:
-            # 格式："类目:实际时间:消耗时间"
+            # 格式："类目:实际时间:拆单周期"
             if item.purchase_date:
                 if isinstance(item.purchase_date, str):
                     purchase_date = item.purchase_date
                 else:
                     purchase_date = item.purchase_date.strftime('%Y-%m-%d')
+                # 动态计算拆单周期：purchase_date - order_date
+                try:
+                    purchase_dt = datetime.strptime(purchase_date, '%Y-%m-%d')
+                    order_dt = datetime.strptime(split.order_date, '%Y-%m-%d')
+                    cycle_days = (purchase_dt - order_dt).days
+                except ValueError:
+                    cycle_days = 0
             else:
                 purchase_date = ''
-            item_str = f"{item.category_name}:{purchase_date}:-"
+                cycle_days = 0  # 没有purchase_date时为0
+            item_str = f"{item.category_name}:{purchase_date}:{cycle_days}"
             external_items.append(item_str)
 
     # 创建响应对象

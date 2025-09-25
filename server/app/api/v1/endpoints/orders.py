@@ -86,20 +86,7 @@ async def get_orders(
         if query_data.order_type:
             query = query.filter(Order.order_type == query_data.order_type)
 
-        if query_data.design_cycle_filter:
-            # 设计周期范围筛选
-            if query_data.design_cycle_filter == "lte20":
-                # 小于等于20天
-                query = query.filter(
-                    func.cast(Order.design_cycle, Integer) <= 20)
-            elif query_data.design_cycle_filter == "gt20":
-                # 大于20天
-                query = query.filter(
-                    func.cast(Order.design_cycle, Integer) > 20)
-            elif query_data.design_cycle_filter == "lt50":
-                # 小于50天
-                query = query.filter(
-                    func.cast(Order.design_cycle, Integer) < 50)
+        # 设计周期筛选将在应用层处理，这里先移除数据库层筛选
 
         if query_data.category_names:
             # 使用包含关系查询，只要订单中包含任一选中的类目就匹配
@@ -125,26 +112,66 @@ async def get_orders(
             query = query.filter(func.date(Order.order_date)
                                  <= query_data.order_date_end)
 
-        # 获取总数
-        total = query.count()
-
         # 按分单日期降序排序
         query = query.order_by(Order.assignment_date.desc())
 
-        # 分页处理
-        if query_data.no_pagination:
-            # 不分页，获取所有数据
-            orders = query.all()
-            page = 1
-            page_size = total
-            total_pages = 1
+        # 如果有设计周期筛选，需要获取所有数据进行筛选
+        if query_data.design_cycle_filter:
+            # 获取所有订单进行筛选
+            all_orders = query.all()
+            
+            # 应用设计周期筛选
+            filtered_orders = []
+            for order in all_orders:
+                # 动态计算设计周期
+                calculated_design_cycle = calculate_design_cycle_days(
+                    order.assignment_date, 
+                    order.order_date, 
+                    order.order_status
+                )
+                
+                design_cycle_days = int(calculated_design_cycle)
+                
+                # 应用筛选条件
+                if query_data.design_cycle_filter == "lte20" and design_cycle_days > 20:
+                    continue
+                elif query_data.design_cycle_filter == "gt20" and design_cycle_days <= 20:
+                    continue
+                elif query_data.design_cycle_filter == "lt50" and design_cycle_days >= 50:
+                    continue
+                
+                filtered_orders.append(order)
+            
+            # 计算筛选后的总数
+            total = len(filtered_orders)
+            
+            # 对筛选后的结果进行分页
+            if query_data.no_pagination:
+                orders = filtered_orders
+                page = 1
+                page_size = total
+                total_pages = 1
+            else:
+                offset = (query_data.page - 1) * query_data.page_size
+                orders = filtered_orders[offset:offset + query_data.page_size]
+                page = query_data.page
+                page_size = query_data.page_size
+                total_pages = (total + page_size - 1) // page_size
         else:
-            # 分页
-            offset = (query_data.page - 1) * query_data.page_size
-            orders = query.offset(offset).limit(query_data.page_size).all()
-            page = query_data.page
-            page_size = query_data.page_size
-            total_pages = (total + page_size - 1) // page_size
+            # 没有设计周期筛选，使用原来的分页逻辑
+            total = query.count()
+            
+            if query_data.no_pagination:
+                orders = query.all()
+                page = 1
+                page_size = total
+                total_pages = 1
+            else:
+                offset = (query_data.page - 1) * query_data.page_size
+                orders = query.offset(offset).limit(query_data.page_size).all()
+                page = query_data.page
+                page_size = query_data.page_size
+                total_pages = (total + page_size - 1) // page_size
 
         # 转换为响应格式
         order_items = []
@@ -165,6 +192,13 @@ async def get_orders(
             else:
                 design_process = "暂无进度"
 
+            # 动态计算设计周期
+            calculated_design_cycle = str(calculate_design_cycle_days(
+                order.assignment_date, 
+                order.order_date, 
+                order.order_status
+            ))
+
             order_item = OrderListItem(
                 id=order.id,
                 order_number=order.order_number,
@@ -175,7 +209,7 @@ async def get_orders(
                 assignment_date=order.assignment_date,
                 design_process=design_process,
                 category_name=order.category_name,
-                design_cycle=order.design_cycle,
+                design_cycle=calculated_design_cycle,
                 order_date=order.order_date,
                 order_type=order.order_type,
                 is_installation=order.is_installation,
@@ -215,10 +249,6 @@ async def create_order(
         # 根据订单类型设置初始状态
         initial_status = "已下单" if order_data.order_type == "生产单" else "进行中"
 
-        # 计算设计周期（基于分单日期）
-        design_cycle_days = calculate_design_cycle_days(
-            order_data.assignment_date)
-
         # 创建订单
         order = Order(
             order_number=order_data.order_number,
@@ -230,7 +260,6 @@ async def create_order(
             order_date=order_data.order_date,
             category_name=order_data.category_name,
             order_type=order_data.order_type,
-            design_cycle=str(design_cycle_days),  # 设置计算出的设计周期
             cabinet_area=order_data.cabinet_area,
             wall_panel_area=order_data.wall_panel_area,
 
@@ -476,10 +505,6 @@ async def update_order_status(
             # 设置下单时间
             order.order_date = datetime.now().strftime('%Y-%m-%d')
 
-            # 重新计算设计周期（基于下单日期）
-            design_cycle_days = calculate_design_cycle_days(order.order_date)
-            order.design_cycle = str(design_cycle_days)
-
             # 更新进度表中下单事项的实际时间
             order_progress = db.query(Progress).filter(
                 Progress.order_id == order.id,
@@ -597,6 +622,13 @@ async def update_order_status(
         db.refresh(order)
 
         # 手动构建响应数据，确保progresses包含order_number
+        # 动态计算设计周期
+        calculated_design_cycle = str(calculate_design_cycle_days(
+            order.assignment_date, 
+            order.order_date, 
+            order.order_status
+        ))
+
         order_dict = {
             "id": order.id,
             "order_number": order.order_number,
@@ -608,7 +640,7 @@ async def update_order_status(
             "order_date": order.order_date,
             "category_name": order.category_name,
             "order_type": order.order_type,
-            "design_cycle": order.design_cycle or "0",
+            "design_cycle": calculated_design_cycle,
             "cabinet_area": order.cabinet_area,
             "wall_panel_area": order.wall_panel_area,
             "order_amount": order.order_amount,
@@ -658,6 +690,13 @@ async def get_order(
             raise HTTPException(status_code=404, detail="订单不存在")
 
         # 手动构建响应数据，确保progresses包含order_number
+        # 动态计算设计周期
+        calculated_design_cycle = str(calculate_design_cycle_days(
+            order.assignment_date, 
+            order.order_date, 
+            order.order_status
+        ))
+            
         order_dict = {
             "id": order.id,
             "order_number": order.order_number,
@@ -669,7 +708,7 @@ async def get_order(
             "order_date": order.order_date,
             "category_name": order.category_name,
             "order_type": order.order_type,
-            "design_cycle": order.design_cycle or "0",
+            "design_cycle": calculated_design_cycle,
             "cabinet_area": order.cabinet_area,
             "wall_panel_area": order.wall_panel_area,
             "order_amount": order.order_amount,

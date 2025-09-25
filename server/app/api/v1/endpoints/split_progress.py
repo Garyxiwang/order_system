@@ -127,22 +127,7 @@ async def batch_update_split_progress(
                 if 'splitDate' in dates:
                     progress.split_date = dates['splitDate'] if dates['splitDate'] else None
                     
-                    # 计算厂内项周期（从订单下单日期到拆单日期）
-                    if progress.split_date:
-                        try:
-                            from datetime import datetime as dt
-                            # 查询订单获取下单日期
-                            order = db.query(Order).filter(Order.order_number == split.order_number).first()
-                            if order and order.order_date:
-                                order_dt = dt.strptime(order.order_date, '%Y-%m-%d')
-                                split_dt = dt.fromisoformat(progress.split_date.replace('Z', '+00:00'))
-                                cycle_days = (split_dt.date() - order_dt.date()).days
-                                progress.cycle_days = f"{cycle_days}天"
-                        except:
-                            pass
-                    else:
-                        # 如果拆单日期被清空，也清空周期天数
-                        progress.cycle_days = None
+                    # 注意：拆单周期已改为动态计算，不再在此处更新cycle_days字段
                 
                 progress.updated_at = datetime.utcnow()
         
@@ -172,22 +157,7 @@ async def batch_update_split_progress(
                 if 'purchaseDate' in dates:
                     progress.purchase_date = dates['purchaseDate'] if dates['purchaseDate'] else None
                     
-                    # 计算外购项周期（从订单下单日期到采购日期）
-                    if progress.purchase_date:
-                        try:
-                            from datetime import datetime as dt
-                            # 查询订单获取下单日期
-                            order = db.query(Order).filter(Order.order_number == split.order_number).first()
-                            if order and order.order_date:
-                                order_dt = dt.strptime(order.order_date, '%Y-%m-%d')
-                                purchase_dt = dt.fromisoformat(progress.purchase_date.replace('Z', '+00:00'))
-                                cycle_days = (purchase_dt.date() - order_dt.date()).days
-                                progress.cycle_days = f"{cycle_days}天"
-                        except:
-                            pass
-                    else:
-                        # 如果采购日期被清空，也清空周期天数
-                        progress.cycle_days = None
+                    # 注意：拆单周期已改为动态计算，不再在此处更新cycle_days字段
                 
                 progress.updated_at = datetime.utcnow()
         

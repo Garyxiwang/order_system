@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.database import engine, create_tables, create_initial_data
 from app.models import Base, User, UserRole
 from app.api.v1.api import api_router
-from app.utils.scheduler import start_scheduler, stop_scheduler
+# 定时任务调度器已移除，拆单周期改为动态计算
 
 
 @asynccontextmanager
@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时执行
     print("🚀 启动订单管理系统后端服务...")
-    
+
     # 创建数据库表
     try:
         create_tables()
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"❌ 数据库表创建失败: {e}")
         raise
-    
+
     # 创建初始数据
     try:
         create_initial_data()
@@ -34,27 +34,14 @@ async def lifespan(app: FastAPI):
         print(f"❌ 初始数据创建失败: {e}")
         # 初始数据创建失败不应该阻止应用启动
         pass
-    
-    # 启动定时任务调度器
-    try:
-        start_scheduler()
-        print("✅ 定时任务调度器启动成功")
-    except Exception as e:
-        print(f"❌ 定时任务调度器启动失败: {e}")
-        # 定时任务启动失败不应该阻止应用启动
-        pass
-    
+
     yield
-    
+
     # 关闭时执行
     print("🛑 关闭订单管理系统后端服务...")
-    
-    # 停止定时任务调度器
-    try:
-        stop_scheduler()
-        print("✅ 定时任务调度器已停止")
-    except Exception as e:
-        print(f"❌ 停止定时任务调度器失败: {e}")
+
+    # 定时任务调度器已移除，无需停止操作
+    print("✅ 系统关闭完成")
 
 
 # 创建FastAPI应用实例
@@ -72,7 +59,7 @@ app = FastAPI(
 # CORS配置 - 包含开发和生产环境域名
 cors_origins = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000", 
+    "http://127.0.0.1:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
     "http://localhost:8080",
@@ -129,7 +116,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     # 生产环境不使用reload
     reload = os.environ.get("ENVIRONMENT", "development") == "development"
-    
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
