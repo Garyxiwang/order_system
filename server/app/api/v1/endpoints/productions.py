@@ -81,34 +81,37 @@ async def get_productions(
 
         # 排序处理
         sort_field = query_data.sort
-        
+
         # 定义排序字段映射
         sort_mapping = {
             "expected_delivery_date": Production.expected_delivery_date,
             "expected_shipping_date": Production.expected_shipping_date,
-            "created_at": Production.created_at,
-            "cutting_date": Production.cutting_date,
-            "actual_delivery_date": Production.actual_delivery_date
+            "split_order_date": Production.split_order_date,
         }
-        
-        # 获取排序字段，如果页面没有传入排序字段则不进行排序
-        order_column = sort_mapping.get(sort_field) if sort_field else None
+
+        # 获取排序字段，如果页面没有传入排序字段则默认使用预计出货日期
+        if sort_field and sort_field in sort_mapping:
+            order_column = sort_mapping[sort_field]
+        else:
+            # 默认按预计出货日期排序
+            order_column = Production.expected_shipping_date
 
         # 分页处理
         if query_data.no_pagination:
             # 不分页，返回全部数据
-            if order_column:
-                productions = query.order_by(order_column.desc(), Production.order_number.desc()).all()
-            else:
-                productions = query.order_by(Production.order_number.desc()).all()
+            # 使用 NULLS LAST 确保空值排在最后，然后按订单编号降序
+            productions = query.order_by(
+                order_column.desc().nulls_last(),
+                Production.order_number.desc()
+            ).all()
         else:
             # 分页
             offset = (query_data.page - 1) * query_data.page_size
-            if order_column:
-                productions = query.order_by(order_column.desc(), Production.order_number.desc()).offset(
-                    offset).limit(query_data.page_size).all()
-            else:
-                productions = query.order_by(Production.order_number.desc()).offset(offset).limit(query_data.page_size).all()
+            # 使用 NULLS LAST 确保空值排在最后，然后按订单编号降序
+            productions = query.order_by(
+                order_column.desc().nulls_last(),
+                Production.order_number.desc()
+            ).offset(offset).limit(query_data.page_size).all()
 
         # 转换为响应格式
         production_items = []
@@ -122,7 +125,7 @@ async def get_productions(
             purchase_status_parts = []
             # 生成成品入库数量字符串
             finished_goods_quantity_parts = []
-            
+
             for progress in progress_items:
                 if progress.item_type == ItemType.INTERNAL:
                     # 厂内项目：检查实际入库日期
@@ -132,7 +135,7 @@ async def get_productions(
                     else:
                         purchase_status_parts.append(
                             f"{progress.category_name}材料:")
-                    
+
                     # 厂内项目：生成成品入库数量信息
                     if progress.quantity:
                         finished_goods_quantity_parts.append(
@@ -140,7 +143,7 @@ async def get_productions(
                     else:
                         finished_goods_quantity_parts.append(
                             f"{progress.category_name}:")
-                        
+
                 elif progress.item_type == ItemType.EXTERNAL:
                     # 外购项目：检查实际到厂日期
                     if progress.actual_arrival_date:
@@ -149,7 +152,7 @@ async def get_productions(
                     else:
                         purchase_status_parts.append(
                             f"{progress.category_name}:")
-                    
+
                     # 外购项目：也生成成品入库数量信息
                     if progress.quantity:
                         finished_goods_quantity_parts.append(
@@ -201,7 +204,8 @@ async def get_productions(
             data=production_items,
             total=total,
             page=query_data.page if not query_data.no_pagination else 1,
-            page_size=len(production_items) if query_data.no_pagination else query_data.page_size,
+            page_size=len(
+                production_items) if query_data.no_pagination else query_data.page_size,
             total_pages=total_pages
         )
 

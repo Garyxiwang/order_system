@@ -1090,6 +1090,7 @@ const ProductionPage: React.FC = () => {
                 >
                   <Option value="expected_shipping_date">预计出货日期</Option>
                   <Option value="expected_delivery_date">预计交货日期</Option>
+                  <Option value="split_order_date">拆单下单日期</Option>
                 </Select>
               </Form.Item>
             </Col>

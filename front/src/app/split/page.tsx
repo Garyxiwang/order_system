@@ -1009,34 +1009,39 @@ const DesignPage: React.FC = () => {
       const values = await orderInfoForm.validateFields();
       setLoading(true);
 
-      // 调用拆单更新API，后端会自动同步更新设计订单
-      await updateSplitOrder(orderInfoEditingRecord.id, {
-        // 传递需要更新的三个字段，后端会同步到设计订单
-        cabinet_area: parseFloat(values.cabinet_area),
-        wall_panel_area: parseFloat(values.wall_panel_area),
-        order_amount: parseFloat(values.order_amount),
-      });
+      try {
+        // 调用拆单更新API，后端会自动同步更新设计订单
+        await updateSplitOrder(orderInfoEditingRecord.id, {
+          // 传递需要更新的三个字段，后端会同步到设计订单
+          cabinet_area: parseFloat(values.cabinet_area),
+          wall_panel_area: parseFloat(values.wall_panel_area),
+          order_amount: parseFloat(values.order_amount),
+        });
 
-      message.success("订单信息更新成功");
-      setIsOrderInfoModalVisible(false);
-      orderInfoForm.resetFields();
-      setOrderInfoEditingRecord(null);
+        message.success("订单信息更新成功");
+        setIsOrderInfoModalVisible(false);
+        orderInfoForm.resetFields();
+        setOrderInfoEditingRecord(null);
 
-      // 重新加载数据
-      await handleSearch();
+        // 重新加载数据
+        await handleSearch();
 
-      // 继续下单流程
-      handlePlaceOrder({
-        ...orderInfoEditingRecord,
-        cabinet_area: parseFloat(values.cabinet_area),
-        wall_panel_area: parseFloat(values.wall_panel_area),
-        order_amount: parseFloat(values.order_amount),
-      });
+        // 继续下单流程
+        handlePlaceOrder({
+          ...orderInfoEditingRecord,
+          cabinet_area: parseFloat(values.cabinet_area),
+          wall_panel_area: parseFloat(values.wall_panel_area),
+          order_amount: parseFloat(values.order_amount),
+        });
+      } catch (error) {
+        console.error("更新订单信息失败:", error);
+        message.error("更新订单信息失败，请稍后重试");
+      } finally {
+        setLoading(false);
+      }
     } catch (error) {
-      console.error("更新订单信息失败:", error);
-      message.error("更新订单信息失败，请稍后重试");
-    } finally {
-      setLoading(false);
+      // 表单校验失败，不需要显示错误提示，Ant Design会自动显示校验错误
+      console.log("表单校验失败:", error);
     }
   };
 
@@ -1263,18 +1268,16 @@ const DesignPage: React.FC = () => {
                       style={{ color: "red", marginRight: "4px" }}
                     />
                     {name}: -{" "}
-                    {
-                      daysPassed >= 1 && (
-                        <span
-                          style={{
-                            color: daysPassed >= 3 ? "red" : "inherit",
-                            marginLeft: "4px",
-                          }}
-                        >
-                          逾期: {daysPassed}天
-                        </span>
-                      )
-                    }
+                    {daysPassed >= 1 && (
+                      <span
+                        style={{
+                          color: daysPassed >= 3 ? "red" : "inherit",
+                          marginLeft: "4px",
+                        }}
+                      >
+                        逾期: {daysPassed}天
+                      </span>
+                    )}
                   </div>
                 );
               }
@@ -1941,6 +1944,7 @@ const DesignPage: React.FC = () => {
               label="柜体面积（平方米）"
               name="cabinet_area"
               rules={[
+                { required: true, message: "柜体面积（平方米）" },
                 {
                   pattern: /^\d+(\.\d+)?$/,
                   message: "请输入有效的数字",
@@ -1953,6 +1957,7 @@ const DesignPage: React.FC = () => {
               label="墙板面积（平方米）"
               name="wall_panel_area"
               rules={[
+                { required: true, message: "墙板面积（平方米）" },
                 {
                   pattern: /^\d+(\.\d+)?$/,
                   message: "请输入有效的数字",
