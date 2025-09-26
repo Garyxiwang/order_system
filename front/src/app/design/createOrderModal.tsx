@@ -214,14 +214,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               label="设计师"
               name="designer"
               dependencies={["order_type"]}
-              rules={[
-                ({ getFieldValue }) => ({
-                  required:
-                    getFieldValue("order_type") !== "生产单" &&
-                    getFieldValue("order_type") !== "成品单",
-                  message: "请选择设计师",
-                }),
-              ]}
             >
               <Select placeholder="请选择设计师" loading={loading}>
                 {designers.map((designer) => (
