@@ -31,8 +31,11 @@ async def get_productions(
     支持多种搜索条件和分页
     """
     try:
-        # 构建查询
-        query = db.query(Production)
+        # 构建查询，如果需要按order_category筛选，则需要JOIN ProductionProgress表
+        if query_data.order_category:
+            query = db.query(Production).join(ProductionProgress, Production.id == ProductionProgress.production_id)
+        else:
+            query = db.query(Production)
 
         # 搜索条件
         if query_data.order_number:
@@ -46,6 +49,12 @@ async def get_productions(
         if query_data.order_status:
             query = query.filter(
                 Production.order_status.in_(query_data.order_status))
+
+        # 新增：下单类目筛选（通过ProductionProgress表的category_name字段）
+        if query_data.order_category:
+            query = query.filter(ProductionProgress.category_name.in_(query_data.order_category))
+            # 去重，因为一个Production可能对应多个ProductionProgress记录
+            query = query.distinct()
 
         # 日期区间搜索
         if query_data.expected_delivery_start:

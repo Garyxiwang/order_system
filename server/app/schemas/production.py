@@ -13,6 +13,7 @@ class ProductionListQuery(BaseModel):
     order_number: Optional[str] = Field(default=None, description="订单编号")
     customer_name: Optional[str] = Field(default=None, description="客户名称")
     order_status: Optional[List[str]] = Field(default=None, description="订单状态（多选）")
+    order_category: Optional[List[str]] = Field(default=None, description="下单类目（多选）")
     
     # 排序字段
     sort: Optional[str] = Field(default="expected_shipping_date", description="排序字段")

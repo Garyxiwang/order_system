@@ -40,6 +40,7 @@ import ProductionProgressModal from "./productionProgressModal";
 import PurchaseDetailModal from "./purchaseDetailModal";
 import FinishedGoodsDetailModal from "./finishedGoodsDetailModal";
 import PreviewModal from "./previewModal";
+import { CategoryService, CategoryData } from "../../services/categoryService";
 
 const ProductionPage: React.FC = () => {
   const [productionData, setProductionData] = useState<ProductionOrder[]>([]);
@@ -58,12 +59,11 @@ const ProductionPage: React.FC = () => {
     isFinishedGoodsDetailModalVisible,
     setIsFinishedGoodsDetailModalVisible,
   ] = useState(false);
-  const [selectedOrderStatus, setSelectedOrderStatus] = useState<string>("");
-  const [orderStatusEditingRecord, setOrderStatusEditingRecord] =
-    useState<ProductionOrder | null>(null);
+  useState<ProductionOrder | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ProductionOrder | null>(
     null
   );
+  const [categories, setCategories] = useState<CategoryData[]>([]);
 
   // 预览功能相关状态
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
@@ -78,6 +78,7 @@ const ProductionPage: React.FC = () => {
       splitStatus: ["未齐料", "已齐料", "已下料", "已入库", "已发货"],
     });
     handleSearch();
+    loadCategories();
   }, []);
 
   // 显示编辑模态框
@@ -116,6 +117,15 @@ const ProductionPage: React.FC = () => {
     } catch (error) {
       console.error("更新生产订单失败:", error);
       message.error("更新失败，请稍后重试");
+    }
+  };
+  // 加载类目数据
+  const loadCategories = async () => {
+    try {
+      const categoryList = await CategoryService.getCategoryList();
+      setCategories(categoryList);
+    } catch (error) {
+      console.error("获取类目数据失败:", error);
     }
   };
 
@@ -205,6 +215,7 @@ const ProductionPage: React.FC = () => {
         orderNumber: values.orderNumber,
         orderName: values.orderName,
         splitStatus: values.splitStatus,
+        orderCategory: values.orderCategory, // 添加下单类目
         // 时间筛选参数
         expectedDeliveryDate: values.expectedDeliveryDate,
         orderDate: values.orderDate,
@@ -219,6 +230,7 @@ const ProductionPage: React.FC = () => {
         customer_name: values.orderName,
         order_status: values.splitStatus,
         sort: values.sort, // 添加排序字段
+        order_category: values.orderCategory, // 添加下单类
         // 时间筛选参数
         expected_delivery_start: values.expectedDeliveryDate?.[0]?.format
           ? values.expectedDeliveryDate[0].format("YYYY-MM-DD")
@@ -963,7 +975,23 @@ const ProductionPage: React.FC = () => {
                 />
               </Form.Item>
             </Col>
-
+            <Col span={6} className="py-2">
+              <Form.Item name="orderCategory" label="下单类目" className="mb-0">
+                <Select
+                  mode="multiple"
+                  placeholder="全部"
+                  className="rounded-md"
+                  size="middle"
+                  allowClear
+                >
+                  {categories.map((category) => (
+                    <Option key={category.id} value={category.name}>
+                      {category.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
             <Col span={6} className="py-2">
               <Form.Item name="splitStatus" label="订单状态" className="mb-0">
                 <Select
