@@ -25,6 +25,7 @@ import {
   SearchOutlined,
   CheckOutlined,
   ExportOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -680,7 +681,9 @@ const ProductionPage: React.FC = () => {
           // 计算逻辑：拆单下单日期 - 客户打款日期
           const diffTime = splitDate.getTime() - paymentDate.getTime();
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          return `${diffDays}天`;
+          // 确保最小值为1天
+          const finalDays = Math.max(diffDays, 1);
+          return `${finalDays}天`;
         }
         return value ? `${value}天` : "-";
       },
@@ -718,7 +721,9 @@ const ProductionPage: React.FC = () => {
                         style={{ color: "green", marginRight: "4px" }}
                       />
                     ) : (
-                      <span style={{ marginRight: "18px" }} />
+                      <CloseOutlined
+                        style={{ color: "red", marginRight: "4px" }}
+                      />
                     )}
                     {name}: {status ? status : "-"}
                   </div>
@@ -726,6 +731,9 @@ const ProductionPage: React.FC = () => {
               } else {
                 return (
                   <div key={index} style={{ marginLeft: "20px" }}>
+                    <CloseOutlined
+                      style={{ color: "red", marginRight: "4px" }}
+                    />
                     {name}: -
                   </div>
                 );

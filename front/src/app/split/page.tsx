@@ -1460,16 +1460,14 @@ const DesignPage: React.FC = () => {
                 更新进度
               </Button>
             )}
-            {PermissionService.canUpdateOrderStatus() && (
-              <Button
-                type="link"
-                size="small"
-                disabled={isRevoked || isNotStarted}
-                onClick={() => showOrderStatusModal(record)}
-              >
-                订单状态
-              </Button>
-            )}
+            {/* // <Button
+              //   type="link"
+              //   size="small"
+              //   disabled={isRevoked || isNotStarted}
+              //   onClick={() => showOrderStatusModal(record)}
+              // >
+              //   订单状态
+              // </Button> */}
             {PermissionService.canUpdateQuoteStatus() && (
               <Button
                 type="link"
@@ -1880,8 +1878,8 @@ const DesignPage: React.FC = () => {
               style={{ width: "100%", marginTop: "8px" }}
             >
               <Option value="未打款">未打款</Option>
-              <Option value="已打款">已打款</Option>
               <Option value="报价已发未打款">报价已发未打款</Option>
+              <Option value="已打款">已打款</Option>
             </Select>
           </div>
           {selectedPriceStatus === "已打款" && (

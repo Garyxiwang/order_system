@@ -361,7 +361,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                             />
                           </Form.Item>
                           <Form.Item
-                            label="拆单日期"
+                            label="下单日期"
                             name={["internalItems", category.name, "splitDate"]}
                             style={{ marginBottom: 12 }}
                           >
