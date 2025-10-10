@@ -16,7 +16,8 @@ services:
       - backend
     networks:
       - order_system_network
-    restart: unless-stopped
+    depends_on:
+      - database
 
   # 前端服务
   frontend:
@@ -45,27 +46,31 @@ services:
       - "8000:8000"  # 内部端口，通过 nginx 访问
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///./order_system.db}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres123@database:5432/order_system}
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
     volumes:
       - ./server/data:/app/data  # 数据持久化
     networks:
       - order_system_network
     restart: unless-stopped
+    depends_on:
+      - database
 
-  # 数据库服务（可选，如果使用 PostgreSQL）
-  # database:
-  #   image: postgres:15-alpine
-  #   container_name: order_system_db
-  #   environment:
-  #     POSTGRES_DB: order_system
-  #     POSTGRES_USER: ${DB_USER:-admin}
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   networks:
-  #     - order_system_network
-  #   restart: unless-stopped
+  # 数据库服务（PostgreSQL）
+  database:
+    image: postgres:15-alpine
+    container_name: order_system_db
+    environment:
+      POSTGRES_DB: order_system
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - order_system_network
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
 
 networks:
   order_system_network:
