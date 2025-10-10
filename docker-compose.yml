@@ -45,7 +45,7 @@ services:
       - "8000:8000"  # 内部端口，通过 nginx 访问
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres123@database:5432/order_system}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@database:5432/order_system}
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
     volumes:
       - ./server/data:/app/data  # 数据持久化
@@ -69,7 +69,7 @@ services:
       - order_system_network
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
 networks:
   order_system_network:
