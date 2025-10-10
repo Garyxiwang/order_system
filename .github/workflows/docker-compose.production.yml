@@ -6,7 +6,7 @@ services:
     container_name: order_system_backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://orderuser:${POSTGRES_PASSWORD}@host.docker.internal:5432/order_system
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@host.docker.internal:5432/order_system
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY=${SECRET_KEY}
       - ENVIRONMENT=production

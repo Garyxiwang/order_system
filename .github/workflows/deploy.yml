@@ -207,7 +207,7 @@ jobs:
                 - "8000:8000"
               environment:
                 - ENVIRONMENT=production
-                - DATABASE_URL=postgresql://orderuser:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/order_system
+                - DATABASE_URL=postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/order_system
                 - SECRET_KEY=${{ secrets.SECRET_KEY }}
                 - JWT_SECRET=${{ secrets.JWT_SECRET }}
                 - REDIS_URL=redis://redis:6379/0
