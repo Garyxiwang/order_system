@@ -207,7 +207,7 @@ jobs:
                 - "8000:8000"
               environment:
                 - ENVIRONMENT=production
-                - DATABASE_URL=postgresql://orderuser:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/order_system
+                - DATABASE_URL=postgresql://orderuser:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/order_system
                 - SECRET_KEY=${{ secrets.SECRET_KEY }}
                 - JWT_SECRET=${{ secrets.JWT_SECRET }}
                 - REDIS_URL=redis://redis:6379/0
@@ -218,31 +218,8 @@ jobs:
                 - order_system_network
               restart: unless-stopped
               depends_on:
-                postgres:
-                  condition: service_healthy
                 redis:
                   condition: service_healthy
-          
-            postgres:
-              image: postgres:15-alpine
-              container_name: order_system_database
-              environment:
-                - POSTGRES_DB=order_system
-                - POSTGRES_USER=orderuser
-                - POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-              volumes:
-                - postgres_data:/var/lib/postgresql/data
-                - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
-              networks:
-                - order_system_network
-              healthcheck:
-                test: ["CMD-SHELL", "pg_isready -U orderuser"]
-                interval: 10s
-                timeout: 5s
-                retries: 5
-              restart: unless-stopped
-              ports:
-                - "5432:5432"
           
             redis:
               image: redis:7-alpine
@@ -255,9 +232,13 @@ jobs:
               restart: unless-stopped
               ports:
                 - "6379:6379"
+              healthcheck:
+                test: ["CMD", "redis-cli", "ping"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
           
           volumes:
-            postgres_data:
             redis_data:
           
           networks:

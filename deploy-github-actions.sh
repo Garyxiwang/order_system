@@ -62,7 +62,7 @@ setup_env_file() {
     cat > /home/www/order_system/.env << EOF
 # 数据库配置
 POSTGRES_PASSWORD=orderpass123
-DATABASE_URL=postgresql://orderuser:orderpass123@host.docker.internal:5432/order_system
+DATABASE_URL=postgresql://orderuser:orderpass123@localhost:5432/order_system
 
 # Redis配置
 REDIS_URL=redis://redis:6379
