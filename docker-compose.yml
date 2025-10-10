@@ -14,10 +14,9 @@ services:
     depends_on:
       - frontend
       - backend
+      - database
     networks:
       - order_system_network
-    depends_on:
-      - database
 
   # 前端服务
   frontend:
