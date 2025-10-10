@@ -6,17 +6,17 @@ services:
     container_name: order_system_backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://orderuser:${POSTGRES_PASSWORD}@database:5432/order_system
+      - DATABASE_URL=postgresql://orderuser:${POSTGRES_PASSWORD}@host.docker.internal:5432/order_system
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY=${SECRET_KEY}
       - ENVIRONMENT=production
     depends_on:
-      database:
-        condition: service_healthy
       redis:
         condition: service_healthy
     networks:
       - order_system_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -62,25 +62,6 @@ services:
       timeout: 10s
       retries: 3
 
-  database:
-    image: postgres:13-alpine
-    container_name: order_database
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=order_system
-      - POSTGRES_USER=orderuser
-      - POSTGRES_PASSWORD=orderpass123
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - order_system_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U orderuser"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     container_name: order_redis
@@ -97,8 +78,6 @@ services:
       retries: 5
 
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
     driver: local
 

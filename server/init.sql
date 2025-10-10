@@ -5,8 +5,22 @@
 SELECT 'CREATE DATABASE order_system'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'order_system')\gexec
 
+-- 创建用户（如果不存在）
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = 'orderuser') THEN
+        CREATE USER orderuser WITH PASSWORD 'PLACEHOLDER_PASSWORD';
+    END IF;
+END $$;
+
+-- 授予数据库权限
+GRANT ALL PRIVILEGES ON DATABASE order_system TO orderuser;
+
 -- 连接到order_system数据库
 \c order_system;
+
+-- 授予schema权限
+GRANT ALL ON SCHEMA public TO orderuser;
 
 -- 创建扩展（如果需要）
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -56,6 +70,16 @@ DO $$ BEGIN
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
+
+-- 授予orderuser用户对所有表、序列和函数的权限
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO orderuser;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO orderuser;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO orderuser;
+
+-- 设置默认权限（对未来创建的对象）
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO orderuser;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO orderuser;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO orderuser;
 
 -- 输出初始化完成信息
 \echo 'Database initialization completed successfully!'
