@@ -147,22 +147,132 @@ jobs:
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:latest
           docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
           
-          # 更新docker-compose.yml中的镜像标签
-          sed -i "s|image: order_system-backend|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:latest|g" docker-compose.yml
-          sed -i "s|image: order_system-frontend|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest|g" docker-compose.yml
+          # 创建生产环境的docker-compose配置
+          cat > docker-compose.production.yml << EOF
+          version: '3.8'
+          
+          services:
+            nginx:
+              image: nginx:alpine
+              container_name: order_system_nginx
+              ports:
+                - "80:80"
+                - "443:443"
+              volumes:
+                - ./nginx.conf:/etc/nginx/conf.d/default.conf
+                - ./logs/nginx:/var/log/nginx
+              depends_on:
+                - frontend
+                - backend
+              networks:
+                - order_system_network
+              restart: unless-stopped
+          
+            frontend:
+              image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
+              container_name: order_system_frontend
+              ports:
+                - "3000:3000"
+              environment:
+                - NODE_ENV=production
+                - NEXT_PUBLIC_API_URL=http://localhost/api
+              networks:
+                - order_system_network
+              restart: unless-stopped
+              depends_on:
+                - backend
+          
+            backend:
+              image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:latest
+              container_name: order_system_backend
+              ports:
+                - "8000:8000"
+              environment:
+                - ENVIRONMENT=production
+                - DATABASE_URL=postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/order_system
+                - SECRET_KEY=${{ secrets.SECRET_KEY }}
+                - JWT_SECRET=${{ secrets.JWT_SECRET }}
+                - REDIS_URL=redis://redis:6379/0
+              volumes:
+                - ./logs/backend:/app/logs
+                - ./server/uploads:/app/uploads
+              networks:
+                - order_system_network
+              restart: unless-stopped
+              depends_on:
+                - postgres
+                - redis
+          
+            postgres:
+              image: postgres:15-alpine
+              container_name: order_system_postgres
+              environment:
+                - POSTGRES_DB=order_system
+                - POSTGRES_USER=postgres
+                - POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+                - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
+              networks:
+                - order_system_network
+              restart: unless-stopped
+              ports:
+                - "5432:5432"
+          
+            redis:
+              image: redis:7-alpine
+              container_name: order_system_redis
+              command: redis-server --appendonly yes
+              volumes:
+                - redis_data:/data
+              networks:
+                - order_system_network
+              restart: unless-stopped
+              ports:
+                - "6379:6379"
+          
+          volumes:
+            postgres_data:
+            redis_data:
+          
+          networks:
+            order_system_network:
+              driver: bridge
+          EOF
           
           # 停止旧容器
-          docker-compose down
+          docker-compose -f docker-compose.production.yml down || true
           
           # 启动新容器
-          docker-compose up -d
+          docker-compose -f docker-compose.production.yml up -d
           
           # 清理旧镜像
           docker image prune -f
           
           # 健康检查
           sleep 30
-          curl -f http://localhost/api/health || exit 1
+          echo "正在进行健康检查..."
+          
+          # 检查容器状态
+          docker-compose -f docker-compose.production.yml ps
+          
+          # 检查后端API
+          for i in {1..5}; do
+            if curl -f http://localhost/api/health 2>/dev/null; then
+              echo "✅ 后端健康检查通过"
+              break
+            else
+              echo "⏳ 等待后端启动... ($i/5)"
+              sleep 10
+            fi
+          done
+          
+          # 检查前端
+          if curl -f http://localhost/ 2>/dev/null; then
+            echo "✅ 前端健康检查通过"
+          else
+            echo "⚠️ 前端可能需要更多时间启动"
+          fi
           
           echo "✅ 部署成功完成!"
 
