@@ -6,7 +6,7 @@ services:
     container_name: order_system_backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@database:5432/order_system
+      - DATABASE_URL=postgresql://orderuser:${POSTGRES_PASSWORD}@database:5432/order_system
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY=${SECRET_KEY}
       - ENVIRONMENT=production
@@ -18,7 +18,7 @@ services:
     networks:
       - order_system_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -76,7 +76,7 @@ services:
     networks:
       - order_system_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U orderuser"]
       interval: 10s
       timeout: 5s
       retries: 5

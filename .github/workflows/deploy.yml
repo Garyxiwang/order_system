@@ -22,10 +22,10 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_PASSWORD: test_password
-          POSTGRES_USER: postgres
+          POSTGRES_USER: orderuser
           POSTGRES_DB: test_db
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U orderuser"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -177,7 +177,7 @@ jobs:
                 - "80:80"
                 - "443:443"
               volumes:
-                - ./nginx.conf:/etc/nginx/conf.d/default.conf
+                - ./nginx.production.conf:/etc/nginx/conf.d/default.conf
                 - ./logs/nginx:/var/log/nginx
               depends_on:
                 - frontend
@@ -207,7 +207,7 @@ jobs:
                 - "8000:8000"
               environment:
                 - ENVIRONMENT=production
-                - DATABASE_URL=postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/order_system
+                - DATABASE_URL=postgresql://orderuser:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/order_system
                 - SECRET_KEY=${{ secrets.SECRET_KEY }}
                 - JWT_SECRET=${{ secrets.JWT_SECRET }}
                 - REDIS_URL=redis://redis:6379/0
@@ -226,7 +226,7 @@ jobs:
               container_name: order_system_postgres
               environment:
                 - POSTGRES_DB=order_system
-                - POSTGRES_USER=postgres
+                - POSTGRES_USER=orderuser
                 - POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
               volumes:
                 - postgres_data:/var/lib/postgresql/data
