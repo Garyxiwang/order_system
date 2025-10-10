@@ -218,12 +218,14 @@ jobs:
                 - order_system_network
               restart: unless-stopped
               depends_on:
-                - postgres
-                - redis
+                postgres:
+                  condition: service_healthy
+                redis:
+                  condition: service_healthy
           
             postgres:
               image: postgres:15-alpine
-              container_name: order_system_postgres
+              container_name: order_system_database
               environment:
                 - POSTGRES_DB=order_system
                 - POSTGRES_USER=orderuser
@@ -233,6 +235,11 @@ jobs:
                 - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
               networks:
                 - order_system_network
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U orderuser"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
               restart: unless-stopped
               ports:
                 - "5432:5432"
