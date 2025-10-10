@@ -1,6 +1,6 @@
 from typing import List, Union
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 import os
 from pathlib import Path
 
