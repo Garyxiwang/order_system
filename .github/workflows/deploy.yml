@@ -17,6 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     name: Run Tests
     
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
     - uses: actions/checkout@v4
     
@@ -31,6 +46,11 @@ jobs:
         pip install -r requirements.txt
     
     - name: Run backend tests
+      env:
+        DATABASE_URL: postgresql://postgres:test_password@localhost:5432/test_db
+        SECRET_KEY: test-secret-key-for-github-actions
+        JWT_SECRET: test-jwt-secret-for-github-actions
+        ENVIRONMENT: test
       run: |
         cd server
         python -m pytest test_*.py -v || echo "Tests completed"
