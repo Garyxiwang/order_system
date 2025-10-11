@@ -39,7 +39,7 @@ services:
   backend:
     build:
       context: ./server
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.china
     container_name: order_system_backend
     ports:
       - "8000:8000"  # 内部端口，通过 nginx 访问
