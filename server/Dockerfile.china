@@ -3,19 +3,30 @@ FROM python:3.11-slim
 # 设置工作目录
 WORKDIR /app
 
-# 使用国内镜像源加速下载
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+# 使用国内镜像源加速下载 - 针对Debian Trixie
+RUN echo "deb https://mirrors.aliyun.com/debian/ trixie main" > /etc/apt/sources.list && \
+    echo "deb https://mirrors.aliyun.com/debian/ trixie-updates main" >> /etc/apt/sources.list && \
+    echo "deb https://mirrors.aliyun.com/debian-security/ trixie-security main" >> /etc/apt/sources.list && \
     apt-get update && apt-get install -y \
     gcc \
+    g++ \
+    make \
     libpq-dev \
+    libmariadb-dev \
+    pkg-config \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 使用国内pip镜像源
-RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+# 使用国内pip镜像源并配置pip
+RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip config set global.trusted-host pypi.tuna.tsinghua.edu.cn
 
 # 复制requirements文件并安装Python依赖
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制应用代码
 COPY . .
