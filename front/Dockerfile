@@ -12,8 +12,8 @@ WORKDIR /app
 COPY package*.json ./
 # 使用国内 npm 镜像并优化安装配置（移除无效 network-timeout）
 RUN npm config set registry https://registry.npmmirror.com && npm config set progress=false && npm config set fetch-retries=3 && npm config set fetch-retry-maxtimeout 600000 && npm config set fetch-retry-mintimeout 10000
-# 使用 BuildKit 缓存并改为 npm ci（更快、更稳定）
-RUN --mount=type=cache,target=/root/.npm npm ci
+# 使用 BuildKit 缓存并改为 npm install（兼容无 package-lock 的情况）
+RUN --mount=type=cache,target=/root/.npm npm install --no-audit --prefer-offline --progress=false --legacy-peer-deps
 
 # 复制源代码
 COPY . .
@@ -40,7 +40,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/package.json ./package.json
 # 使用国内 npm 镜像并启用缓存（移除无效 network-timeout）
 RUN npm config set registry https://registry.npmmirror.com && npm config set progress=false && npm config set fetch-retries=3 && npm config set fetch-retry-maxtimeout 600000 && npm config set fetch-retry-mintimeout 10000
-RUN --mount=type=cache,target=/root/.npm npm ci --only=production && npm cache clean --force
+RUN --mount=type=cache,target=/root/.npm npm install --only=production --no-audit --prefer-offline --progress=false --legacy-peer-deps && npm cache clean --force
 
 # 复制构建产物
 COPY --from=builder /app/public ./public
