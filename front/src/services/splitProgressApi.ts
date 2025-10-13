@@ -11,6 +11,7 @@ export interface SplitProgressItem {
   purchase_date?: string;
   created_at?: string;
   updated_at?: string;
+  remarks?: string;
 }
 
 // 批量更新拆单进度的请求数据

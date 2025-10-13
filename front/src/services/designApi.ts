@@ -58,6 +58,9 @@ export interface OrderListParams {
   endDate?: string;
   orderDateStart?: string;
   orderDateEnd?: string;
+  // 新增：计划日期筛选
+  plannedDateStart?: string;
+  plannedDateEnd?: string;
 }
 
 // 订单列表响应
@@ -89,6 +92,9 @@ export const getDesignOrders = async (params?: OrderListParams): Promise<OrderLi
     assignment_date_end: params?.endDate,
     order_date_start: params?.orderDateStart,
     order_date_end: params?.orderDateEnd,
+    // 新增：计划日期筛选参数
+    planned_date_start: params?.plannedDateStart,
+    planned_date_end: params?.plannedDateEnd,
   };
   
   // 过滤掉undefined的值，但保留page和page_size
@@ -107,7 +113,7 @@ export const getDesignOrders = async (params?: OrderListParams): Promise<OrderLi
       filteredData[key] = value;
     }
   });
-　  return await api.post('/v1/orders/list', filteredData);
+	  return await api.post('/v1/orders/list', filteredData);
 };
 
 // 2. 新增订单 - POST /api/v1/orders/

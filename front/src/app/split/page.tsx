@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
-import { PageModule } from "@/utils/permissions";
+import { PageModule, UserRole as PermissionUserRole } from "@/utils/permissions";
 import PermissionService from "@/utils/permissions";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
@@ -908,7 +908,7 @@ const DesignPage: React.FC = () => {
     }
   };
 
-  // 检查厂内生产项是否都有拆单日期
+  // 检查是否至少有一个厂内生产项已有拆单日期
   const checkAllInternalItemsHaveSplitDate = (record: SplitOrder): boolean => {
     // 处理字符串格式的厂内生产项数据
     if (
@@ -920,8 +920,8 @@ const DesignPage: React.FC = () => {
         return false; // 没有厂内生产项，不能下单
       }
 
-      // 检查所有厂内生产项是否都有实际时间（格式："类目:实际时间:消耗时间"）
-      return itemStrings.every((item: string) => {
+      // 检查是否至少存在一个厂内生产项有实际时间（格式："类目:实际时间:消耗时间"）
+      return itemStrings.some((item: string) => {
         const parts: string[] = item.split(":");
         const actualDate = parts[1]; // 实际时间在第二个位置
         return actualDate && actualDate.trim() !== "" && actualDate !== "-";
@@ -934,8 +934,8 @@ const DesignPage: React.FC = () => {
         return false; // 没有厂内生产项，不能下单
       }
 
-      // 检查所有厂内生产项是否都有拆单日期（actual_date）
-      return record.internal_production_items.every(
+      // 检查是否至少存在一个厂内生产项有拆单日期（actual_date）
+      return record.internal_production_items.some(
         (item) =>
           item.actual_date &&
           item.actual_date.trim() !== "" &&
@@ -1426,6 +1426,7 @@ const DesignPage: React.FC = () => {
         const isRevoked = record.order_status === "撤销中";
         const isNotStarted = record.order_status === "未开始";
         const isOrdered = record.order_status === "已下单";
+        const isPaused = record.order_status === "暂停";
         const canPlaceOrder =
           checkAllInternalItemsHaveSplitDate(record) &&
           record.quote_status === "已打款" &&
@@ -1460,19 +1461,22 @@ const DesignPage: React.FC = () => {
                 更新进度
               </Button>
             )}
-            {/* // <Button
-              //   type="link"
-              //   size="small"
-              //   disabled={isRevoked || isNotStarted}
-              //   onClick={() => showOrderStatusModal(record)}
-              // >
-              //   订单状态
-              // </Button> */}
+            {(PermissionService.isSuperAdmin() || PermissionService.getCurrentUserRole() === PermissionUserRole.AUDITOR) && (
+              <Button
+                type="link"
+                size="small"
+                disabled={isRevoked || isNotStarted}
+                onClick={() => showOrderStatusModal(record)}
+              >
+                订单状态
+              </Button>
+            )}
             {PermissionService.canUpdateQuoteStatus() && (
               <Button
                 type="link"
                 size="small"
-                disabled={isRevoked || record.quote_status === "已打款"}
+                // 逻辑：优先根据订单状态判断，其次再看报价状态；撤销中或暂停时总是允许修改
+                disabled={!isRevoked && !isPaused && record.quote_status === "已打款"}
                 onClick={() => showPriceStatusModal(record)}
               >
                 报价状态
@@ -1880,6 +1884,7 @@ const DesignPage: React.FC = () => {
               <Option value="未打款">未打款</Option>
               <Option value="报价已发未打款">报价已发未打款</Option>
               <Option value="已打款">已打款</Option>
+              <Option value="已退款">已退款</Option>
             </Select>
           </div>
           {selectedPriceStatus === "已打款" && (

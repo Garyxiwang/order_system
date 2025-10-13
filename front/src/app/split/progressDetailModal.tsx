@@ -16,9 +16,12 @@ interface ProgressDetailModal {
   itemType?: "internal" | "external"; // 项目类型：厂内生产项或外购项
 }
 
-const ProgressDetailModal: React.FC<
-  ProgressDetailModal
-> = ({ visible, order, onCancel, itemType = "internal" }) => {
+const ProgressDetailModal: React.FC<ProgressDetailModal> = ({
+  visible,
+  order,
+  onCancel,
+  itemType = "internal",
+}) => {
   const [progressList, setProgressList] = useState<SplitProgressItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -32,9 +35,7 @@ const ProgressDetailModal: React.FC<
     try {
       const data = await splitProgressApi.getProgressList(order.id);
       // 根据itemType筛选对应的项目类型
-      const filteredItems = data.filter(
-        (item) => item.item_type === itemType
-      );
+      const filteredItems = data.filter((item) => item.item_type === itemType);
       setProgressList(filteredItems);
     } catch (error) {
       console.error("获取拆单进度数据失败:", error);
@@ -73,7 +74,7 @@ const ProgressDetailModal: React.FC<
       ),
     },
     {
-        title: itemType === "internal" ? "计划拆单日期" : "计划下单日期",
+      title: itemType === "internal" ? "计划拆单日期" : "计划下单日期",
       dataIndex: "planned_date",
       key: "planned_date",
       render: (date: string) => (
@@ -86,6 +87,15 @@ const ProgressDetailModal: React.FC<
       key: itemType === "internal" ? "split_date" : "purchase_date",
       render: (date: string) => (
         <span style={{ color: date ? "#1890ff" : "#999" }}>{date || "-"}</span>
+      ),
+    },
+    {
+      title: "备注",
+      dataIndex: "remarks",
+      key: "remarks",
+      width: 250,
+      render: (text: string) => (
+        <span style={{ color: "#666" }}>{text || "-"}</span>
       ),
     },
   ];
@@ -153,7 +163,10 @@ const ProgressDetailModal: React.FC<
         />
       </div>
 
-      <Card title={itemType === "internal" ? "厂内生产项明细" : "外购项明细"} size="small">
+      <Card
+        title={itemType === "internal" ? "厂内生产项明细" : "外购项明细"}
+        size="small"
+      >
         <Spin spinning={loading}>
           <Table
             columns={columns}

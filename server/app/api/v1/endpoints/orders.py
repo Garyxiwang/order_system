@@ -112,6 +112,22 @@ async def get_orders(
             query = query.filter(func.date(Order.order_date)
                                  <= query_data.order_date_end)
 
+        # 新增：按设计过程中的计划日期筛选（Progress.planned_date）
+        if query_data.planned_date_start or query_data.planned_date_end:
+            # 通过exists子查询筛选有符合计划日期的进度项的订单
+            progress_subq = db.query(Progress.order_id).filter(
+                Progress.order_id == Order.id
+            )
+            if query_data.planned_date_start:
+                progress_subq = progress_subq.filter(
+                    func.date(Progress.planned_date) >= query_data.planned_date_start
+                )
+            if query_data.planned_date_end:
+                progress_subq = progress_subq.filter(
+                    func.date(Progress.planned_date) <= query_data.planned_date_end
+                )
+            query = query.filter(progress_subq.exists())
+
         # 按分单日期降序排序
         query = query.order_by(Order.assignment_date.desc())
 
@@ -176,18 +192,16 @@ async def get_orders(
         # 转换为响应格式
         order_items = []
         for order in orders:
-            # 获取设计过程（进度信息）- 格式化为"事件名：实际时间"
+            # 获取设计过程（进度信息）- 格式化为"事件名：计划时间：实际时间"
             design_process_items = []
             if order.progresses:
                 # 按照created_at从近到远排序
                 sorted_progresses = sorted(
                     order.progresses, key=lambda p: p.created_at, reverse=True)
                 for p in sorted_progresses:
-                    if p.actual_date:
-                        design_process_items.append(
-                            f"{p.task_item}:{p.actual_date}")
-                    else:
-                        design_process_items.append(f"{p.task_item}:-")
+                    planned = p.planned_date if p.planned_date else "-"
+                    actual = p.actual_date if p.actual_date else "-"
+                    design_process_items.append(f"{p.task_item}:{planned}:{actual}")
                 design_process = ",".join(design_process_items)
             else:
                 design_process = "暂无进度"

@@ -145,6 +145,9 @@ class OrderListQuery(BaseModel):
     assignment_date_end: Optional[str] = Field(None, description="分单日期结束")
     order_date_start: Optional[str] = Field(None, description="下单日期开始")
     order_date_end: Optional[str] = Field(None, description="下单日期结束")
+    # 新增：计划日期筛选
+    planned_date_start: Optional[str] = Field(None, description="计划日期开始（设计过程中的计划日期）")
+    planned_date_end: Optional[str] = Field(None, description="计划日期结束（设计过程中的计划日期）")
 
 
 class OrderListResponse(BaseModel):

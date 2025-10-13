@@ -12,6 +12,7 @@ import {
   message,
   Descriptions,
   Select,
+  Input
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import type { SplitOrder } from "../../services/splitApi";
@@ -70,14 +71,22 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
   useEffect(() => {
     const loadFormData = async () => {
       if (orderData) {
-        const internalItems: Record<
-          string,
-          { plannedDate?: Dayjs; splitDate?: Dayjs }
-        > = {};
-        const externalItems: Record<
-          string,
-          { plannedDate?: Dayjs; purchaseDate?: Dayjs }
-        > = {};
+        type InternalFormItem = {
+          plannedDate?: Dayjs;
+          splitDate?: Dayjs;
+          remarks?: string;
+        };
+        type ExternalFormItem = {
+          plannedDate?: Dayjs;
+          purchaseDate?: Dayjs;
+          remarks?: string;
+        };
+        const internalItems: Record<string, InternalFormItem> = {};
+        const externalItems: Record<string, ExternalFormItem> = {};
+        const idMap: { internal: Record<string, number>; external: Record<string, number> } = {
+          internal: {},
+          external: {},
+        };
 
         // 通过order_number查询split_progress表中的数据
         try {
@@ -100,7 +109,9 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                 splitDate: progress.split_date
                   ? dayjs(progress.split_date)
                   : undefined,
+                remarks: progress.remarks || "",
               };
+              if (progress.id) idMap.internal[progress.category_name] = progress.id;
               internalCategories.push({
                 id: 0,
                 name: progress.category_name,
@@ -116,7 +127,9 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                 purchaseDate: progress.purchase_date
                   ? dayjs(progress.purchase_date)
                   : undefined,
+                remarks: progress.remarks || "",
               };
+              if (progress.id) idMap.external[progress.category_name] = progress.id;
               externalCategories.push({
                 id: 0,
                 name: progress.category_name,
@@ -127,6 +140,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
 
           setInternalCategories(internalCategories);
           setExternalCategories(externalCategories);
+          
         } catch (error) {
           console.error("加载拆单进度数据失败:", error);
           setInternalCategories([]);
@@ -137,7 +151,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           internalItems,
           externalItems,
         });
-        
+
         // 初始化订单状态
         setCurrentOrderStatus(orderData.order_status || "");
       }
@@ -171,6 +185,9 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
         external_items: {},
       };
 
+      const internalRemarks: Record<string, string> = {};
+      const externalRemarks: Record<string, string> = {};
+
       // 处理厂内生产项
       if (values.internalItems) {
         Object.keys(values.internalItems).forEach((categoryName) => {
@@ -183,6 +200,9 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
               ? dayjs(item.splitDate).format("YYYY-MM-DD")
               : "",
           };
+          if (typeof item.remarks !== "undefined") {
+            internalRemarks[categoryName] = item.remarks || "";
+          }
         });
       }
 
@@ -198,6 +218,9 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
               ? dayjs(item.purchaseDate).format("YYYY-MM-DD")
               : "",
           };
+          if (typeof item.remarks !== "undefined") {
+            externalRemarks[categoryName] = item.remarks || "";
+          }
         });
       }
 
@@ -207,6 +230,44 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
       }
 
       await splitProgressApi.batchUpdate(orderData.id, formattedValues);
+
+      // 批量更新每个进度项的备注（需要进度项ID）
+      // 先刷新获取最新的进度项以获得新建项的ID
+      const refreshed = await splitProgressApi.getProgressByOrderNumber(
+        orderData.order_number
+      );
+      const latestIdMap: { internal: Record<string, number>; external: Record<string, number> } = {
+        internal: {},
+        external: {},
+      };
+      refreshed.forEach((p) => {
+        if (p.item_type === "internal" && p.id) {
+          latestIdMap.internal[p.category_name] = p.id;
+        } else if (p.item_type === "external" && p.id) {
+          latestIdMap.external[p.category_name] = p.id;
+        }
+      });
+
+      const remarkUpdatePromises: Promise<SplitProgressItem>[] = [];
+      Object.entries(internalRemarks).forEach(([category, remark]) => {
+        const pid = latestIdMap.internal[category];
+        if (pid) {
+          remarkUpdatePromises.push(
+            splitProgressApi.updateProgress(pid, { remarks: remark })
+          );
+        }
+      });
+      Object.entries(externalRemarks).forEach(([category, remark]) => {
+        const pid = latestIdMap.external[category];
+        if (pid) {
+          remarkUpdatePromises.push(
+            splitProgressApi.updateProgress(pid, { remarks: remark })
+          );
+        }
+      });
+      if (remarkUpdatePromises.length > 0) {
+        await Promise.all(remarkUpdatePromises);
+      }
 
       // 同时填充legacy格式用于回调
       Object.keys(formattedValues.internalItems).forEach((categoryName) => {
@@ -370,6 +431,17 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                               style={{ width: "100%" }}
                             />
                           </Form.Item>
+                          <Form.Item
+                            label="备注"
+                            name={["internalItems", category.name, "remarks"]}
+                            style={{ marginBottom: 12 }}
+                          >
+                            <Input.TextArea
+                              size="small"
+                              placeholder="请输入备注"
+                              rows={2}
+                            />
+                          </Form.Item>
                         </Card>
                       </Col>
                     ))}
@@ -419,6 +491,17 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                             <DatePicker
                               placeholder="请选择日期"
                               style={{ width: "100%" }}
+                            />
+                          </Form.Item>
+                          <Form.Item
+                            label="备注"
+                            name={["externalItems", category.name, "remarks"]}
+                            style={{ marginBottom: 12 }}
+                          >
+                            <Input.TextArea
+                              size="small"
+                              placeholder="请输入备注"
+                              rows={2}
                             />
                           </Form.Item>
                         </Card>

@@ -26,9 +26,6 @@ import {
   SearchOutlined,
   PlusOutlined,
   ExportOutlined,
-  CheckOutlined,
-  UpOutlined,
-  DownOutlined,
 } from "@ant-design/icons";
 import CreateOrderModal from "./createOrderModal";
 import UpdateProgressModal from "./updateProgressModal";
@@ -360,6 +357,7 @@ const DesignPage: React.FC = () => {
       designCycleFilter?: string;
       splitDateRange?: dayjs.Dayjs[];
       orderDateRange?: dayjs.Dayjs[];
+      plannedDateRange?: dayjs.Dayjs[];
     },
     options: { pagination?: boolean } = {}
   ): OrderListParams => {
@@ -382,6 +380,9 @@ const DesignPage: React.FC = () => {
       endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
       orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
       orderDateEnd: formValues.orderDateRange?.[1]?.format("YYYY-MM-DD"),
+      // 添加计划日期筛选参数
+      plannedDateStart: formValues.plannedDateRange?.[0]?.format("YYYY-MM-DD"),
+      plannedDateEnd: formValues.plannedDateRange?.[1]?.format("YYYY-MM-DD"),
     };
 
     // 如果需要分页，添加分页参数
@@ -463,13 +464,17 @@ const DesignPage: React.FC = () => {
         return;
       }
 
-      // 解析进度项目，分离事件名和实际时间
+      // 解析进度项目，分离事件名、计划时间和实际时间
       const parseProgressItem = (item: string) => {
-        if (item.includes(":")) {
-          const [status, time] = item.split(":");
-          return { status: status.trim(), time: time.trim() };
+        const parts = item.split(":").map((p) => p.trim());
+        if (parts.length >= 3) {
+          return { status: parts[0], planned: parts[1], actual: parts[2] };
         }
-        return { status: item, time: null };
+        if (parts.length === 2) {
+          // 兼容旧格式：状态:实际时间（无计划时间）
+          return { status: parts[0], planned: "-", actual: parts[1] };
+        }
+        return { status: item.trim(), planned: "-", actual: "-" };
       };
 
       // 解析设计进度，提取所有可能的进度阶段
@@ -504,7 +509,10 @@ const DesignPage: React.FC = () => {
           progressItems.forEach((progressItem) => {
             const parsed = parseProgressItem(progressItem);
             if (parsed.status) {
-              progressMap.set(parsed.status, parsed.time || "");
+              progressMap.set(
+                parsed.status,
+                `${parsed.planned || "-"} - ${parsed.actual || "-"}`
+              );
             }
           });
         }
@@ -798,6 +806,7 @@ const DesignPage: React.FC = () => {
       title: "分单日期",
       dataIndex: "assignment_date",
       key: "assignment_date",
+      width: 120,
       render: (date: string) => formatDateTime(date),
     },
     {
@@ -813,13 +822,17 @@ const DesignPage: React.FC = () => {
           .map((item) => item.trim())
           .filter((item) => item);
 
-        // 解析进度项目，分离事件名和实际时间
+        // 解析进度项目，分离事件名、计划时间和实际时间（兼容旧数据）
         const parseProgressItem = (item: string) => {
-          if (item.includes(":")) {
-            const [status, time] = item.split(":");
-            return { status: status.trim(), time: time.trim() };
+          const parts = item.split(":").map((p) => p.trim());
+          if (parts.length >= 3) {
+            return { status: parts[0], planned: parts[1], actual: parts[2] };
           }
-          return { status: item, time: null };
+          if (parts.length === 2) {
+            // 兼容旧格式：状态:实际时间（无计划时间）
+            return { status: parts[0], planned: "-", actual: parts[1] };
+          }
+          return { status: item.trim(), planned: "-", actual: "-" };
         };
 
         // 默认显示最近的3条记录
@@ -828,27 +841,38 @@ const DesignPage: React.FC = () => {
         return (
           <div>
             {displayItems.map((item, itemIndex) => {
-              const { status, time } = parseProgressItem(item);
-
+              const { status, planned, actual } = parseProgressItem(item);
               return (
                 <div key={itemIndex}>
-                  {time && time !== "-" ? (
-                    <span>
-                      <CheckOutlined
-                        style={{ color: "green", marginRight: "4px" }}
-                      />
-                      {status}：
-                      <span style={{ fontSize: "12px", color: "#666" }}>
-                        {time}
-                      </span>
-                    </span>
-                  ) : (
-                    <span
-                      style={{ display: "inline-block", marginLeft: "15px" }}
-                    >
-                      {status}：-
-                    </span>
-                  )}
+                  <span>
+                    {status}：
+                    <Space size={4} wrap>
+                      <Tag
+                        color={planned && planned !== "-" ? "blue" : "default"}
+                        style={{
+                          margin: 0,
+                          padding: "0 6px",
+                          height: 20,
+                          lineHeight: "20px",
+                          fontSize: 12,
+                        }}
+                      >
+                        计划：{planned || "-"}
+                      </Tag>
+                      <Tag
+                        color={actual && actual !== "-" ? "green" : "default"}
+                        style={{
+                          margin: 0,
+                          padding: "0 6px",
+                          height: 20,
+                          lineHeight: "20px",
+                          fontSize: 12,
+                        }}
+                      >
+                        实际：{actual || "-"}
+                      </Tag>
+                    </Space>
+                  </span>
                 </div>
               );
             })}
@@ -1314,6 +1338,20 @@ const DesignPage: React.FC = () => {
               <Form.Item
                 name="orderDateRange"
                 label="下单日期"
+                className="mb-0"
+              >
+                <RangePicker
+                  placeholder={["开始日期", "结束日期"]}
+                  className="rounded-md w-full"
+                  size="middle"
+                  allowClear
+                />
+              </Form.Item>
+            </Col>
+            <Col span={6} className="py-2">
+              <Form.Item
+                name="plannedDateRange"
+                label="计划日期"
                 className="mb-0"
               >
                 <RangePicker

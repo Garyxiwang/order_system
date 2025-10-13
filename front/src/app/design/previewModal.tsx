@@ -72,40 +72,32 @@ const PreviewModal: React.FC<PreviewModalProps> = ({
           .map((item) => item.trim())
           .filter((item) => item);
 
-        // 解析进度项目，分离事件名和实际时间
+        // 解析进度项目，分离事件名、计划时间和实际时间
         const parseProgressItem = (item: string) => {
-          if (item.includes(":")) {
-            const [status, time] = item.split(":");
-            return { status: status.trim(), time: time.trim() };
+          const parts = item.split(":").map((p) => p.trim());
+          if (parts.length >= 3) {
+            return { status: parts[0], planned: parts[1], actual: parts[2] };
           }
-          return { status: item, time: null };
+          if (parts.length === 2) {
+            return { status: parts[0], planned: "-", actual: parts[1] };
+          }
+          return { status: item, planned: "-", actual: null };
         };
 
         // 显示所有进度项目
         return (
           <div>
             {items.map((item, itemIndex) => {
-              const { status, time } = parseProgressItem(item);
+              const { status, planned, actual } = parseProgressItem(item);
 
               return (
                 <div key={itemIndex} style={{ marginBottom: "2px" }}>
-                  {time && time !== "-" ? (
-                    <span>
-                      <CheckOutlined
-                        style={{ color: "green", marginRight: "4px" }}
-                      />
-                      {status}：
-                      <span style={{ fontSize: "12px", color: "#666" }}>
-                        {time}
-                      </span>
-                    </span>
-                  ) : (
-                    <span
-                      style={{ display: "inline-block", marginLeft: "15px" }}
-                    >
-                      {status}：-
-                    </span>
-                  )}
+                  <span>
+                    {status}：
+                    <span style={{ fontSize: "12px", color: "#666" }}>{planned}</span>
+                    <span style={{ margin: "0 4px" }}> - </span>
+                    <span style={{ fontSize: "12px", color: "#666" }}>{actual || "-"}</span>
+                  </span>
                 </div>
               );
             })}

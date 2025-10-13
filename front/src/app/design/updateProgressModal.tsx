@@ -272,7 +272,10 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       width: 150,
       render: (text: string, record: ProgressItem) => {
         // 只有有添加进度权限的用户才能编辑计划日期（设计师不能修改）
-        if (editingId === record.id && PermissionService.canAddDesignProgress()) {
+        if (
+          editingId === record.id &&
+          PermissionService.canAddDesignProgress()
+        ) {
           return (
             <DatePicker
               value={tempPlannedDate}
@@ -294,7 +297,11 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       width: 150,
       render: (text: string, record: ProgressItem) => {
         // 只有有编辑权限且正在编辑状态下才显示日期选择器
-        if (editingId === record.id && record.item !== "下单" && PermissionService.canEditDesignProgress()) {
+        if (
+          editingId === record.id &&
+          record.item !== "下单" &&
+          PermissionService.canEditDesignProgress()
+        ) {
           return (
             <DatePicker
               value={tempDate}
@@ -316,7 +323,10 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
       width: 120,
       render: (text: string, record: ProgressItem) => {
         // 只有有编辑权限且正在编辑状态下才显示文本框
-        if (editingId === record.id && PermissionService.canEditDesignProgress()) {
+        if (
+          editingId === record.id &&
+          PermissionService.canEditDesignProgress()
+        ) {
           return (
             <Input.TextArea
               value={tempNote}
@@ -354,13 +364,23 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
           );
         }
         return (
-          <Button
-            type="link"
-            size="small"
-            onClick={() => handleEditProgress(record)}
-          >
-            编辑
-          </Button>
+          <>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => handleEditProgress(record)}
+            >
+              编辑
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => handleEditProgress(record)}
+              danger
+            >
+              删除
+            </Button>
+          </>
         );
       },
     },
