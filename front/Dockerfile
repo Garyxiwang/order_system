@@ -10,8 +10,8 @@ WORKDIR /app
 
 # 复制 package 文件并安装所有依赖（包括 devDependencies）
 COPY package*.json ./
-# 使用国内 npm 镜像并优化安装配置
-RUN npm config set registry https://registry.npmmirror.com && npm config set progress=false && npm config set fetch-retries=3 && npm config set network-timeout=600000
+# 使用国内 npm 镜像并优化安装配置（移除无效 network-timeout）
+RUN npm config set registry https://registry.npmmirror.com && npm config set progress=false && npm config set fetch-retries=3 && npm config set fetch-retry-maxtimeout 600000 && npm config set fetch-retry-mintimeout 10000
 # 使用 BuildKit 缓存并改为 npm ci（更快、更稳定）
 RUN --mount=type=cache,target=/root/.npm npm ci
 
@@ -38,8 +38,8 @@ RUN adduser --system --uid 1001 nextjs
 
 # 复制 package.json 并安装生产依赖
 COPY --from=builder /app/package.json ./package.json
-# 使用国内 npm 镜像并启用缓存
-RUN npm config set registry https://registry.npmmirror.com && npm config set progress=false && npm config set fetch-retries=3 && npm config set network-timeout=600000
+# 使用国内 npm 镜像并启用缓存（移除无效 network-timeout）
+RUN npm config set registry https://registry.npmmirror.com && npm config set progress=false && npm config set fetch-retries=3 && npm config set fetch-retry-maxtimeout 600000 && npm config set fetch-retry-mintimeout 10000
 RUN --mount=type=cache,target=/root/.npm npm ci --only=production && npm cache clean --force
 
 # 复制构建产物
