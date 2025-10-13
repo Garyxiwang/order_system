@@ -1,14 +1,19 @@
+# syntax=docker/dockerfile:1.5
 # 前端 Dockerfile
 FROM node:18-alpine AS base
 
 # 构建阶段
 FROM base AS builder
-RUN apk add --no-cache libc6-compat
+# 使用国内 APK 镜像并安装依赖
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && apk add --no-cache libc6-compat
 WORKDIR /app
 
 # 复制 package 文件并安装所有依赖（包括 devDependencies）
 COPY package*.json ./
-RUN npm install
+# 使用国内 npm 镜像并优化安装配置
+RUN npm config set registry https://registry.npmmirror.com && npm config set progress=false && npm config set fetch-retries=3 && npm config set network-timeout=600000
+# 使用 BuildKit 缓存并改为 npm ci（更快、更稳定）
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # 复制源代码
 COPY . .
@@ -33,7 +38,9 @@ RUN adduser --system --uid 1001 nextjs
 
 # 复制 package.json 并安装生产依赖
 COPY --from=builder /app/package.json ./package.json
-RUN npm install --only=production && npm cache clean --force
+# 使用国内 npm 镜像并启用缓存
+RUN npm config set registry https://registry.npmmirror.com && npm config set progress=false && npm config set fetch-retries=3 && npm config set network-timeout=600000
+RUN --mount=type=cache,target=/root/.npm npm ci --only=production && npm cache clean --force
 
 # 复制构建产物
 COPY --from=builder /app/public ./public
