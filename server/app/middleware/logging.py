@@ -1,15 +1,24 @@
 import time
 import logging
+import logging.handlers
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Callable
 
 # 配置日志
+timed_handler = logging.handlers.TimedRotatingFileHandler(
+    filename="logs/app.log",
+    when="D",           # 按天滚动
+    interval=1,          # 每1天滚动一次
+    backupCount=2,       # 最多保留2天的旧日志
+    encoding="utf-8"
+)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/app.log"),
+        timed_handler,
         logging.StreamHandler()
     ]
 )
