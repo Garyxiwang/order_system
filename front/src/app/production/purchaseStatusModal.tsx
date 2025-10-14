@@ -341,14 +341,46 @@ const PurchaseStatusModal: React.FC<PurchaseStatusModalProps> = ({
                           <h4 className={styles.itemTitle}>
                             {item.category_name}材料
                           </h4>
-                          <div className={styles.dateInfoRow}>
-                            <label className={styles.dateLabel}>
-                              下单日期:
-                            </label>
-                            <span className={styles.dateValue}>
-                              {item.order_date || "-"}
-                            </span>
-                          </div>
+                          {item.order_date && !editingOrderDate[`internal-${originalIndex}`] ? (
+                            <div className={styles.dateInfoRow}>
+                              <label className={styles.dateLabel}>
+                                下单日期:
+                              </label>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                }}
+                              >
+                                <span className={styles.dateValue}>
+                                  {item.order_date}
+                                </span>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<EditOutlined />}
+                                  onClick={() => {
+                                    setEditingOrderDate((prev) => ({
+                                      ...prev,
+                                      [`internal-${originalIndex}`]: true,
+                                    }));
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <Form.Item
+                              label="下单日期"
+                              name={`${prefix}OrderDate`}
+                              className={styles.formItem}
+                            >
+                              <DatePicker
+                                placeholder="选择下单日期"
+                                className={styles.fullWidth}
+                              />
+                            </Form.Item>
+                          )}
                           <Form.Item
                             label="预计齐料日期"
                             name={`${prefix}ExpectedMaterialDate`}

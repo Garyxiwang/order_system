@@ -101,10 +101,9 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
           progressList.forEach((progress: SplitProgressItem) => {
             if (progress.item_type === "internal") {
               internalItems[progress.category_name] = {
+                // 修复：不再使用订单完成日期作为计划日期的兜底，保持为空以避免误填
                 plannedDate: progress.planned_date
                   ? dayjs(progress.planned_date)
-                  : orderData.completion_date
-                  ? dayjs(orderData.completion_date)
                   : undefined,
                 splitDate: progress.split_date
                   ? dayjs(progress.split_date)
@@ -119,10 +118,9 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
               });
             } else if (progress.item_type === "external") {
               externalItems[progress.category_name] = {
+                // 修复：不再使用订单完成日期作为计划下单日期的兜底
                 plannedDate: progress.planned_date
                   ? dayjs(progress.planned_date)
-                  : orderData.completion_date
-                  ? dayjs(orderData.completion_date)
                   : undefined,
                 purchaseDate: progress.purchase_date
                   ? dayjs(progress.purchase_date)

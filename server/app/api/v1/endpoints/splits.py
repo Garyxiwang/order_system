@@ -821,10 +821,10 @@ async def place_split_order(
             db.flush()  # 获取生产记录ID
             
             # 创建生产进度记录
-            # 处理厂内生产项
+            # 处理厂内生产项（下单日期允许为空，供页面录入）
             for item in split_progress_items:
                 if item.item_type == ItemType.INTERNAL:
-                    split_date = item.split_date if item.split_date else (split.completion_date if split.completion_date else datetime.now().strftime('%Y-%m-%d'))
+                    split_date = item.split_date if item.split_date else None
                     
                     progress_item = ProductionProgress(
                          production_id=production.id,
@@ -867,14 +867,94 @@ async def place_split_order(
             )
             db.add(hardware_progress_item)
         
-        # 如果生产记录已存在，也要添加五金类目（如果还没有的话）
+        # 如果生产记录已存在，需要同步生产进度记录与类目类型
         elif existing_production:
-            # 检查是否已存在五金类目
+            # 1) 构建当前拆单类目映射：{category_name: (目标类型, 参考日期)}
+            split_map = {}
+            internal_items = []
+            external_items = []
+            for item in split_progress_items:
+                if item.item_type == ItemType.INTERNAL:
+                    # 厂内生产参考拆单日期（允许为空）
+                    ref_date = item.split_date if item.split_date else None
+                    split_map[item.category_name] = (ProductionItemType.INTERNAL, ref_date)
+                    internal_items.append(item.category_name)
+                elif item.item_type == ItemType.EXTERNAL:
+                    # 外采参考采购日期
+                    ref_date = item.purchase_date if item.purchase_date else None
+                    split_map[item.category_name] = (ProductionItemType.EXTERNAL, ref_date)
+                    external_items.append(item.category_name)
+
+            # 2) 读取现有生产进度，按类目分组
+            existing_progresses = db.query(ProductionProgress).filter(
+                ProductionProgress.production_id == existing_production.id
+            ).all()
+            progress_map = {}
+            for p in existing_progresses:
+                progress_map.setdefault(p.category_name, []).append(p)
+
+            # 3) 删除不在拆单中的类目（保留“五金”默认项）
+            for category, entries in list(progress_map.items()):
+                if category == "五金":
+                    continue
+                if category not in split_map:
+                    for entry in entries:
+                        db.delete(entry)
+                    del progress_map[category]
+
+            # 4) 更新或新增拆单中的类目到生产进度
+            for category, (target_type, ref_date) in split_map.items():
+                if category in progress_map:
+                    # 更新所有同类目的条目为目标类型，并清理无关字段
+                    for entry in progress_map[category]:
+                        if entry.item_type != target_type:
+                            entry.item_type = target_type
+                            # 切换为厂内时清理外采字段
+                            if target_type == ProductionItemType.INTERNAL:
+                                entry.expected_arrival_date = None
+                                entry.actual_arrival_date = None
+                                # 厂内字段保留现值，不强制覆盖
+                            else:
+                                # 切换为外采时清理厂内字段
+                                entry.expected_material_date = None
+                                entry.actual_storage_date = None
+                                entry.storage_time = None
+                                entry.quantity = None
+                        # 补齐参考日期（仅在原为空时）
+                        if not entry.order_date and ref_date:
+                            entry.order_date = ref_date
+                else:
+                    # 新增生产进度记录
+                    if target_type == ProductionItemType.INTERNAL:
+                        progress_item = ProductionProgress(
+                            production_id=existing_production.id,
+                            order_number=split.order_number,
+                            item_type=ProductionItemType.INTERNAL,
+                            category_name=category,
+                            order_date=ref_date,
+                            expected_material_date=None,
+                            actual_storage_date=None,
+                            storage_time=None,
+                            quantity=None
+                        )
+                    else:
+                        progress_item = ProductionProgress(
+                            production_id=existing_production.id,
+                            order_number=split.order_number,
+                            item_type=ProductionItemType.EXTERNAL,
+                            category_name=category,
+                            order_date=ref_date,
+                            expected_arrival_date=None,
+                            actual_arrival_date=None
+                        )
+                    db.add(progress_item)
+                    progress_map.setdefault(category, []).append(progress_item)
+
+            # 5) 保留并补齐默认“五金”类目
             existing_hardware = db.query(ProductionProgress).filter(
                 ProductionProgress.production_id == existing_production.id,
                 ProductionProgress.category_name == "五金"
             ).first()
-            
             if not existing_hardware:
                 default_date = split.completion_date if split.completion_date else datetime.now().strftime('%Y-%m-%d')
                 hardware_progress_item = ProductionProgress(
@@ -889,6 +969,10 @@ async def place_split_order(
                     quantity=None
                 )
                 db.add(hardware_progress_item)
+
+            # 6) 同步生产单的类目字符串字段
+            existing_production.internal_production_items = ','.join(internal_items)
+            existing_production.external_purchase_items = ','.join(external_items)
 
         db.commit()
         db.refresh(split)

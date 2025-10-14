@@ -1465,7 +1465,7 @@ const DesignPage: React.FC = () => {
               <Button
                 type="link"
                 size="small"
-                disabled={isRevoked || isNotStarted}
+                disabled={isRevoked || isNotStarted || isOrdered}
                 onClick={() => showOrderStatusModal(record)}
               >
                 订单状态
