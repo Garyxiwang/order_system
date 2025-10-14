@@ -208,4 +208,38 @@ async def get_progress(
     except Exception as e:
         return error_response(message=f"获取进度详情失败: {str(e)}")
 
-# 注意：删除进度接口已被移除，只保留创建、查询、编辑功能
+@router.delete("/{progress_id}", summary="删除进度")
+async def delete_progress(
+    progress_id: int,
+    db: Session = Depends(get_db)
+):
+    """删除进度记录"""
+    try:
+        progress = db.query(Progress).filter(Progress.id == progress_id).first()
+        if not progress:
+            return error_response(message="进度不存在")
+
+        # 先拿到订单对象
+        order = db.query(Order).filter(Order.id == progress.order_id).first()
+
+        # 删除进度
+        db.delete(progress)
+        db.commit()
+
+        # 删除后，更新订单状态为最新的进度事项；若无进度则回退为“待处理”
+        if order:
+            latest_progress = (
+                db.query(Progress)
+                .filter(Progress.order_id == order.id)
+                .order_by(Progress.created_at.desc())
+                .first()
+            )
+            order.order_status = latest_progress.task_item if latest_progress else "待处理"
+            db.commit()
+
+        # 返回布尔型 data，兼容前端 deleteProgress 的返回类型
+        return success_response(data=True, message="进度删除成功")
+
+    except Exception as e:
+        db.rollback()
+        return error_response(message=f"删除进度失败: {str(e)}")

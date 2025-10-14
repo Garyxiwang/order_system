@@ -20,6 +20,7 @@ import {
   createProgress,
   getProgressByOrderId,
   updateProgress,
+  deleteProgress,
   type ProgressData,
 } from "../../services/progressService";
 import PermissionService from "@/utils/permissions";
@@ -249,6 +250,44 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
     }
   };
 
+  // 删除进度记录
+  const handleDeleteProgress = async (record: ProgressItem) => {
+    if (!PermissionService.canEditDesignProgress()) {
+      return;
+    }
+
+    Modal.confirm({
+      title: "确认删除该进度项？",
+      content: `进度：${record.item}`,
+      okText: "删除",
+      okType: "danger",
+      cancelText: "取消",
+      onOk: async () => {
+        setLoading(true);
+        try {
+          const progressId = parseInt(record.id);
+          const resp = await deleteProgress(progressId);
+          if (resp.code === 200) {
+            message.success("删除成功");
+            // 重置可能的编辑状态并刷新数据
+            setEditingId(null);
+            setTempDate(null);
+            setTempPlannedDate(null);
+            setTempNote("");
+            await fetchProgressData();
+          } else {
+            message.error(resp.message || "删除失败");
+          }
+        } catch (error) {
+          console.error("删除进度失败:", error);
+          message.error("删除进度失败");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
   // 取消编辑
   const handleCancelEdit = () => {
     setEditingId(null);
@@ -375,7 +414,7 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
             <Button
               type="link"
               size="small"
-              onClick={() => handleEditProgress(record)}
+              onClick={() => handleDeleteProgress(record)}
               danger
             >
               删除
