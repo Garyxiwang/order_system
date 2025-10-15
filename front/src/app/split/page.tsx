@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import RouteGuard from "@/components/auth/RouteGuard";
-import { PageModule, UserRole as PermissionUserRole } from "@/utils/permissions";
+import {
+  PageModule,
+  UserRole as PermissionUserRole,
+} from "@/utils/permissions";
 import PermissionService from "@/utils/permissions";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
@@ -37,7 +40,13 @@ import {
   type ProductionItem,
   type SplitListParams,
 } from "../../services/splitApi";
-import { updateDesignOrder } from "../../services/designApi";
+import {
+  getDesignOrders,
+  deleteDesignOrder,
+  type DesignOrder,
+  type OrderListResponse,
+  type ApiResponse as DesignApiResponse,
+} from "../../services/designApi";
 import { formatDateTime } from "../../utils/dateUtils";
 import EditOrderModal from "./editOrderModal";
 import type { EditFormValues } from "./editOrderModal";
@@ -908,42 +917,75 @@ const DesignPage: React.FC = () => {
     }
   };
 
-  // 检查是否至少有一个厂内生产项已有拆单日期
+  // 检查是否至少有一个厂内生产项已有拆单日期；
+  // 若无厂内项，则要求所有外购项均已采购（存在有效日期）
   const checkAllInternalItemsHaveSplitDate = (record: SplitOrder): boolean => {
-    // 处理字符串格式的厂内生产项数据
+    // 先判断：厂内是否“至少一个已有实际日期”，满足则可下单
+    let hasInternal = false;
+    let internalHasAnyActual = false;
+
     if (
       typeof record.internal_production_items === "string" &&
       record.internal_production_items
     ) {
       const itemStrings: string[] = record.internal_production_items.split(",");
-      if (itemStrings.length === 0) {
-        return false; // 没有厂内生产项，不能下单
-      }
-
-      // 检查是否至少存在一个厂内生产项有实际时间（格式："类目:实际时间:消耗时间"）
-      return itemStrings.some((item: string) => {
+      hasInternal = itemStrings.length > 0;
+      internalHasAnyActual = itemStrings.some((item: string) => {
         const parts: string[] = item.split(":");
-        const actualDate = parts[1]; // 实际时间在第二个位置
+        const actualDate = parts[1];
         return actualDate && actualDate.trim() !== "" && actualDate !== "-";
       });
-    }
-
-    // 处理数组格式的厂内生产项数据
-    if (Array.isArray(record.internal_production_items)) {
-      if (record.internal_production_items.length === 0) {
-        return false; // 没有厂内生产项，不能下单
-      }
-
-      // 检查是否至少存在一个厂内生产项有拆单日期（actual_date）
-      return record.internal_production_items.some(
+    } else if (Array.isArray(record.internal_production_items)) {
+      const arr = record.internal_production_items;
+      hasInternal = arr.length > 0;
+      internalHasAnyActual = arr.some(
         (item) =>
-          item.actual_date &&
+          !!item.actual_date &&
           item.actual_date.trim() !== "" &&
           item.actual_date !== "-"
       );
     }
 
-    return false; // 没有厂内生产项数据
+    // 若存在厂内项，直接依据其是否满足返回结果；不再判断场外
+    if (hasInternal) {
+      return internalHasAnyActual;
+    }
+
+    // 无厂内项：判断外购是否“全部已有实际日期”
+    let hasExternal = false;
+    let externalAllHaveActual = false;
+
+    if (
+      typeof record.external_purchase_items === "string" &&
+      record.external_purchase_items
+    ) {
+      const extStrings: string[] = record.external_purchase_items.split(",");
+      hasExternal = extStrings.length > 0;
+      externalAllHaveActual =
+        extStrings.length > 0 &&
+        extStrings.every((item: string) => {
+          const parts: string[] = item.split(":");
+          const actualDate = parts[1];
+          return actualDate && actualDate.trim() !== "" && actualDate !== "-";
+        });
+    } else if (Array.isArray(record.external_purchase_items)) {
+      const extArr = record.external_purchase_items;
+      hasExternal = extArr.length > 0;
+      externalAllHaveActual =
+        extArr.length > 0 &&
+        extArr.every(
+          (item) =>
+            !!item.actual_date &&
+            item.actual_date.trim() !== "" &&
+            item.actual_date !== "-"
+        );
+    }
+
+    if (hasExternal && externalAllHaveActual) {
+      return true;
+    }
+
+    return false;
   };
 
   // 处理下单操作
@@ -1057,6 +1099,66 @@ const DesignPage: React.FC = () => {
     setInternalDetailOrder(record);
     setDetailModalItemType("internal");
     setIsInternalDetailModalVisible(true);
+  };
+  const handleDeleteOrder = (record: SplitOrder) => {
+    if (record.order_type !== "生产单") {
+      message.warning("仅生产单允许删除");
+      return;
+    }
+    Modal.confirm({
+      title: "确认删除订单",
+      content: (
+        <div>
+          <div>订单编号：{record.order_number}</div>
+          <div style={{ marginTop: 8 }}>
+            删除后将关联删除：
+            <div>生产管理中相同编号的订单及进度</div>
+          </div>
+        </div>
+      ),
+      okText: "删除",
+      okType: "danger",
+      cancelText: "取消",
+      onOk: async () => {
+        try {
+          setLoading(true);
+          const list = await getDesignOrders({
+            page: 1,
+            pageSize: 1,
+            orderNumber: record.order_number,
+          });
+          const itemsFromItems = (list as OrderListResponse)?.items;
+          const itemsFromData = (list as unknown as { data?: DesignOrder[] })
+            ?.data;
+          const items: DesignOrder[] = Array.isArray(itemsFromItems)
+            ? itemsFromItems
+            : Array.isArray(itemsFromData)
+            ? itemsFromData
+            : [];
+          const target: DesignOrder | undefined =
+            items.length > 0 ? items[0] : undefined;
+          const orderId = target?.id ? String(target.id) : undefined;
+          if (!orderId) {
+            message.error("未找到对应订单，无法删除");
+            return;
+          }
+          const resp: DesignApiResponse<boolean> = await deleteDesignOrder(
+            orderId
+          );
+          if (resp && resp.code === 200) {
+            message.success("删除成功");
+            await handleSearch();
+          } else {
+            message.error((resp && resp.message) || "删除失败");
+          }
+        } catch (error) {
+          console.error("删除订单失败:", error);
+          message.error("删除失败，请稍后重试");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   // 关闭厂内生产项详情Modal
@@ -1461,7 +1563,9 @@ const DesignPage: React.FC = () => {
                 更新进度
               </Button>
             )}
-            {(PermissionService.isSuperAdmin() || PermissionService.getCurrentUserRole() === PermissionUserRole.AUDITOR) && (
+            {(PermissionService.isSuperAdmin() ||
+              PermissionService.getCurrentUserRole() ===
+                PermissionUserRole.AUDITOR) && (
               <Button
                 type="link"
                 size="small"
@@ -1476,7 +1580,9 @@ const DesignPage: React.FC = () => {
                 type="link"
                 size="small"
                 // 逻辑：优先根据订单状态判断，其次再看报价状态；撤销中或暂停时总是允许修改
-                disabled={!isRevoked && !isPaused && record.quote_status === "已打款"}
+                disabled={
+                  !isRevoked && !isPaused && record.quote_status === "已打款"
+                }
                 onClick={() => showPriceStatusModal(record)}
               >
                 报价状态
@@ -1492,6 +1598,20 @@ const DesignPage: React.FC = () => {
                 下单
               </Button>
             )}
+            {PermissionService.canDeleteOrder() &&
+              record.order_type === "生产单" && (
+                <Col span={14}>
+                  <Button
+                    type="link"
+                    size="small"
+                    danger
+                    style={{ padding: "0 4px", width: "100%" }}
+                    onClick={() => handleDeleteOrder(record)}
+                  >
+                    删除订单
+                  </Button>
+                </Col>
+              )}
           </div>
         );
       },

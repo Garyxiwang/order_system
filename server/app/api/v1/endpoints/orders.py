@@ -9,6 +9,8 @@ from app.models.order import Order
 from app.models.progress import Progress
 from app.models.split import Split
 from app.models.split_progress import SplitProgress, ItemType
+from app.models.production import Production
+from app.models.production_progress import ProductionProgress
 from app.models.category import Category, CategoryType
 # from app.models.category import Category  # 不再需要
 from app.schemas.order import (
@@ -753,3 +755,51 @@ async def get_order(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取订单详情失败: {str(e)}")
+
+
+@router.delete("/{order_id}", summary="删除订单（联动删除拆单、生产及过程数据）")
+async def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db)
+):
+    """删除指定订单，并联动删除：
+    - 设计进度（Progress）
+    - 拆单（Split）及其进度（SplitProgress）
+    - 生产（Production）及其进度（ProductionProgress）
+
+    说明：
+    - 由于 Split.progress_items 未配置 ORM 级联删除，这里显式删除 SplitProgress；
+    - Production.progress_items 已配置 ORM 级联，删除 Production 时会一并删除其进度；
+    - Order.progresses 配置了级联，删除 Order 时会删除设计进度。
+    """
+    try:
+        # 查找订单
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            return error_response(message="订单不存在")
+
+        order_number = order.order_number
+
+        # 1) 拆单及其进度
+        splits = db.query(Split).filter(Split.order_number == order_number).all()
+        if splits:
+            split_ids = [s.id for s in splits]
+            # 先删除拆单进度，避免外键约束
+            db.query(SplitProgress).filter(SplitProgress.split_id.in_(split_ids)).delete(synchronize_session=False)
+            # 删除拆单本体
+            for s in splits:
+                db.delete(s)
+
+        # 2) 生产及其进度（生产进度通过 ORM 级联）
+        productions = db.query(Production).filter(Production.order_id == order.id).all()
+        for p in productions:
+            db.delete(p)
+
+        # 3) 删除订单本体（设计进度通过 ORM 级联）
+        db.delete(order)
+
+        db.commit()
+        return success_response(data=True, message="订单及关联数据删除成功")
+    except Exception as e:
+        db.rollback()
+        return error_response(message=f"删除订单失败: {str(e)}")

@@ -64,6 +64,7 @@ export enum DesignAction {
   UPDATE_PROGRESS = 'updateProgress', // 更新进度
   PLACE_ORDER = 'placeOrder',      // 下单
   CANCEL_ORDER = 'cancelOrder',    // 撤销
+  DELETE_ORDER = 'deleteOrder',    // 删除订单
   EXPORT = 'export',               // 导出
   VIEW_ORDER_AMOUNT = 'viewOrderAmount' // 查看订单金额
 }
@@ -121,6 +122,9 @@ export const DESIGN_ACTION_PERMISSIONS: Record<DesignAction, UserRole[]> = {
     UserRole.CLERK,      // 录入员
     UserRole.DESIGNER,   // 设计师
     UserRole.SUPER_ADMIN // 超管
+  ],
+  [DesignAction.DELETE_ORDER]: [
+    UserRole.SUPER_ADMIN // 超管（仅允许超管删除以降低风险）
   ],
   [DesignAction.EXPORT]: [
     UserRole.FINANCE,    // 财务
@@ -304,6 +308,13 @@ export class PermissionService {
    */
   static canCancelOrder(userRole?: UserRole): boolean {
     return this.hasDesignActionPermission(DesignAction.CANCEL_ORDER, userRole);
+  }
+
+  /**
+   * 检查用户是否可以删除订单
+   */
+  static canDeleteOrder(userRole?: UserRole): boolean {
+    return this.hasDesignActionPermission(DesignAction.DELETE_ORDER, userRole);
   }
 
   /**

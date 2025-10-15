@@ -36,6 +36,7 @@ import {
   createDesignOrder,
   updateDesignOrder,
   updateOrderStatus,
+  deleteDesignOrder,
   type DesignOrder,
   type OrderListParams,
 } from "../../services/designApi";
@@ -159,6 +160,54 @@ const DesignPage: React.FC = () => {
         } catch (error) {
           message.error("撤销失败，请稍后重试");
           console.error("撤销失败:", error);
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
+  // 处理删除订单（联动删除设计过程、拆单及生产同编号订单）
+  const handleDeleteOrder = (record: DesignOrder) => {
+    if (!PermissionService.canDeleteOrder()) {
+      message.warning("您没有删除订单的权限");
+      return;
+    }
+
+    if (!record.id) {
+      message.error("缺少订单ID，无法删除该订单");
+      return;
+    }
+
+    Modal.confirm({
+      title: "确认删除订单",
+      content: (
+        <div>
+          <div>订单编号：{record.order_number}</div>
+          <div style={{ marginTop: 8 }}>
+            删除后将关联删除：
+            <div>• 设计过程（进度项）</div>
+            <div>• 拆单管理中相同编号的订单及进度</div>
+            <div>• 生产管理中相同编号的订单及进度</div>
+          </div>
+        </div>
+      ),
+      okText: "确认删除",
+      cancelText: "取消",
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          setLoading(true);
+          const resp = await deleteDesignOrder(record.id!.toString());
+          if (resp.code === 200) {
+            message.success("删除成功");
+            await handleSearch();
+          } else {
+            message.error(resp.message || "删除失败");
+          }
+        } catch (error) {
+          message.error("删除失败，请稍后重试");
+          console.error("删除失败:", error);
         } finally {
           setLoading(false);
         }
@@ -1093,6 +1142,19 @@ const DesignPage: React.FC = () => {
                   </Button>
                 </Col>
               )}
+            {PermissionService.canDeleteOrder() && (
+              <Col span={14}>
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  style={{ padding: "0 4px", width: "100%" }}
+                  onClick={() => handleDeleteOrder(record)}
+                >
+                  删除订单
+                </Button>
+              </Col>
+            )}
           </Row>
         </div>
       ),
