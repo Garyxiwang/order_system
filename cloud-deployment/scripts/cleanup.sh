@@ -60,16 +60,24 @@ if $DO_DRY_RUN; then
   docker images --format '{{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.CreatedSince}}' | sort || true
   echo "Volumes (dangling):"
   docker volume ls --filter dangling=true || true
-  echo "Builder cache:"
-  docker builder prune --filter "until=${DAYS}h" --verbose --dry-run || true
+  echo "Builder cache (dry-run):"
+  if docker buildx version >/dev/null 2>&1; then
+    docker buildx prune --filter "until=${DAYS}d" --verbose --dry-run || true
+  else
+    echo "docker buildx not available; skipping cache dry-run (some docker builder versions do not support --dry-run)"
+  fi
 fi
 
 if $DO_PRUNE; then
   echo "== Pruning unused Docker data (older than $DAYS days) =="
   docker container prune -f --filter "until=${DAYS}d" || true
-  docker image prune -a -f --filter "until=${DAYS}d" || true
+  docker image prune -a -f || true
   docker volume prune -f || true
-  docker builder prune -f --filter "until=${DAYS}d" || true
+  if docker buildx version >/dev/null 2>&1; then
+    docker buildx prune -a -f --filter "until=${DAYS}d" || true
+  else
+    docker builder prune -a -f --filter "until=${DAYS}d" || true
+  fi
 fi
 
 if $DO_TRUNCATE_LOGS; then
