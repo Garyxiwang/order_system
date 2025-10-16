@@ -34,10 +34,6 @@ services:
 
   # 前端服务
   frontend:
-    build:
-      context: ../front
-      dockerfile: Dockerfile
-      target: runner
     image: order-system/frontend:${VERSION:-latest}
     container_name: order_system_frontend_prod
     environment:
@@ -49,7 +45,7 @@ services:
       - order_system_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -76,9 +72,6 @@ services:
 
   # 后端服务
   backend:
-    build:
-      context: ../server
-      dockerfile: Dockerfile
     image: order-system/backend:${VERSION:-latest}
     container_name: order_system_backend_prod
     environment:
