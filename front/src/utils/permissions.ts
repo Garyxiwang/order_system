@@ -92,7 +92,8 @@ export enum ProductionAction {
 // 设计进度操作权限枚举
 export enum DesignProgressAction {
   ADD_PROGRESS = 'addProgress',    // 添加进度
-  EDIT_PROGRESS = 'editProgress'   // 编辑进度（实际日期和备注）
+  EDIT_PROGRESS = 'editProgress',   // 编辑进度（实际日期和备注）
+  DELETE_PROGRESS = 'deleteProgress' // 删除进度
 }
 
 // 拆单进度操作权限枚举
@@ -215,6 +216,10 @@ export const DESIGN_PROGRESS_ACTION_PERMISSIONS: Record<DesignProgressAction, Us
     UserRole.CLERK,      // 录入员
     UserRole.DESIGNER,   // 设计师
     UserRole.MANAGER,    // 主管
+    UserRole.SUPER_ADMIN // 超管
+  ],
+  [DesignProgressAction.DELETE_PROGRESS]: [
+    UserRole.CLERK,      // 录入员
     UserRole.SUPER_ADMIN // 超管
   ]
 };
@@ -478,6 +483,13 @@ export class PermissionService {
    */
   static canEditDesignProgress(userRole?: UserRole): boolean {
     return this.hasDesignProgressActionPermission(DesignProgressAction.EDIT_PROGRESS, userRole);
+  }
+
+  /**
+   * 检查用户是否可以删除设计进度
+   */
+  static canDeleteDesignProgress(userRole?: UserRole): boolean {
+    return this.hasDesignProgressActionPermission(DesignProgressAction.DELETE_PROGRESS, userRole);
   }
 
   /**

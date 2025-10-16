@@ -411,14 +411,16 @@ const UpdateProgressModal: React.FC<UpdateProgressModalProps> = ({
             >
               编辑
             </Button>
-            <Button
-              type="link"
-              size="small"
-              onClick={() => handleDeleteProgress(record)}
-              danger
-            >
-              删除
-            </Button>
+            {PermissionService.canDeleteDesignProgress() && (
+              <Button
+                type="link"
+                size="small"
+                onClick={() => handleDeleteProgress(record)}
+                danger
+              >
+                删除
+              </Button>
+            )}
           </>
         );
       },
