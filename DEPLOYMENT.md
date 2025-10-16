@@ -499,6 +499,26 @@ df -h
 free -h
 ```
 
+### 磁盘清理与日志轮转
+
+构建/发布次数多时，Docker 镜像、构建缓存和容器日志会持续增长。建议定期执行如下清理，并开启日志轮转：
+
+```bash
+# 1) 查看 Docker 磁盘占用
+docker system df
+
+# 2) 仅列出（不删除）可清理项（dry-run）
+bash cloud-deployment/scripts/cleanup.sh --dry-run
+
+# 3) 按需清理：删除 7 天前未使用的镜像/容器/构建缓存，并清理超大日志
+bash cloud-deployment/scripts/cleanup.sh --prune --days 7 --truncate-logs --max-size 200M
+
+# 4) 如需轮转 Nginx 文件日志（本地 compose 的 nginx 容器名为 order_system_nginx）
+bash cloud-deployment/scripts/cleanup.sh --rotate-nginx --container order_system_nginx
+```
+
+本地开发 `docker-compose.yml` 已为各服务设置 `json-file` 日志 `max-size=10m, max-file=3`；生产编排建议也开启容器日志轮转，并在宿主机使用 `logrotate` 针对 `/var/log/nginx/*.log` 做文件级轮转（或使用上面的脚本进行简单轮转）。
+
 ### 更新部署
 
 #### 1. 代码更新

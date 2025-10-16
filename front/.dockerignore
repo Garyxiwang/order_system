@@ -1,0 +1,27 @@
+# Ignore development and build artifacts
+node_modules/
+.next/
+logs/
+coverage/
+dist/
+tmp/
+.cache/
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# VCS
+.git/
+.gitignore
+
+# Docker / Compose files not needed in build context
+Dockerfile*
+docker-compose*.yml
+
+# Misc
+*.log
+**/*.map
