@@ -38,40 +38,63 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Script id="chunk-error-reloader" strategy="beforeInteractive">
-          {`
-          (function () {
-            if (typeof window === 'undefined') return;
-            function reloadOnce() {
-              if (!sessionStorage.getItem('chunk-error-reload')) {
-                sessionStorage.setItem('chunk-error-reload', '1');
+        {process.env.NODE_ENV === 'production' && (
+          <Script id="chunk-error-reloader" strategy="beforeInteractive">
+            {`
+            (function () {
+              if (typeof window === 'undefined') return;
+              var FLAG = 'chunk-error-reload-done';
+              var LAST_TS_KEY = 'chunk-error-reload-last';
+              var TTL_MS = 5 * 60 * 1000; // 5分钟
+
+              function shouldReload() {
+                var done = sessionStorage.getItem(FLAG) === '1';
+                if (done) return false;
+                var last = Number(sessionStorage.getItem(LAST_TS_KEY) || '0');
+                var now = Date.now();
+                if (!last || (now - last) > TTL_MS) return true;
+                return false;
+              }
+
+              function markReload() {
+                try {
+                  sessionStorage.setItem(FLAG, '1');
+                  sessionStorage.setItem(LAST_TS_KEY, String(Date.now()));
+                } catch (_) {}
+              }
+
+              function reloadOnce() {
+                if (!shouldReload()) return;
+                markReload();
                 window.location.reload();
               }
-            }
-            // 清理标记，避免无限循环
-            window.addEventListener('load', function() {
-              sessionStorage.removeItem('chunk-error-reload');
-            });
-            // 监听脚本资源加载错误（chunk 404/失败）
-            window.addEventListener('error', function (e) {
-              try {
-                var t = e.target || e.srcElement;
-                if (t && t.tagName === 'SCRIPT' && t.src && t.src.indexOf('/_next/static/chunks/') !== -1) {
+
+              function isChunkScript(t) {
+                return t && t.tagName === 'SCRIPT' && t.src && t.src.indexOf('/_next/static/chunks/') !== -1;
+              }
+
+              // 监听脚本资源加载错误（chunk 404/失败）
+              window.addEventListener('error', function (e) {
+                try {
+                  var t = e.target || e.srcElement;
+                  if (isChunkScript(t)) {
+                    reloadOnce();
+                  }
+                } catch (_) {}
+              }, true);
+
+              // 监听未处理的 Promise 拒绝（Webpack ChunkLoadError）
+              window.addEventListener('unhandledrejection', function (event) {
+                var r = event && event.reason;
+                var msg = r && (r.message || r.toString());
+                if (r && (r.name === 'ChunkLoadError' || (typeof msg === 'string' && msg.indexOf('Loading chunk') !== -1))) {
                   reloadOnce();
                 }
-              } catch (_) {}
-            }, true);
-            // 监听未处理的 Promise 拒绝（Webpack ChunkLoadError）
-            window.addEventListener('unhandledrejection', function (event) {
-              var r = event && event.reason;
-              var msg = r && (r.message || r.toString());
-              if (r && (r.name === 'ChunkLoadError' || (typeof msg === 'string' && msg.indexOf('Loading chunk') !== -1))) {
-                reloadOnce();
-              }
-            });
-          })();
-        `}
-        </Script>
+              });
+            })();
+          `}
+          </Script>
+        )}
         <LocaleProvider>
           <AppLayout>{children}</AppLayout>
         </LocaleProvider>
