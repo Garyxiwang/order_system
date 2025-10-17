@@ -137,38 +137,40 @@ async def get_productions(
 
             for progress in progress_items:
                 if progress.item_type == ItemType.INTERNAL:
-                    # 厂内项目：检查实际入库日期
-                    if progress.actual_storage_date:
-                        purchase_status_parts.append(
-                            f"{progress.category_name}材料:{progress.actual_storage_date}")
-                    else:
-                        purchase_status_parts.append(
-                            f"{progress.category_name}材料:")
+                    # 厂内项目：同时返回计划齐料日期与实际入库日期
+                    planned = progress.expected_material_date or ""
+                    actual = progress.actual_storage_date or ""
+                    purchase_status_parts.append(
+                        f"{progress.category_name}材料:{planned}:{actual}"
+                    )
 
                     # 厂内项目：生成成品入库数量信息
                     if progress.quantity:
                         finished_goods_quantity_parts.append(
-                            f"{progress.category_name}:{progress.quantity}")
+                            f"{progress.category_name}:{progress.quantity}"
+                        )
                     else:
                         finished_goods_quantity_parts.append(
-                            f"{progress.category_name}:")
+                            f"{progress.category_name}:"
+                        )
 
                 elif progress.item_type == ItemType.EXTERNAL:
-                    # 外购项目：检查实际到厂日期
-                    if progress.actual_arrival_date:
-                        purchase_status_parts.append(
-                            f"{progress.category_name}:{progress.actual_arrival_date}")
-                    else:
-                        purchase_status_parts.append(
-                            f"{progress.category_name}:")
+                    # 外购项目：同时返回计划到厂日期与实际到厂日期
+                    planned = progress.expected_arrival_date or ""
+                    actual = progress.actual_arrival_date or ""
+                    purchase_status_parts.append(
+                        f"{progress.category_name}:{planned}:{actual}"
+                    )
 
                     # 外购项目：也生成成品入库数量信息
                     if progress.quantity:
                         finished_goods_quantity_parts.append(
-                            f"{progress.category_name}:{progress.quantity}")
+                            f"{progress.category_name}:{progress.quantity}"
+                        )
                     else:
                         finished_goods_quantity_parts.append(
-                            f"{progress.category_name}:")
+                            f"{progress.category_name}:"
+                        )
 
             purchase_status = "; ".join(
                 purchase_status_parts) if purchase_status_parts else "暂无进度信息"

@@ -712,55 +712,89 @@ const ProductionPage: React.FC = () => {
       dataIndex: "purchase_status",
       key: "purchase_status",
       render: (text: string, record: ProductionOrder) => {
-        if (!text) {
+        if (!text || text === "暂无进度信息") {
           return "-";
         }
 
-        const items = text.split("; ");
+        const items = text
+          .split("; ")
+          .map((item) => item.trim())
+          .filter((item) => item);
+
+        // 解析进度项目，分离事件名、计划时间和实际时间（兼容旧数据）
+        const parseProgressItem = (item: string) => {
+          const parts = item.split(":").map((p) => p.trim());
+          if (parts.length >= 3) {
+            return { status: parts[0], planned: parts[1], actual: parts[2] };
+          }
+          if (parts.length === 2) {
+            // 兼容旧格式：状态:实际时间（无计划时间）
+            return { status: parts[0], planned: "-", actual: parts[1] };
+          }
+          return { status: parts[0] || item.trim(), planned: "-", actual: "-" };
+        };
+
+        // 默认显示最近的3条记录
+        // const displayItems = items.slice(0, 3);
+
         return (
           <div>
-            {items.map((item, index) => {
-              const parts = item.split(":");
-              const name = parts[0];
-              const status = parts[1];
-
-              if (parts.length >= 2 && name !== undefined) {
-                const isCompleted = status && status.trim() !== "";
-                return (
-                  <div key={index}>
+            {items.map((item, itemIndex) => {
+              const { status, planned, actual } = parseProgressItem(item);
+              const hasPlanned = planned && planned !== "-";
+              const hasActual = actual && actual !== "-";
+              const isCompleted = !!hasPlanned && !!hasActual;
+              return (
+                <div key={itemIndex}>
+                  <span>
                     {isCompleted ? (
-                      <CheckOutlined
-                        style={{ color: "green", marginRight: "4px" }}
-                      />
+                      <CheckOutlined style={{ color: "green", marginRight: 4 }} />
                     ) : (
-                      <CloseOutlined
-                        style={{ color: "red", marginRight: "4px" }}
-                      />
+                      <CloseOutlined style={{ color: "red", marginRight: 4 }} />
                     )}
-                    {name}: {status ? status : "-"}
-                  </div>
-                );
-              } else {
-                return (
-                  <div key={index} style={{ marginLeft: "20px" }}>
-                    <CloseOutlined
-                      style={{ color: "red", marginRight: "4px" }}
-                    />
-                    {name}: -
-                  </div>
-                );
-              }
+                    {status}：
+                    <Space size={4} wrap>
+                      <Tag
+                        color={hasPlanned ? "blue" : "default"}
+                        style={{
+                          margin: 0,
+                          padding: "0 6px",
+                          height: 20,
+                          lineHeight: "20px",
+                          fontSize: 12,
+                        }}
+                      >
+                        计划：{planned || "-"}
+                      </Tag>
+                      <Tag
+                        color={hasActual ? "green" : "default"}
+                        style={{
+                          margin: 0,
+                          padding: "0 6px",
+                          height: 20,
+                          lineHeight: "20px",
+                          fontSize: 12,
+                        }}
+                      >
+                        实际：{actual || "-"}
+                      </Tag>
+                    </Space>
+                  </span>
+                </div>
+              );
             })}
-            <div style={{ textAlign: "right", marginTop: "4px" }}>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => showDetailModal(record)}
-                style={{ padding: "0 4px", fontSize: "12px" }}
-              >
-                详情
-              </Button>
-            </div>
+            {items.length > 0 && (
+              <div style={{ textAlign: "right", marginTop: "4px" }}>
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() => showDetailModal(record)}
+                  style={{ padding: "0 4px", fontSize: "12px" }}
+                >
+                  详情{` (${items.length})`}
+                </Button>
+              </div>
+            )}
           </div>
         );
       },
