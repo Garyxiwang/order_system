@@ -313,28 +313,8 @@ const DesignPage: React.FC = () => {
       setCurrentPage(page);
     }
 
-    // 获取当前搜索条件
-    const formValues = searchForm.getFieldsValue();
-    const searchParams: SplitListParams = {
-      orderNumber: formValues.orderNumber,
-      customerName: formValues.customerName,
-      designer: formValues.designer,
-      salesperson: formValues.salesperson,
-      splitter: formValues.splitter,
-      orderStatus:
-        formValues.orderStatus && formValues.orderStatus.length > 0
-          ? formValues.orderStatus
-          : undefined,
-      quoteStatus:
-        formValues.quoteStatus && formValues.quoteStatus.length > 0
-          ? formValues.quoteStatus
-          : undefined,
-      orderType: formValues.orderType,
-      startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
-      endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
-      orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
-      orderDateEnd: formValues.orderDateRange?.[1]?.format("YYYY-MM-DD"),
-    };
+    // 获取当前搜索条件（统一使用 buildSearchParams 方法）
+    const searchParams = buildSearchParams();
 
     // 过滤掉空值
     const filteredParams = Object.fromEntries(
@@ -1901,7 +1881,7 @@ const DesignPage: React.FC = () => {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total) => `共 ${total} 条`,
-            pageSizeOptions: ["10", "20", "50", "100"],
+            pageSizeOptions: ["2", "20", "50", "100"],
             onChange: handlePageChange,
             onShowSizeChange: handlePageChange,
           }}

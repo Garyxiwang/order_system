@@ -200,68 +200,48 @@ const ProductionPage: React.FC = () => {
     customParams?: Record<string, string | string[]>,
     options?: {
       noPagination?: boolean;
-      useAlternativeFieldNames?: boolean;
     }
   ) => {
     const values = customParams || searchForm.getFieldsValue();
-    const { noPagination = false, useAlternativeFieldNames = false } =
-      options || {};
+    const { noPagination = false } = options || {};
 
-    let searchParams: Record<string, string | string[] | boolean>;
+    // 标准的API字段名映射（统一使用snake_case）
+    const searchParams: Record<string, string | string[] | boolean> = {
+      order_number: values.orderNumber,
+      customer_name: values.orderName,
+      order_status: values.splitStatus,
+      sort: values.sort, // 添加排序字段
+      order_category: values.orderCategory, // 添加下单类目
+      // 时间筛选参数
+      expected_delivery_start: values.expectedDeliveryDate?.[0]?.format
+        ? values.expectedDeliveryDate[0].format("YYYY-MM-DD")
+        : values.expectedDeliveryDate?.[0],
+      expected_delivery_end: values.expectedDeliveryDate?.[1]?.format
+        ? values.expectedDeliveryDate[1].format("YYYY-MM-DD")
+        : values.expectedDeliveryDate?.[1],
+      cutting_date_start: values.orderDate?.[0]?.format
+        ? values.orderDate[0].format("YYYY-MM-DD")
+        : values.orderDate?.[0],
+      cutting_date_end: values.orderDate?.[1]?.format
+        ? values.orderDate[1].format("YYYY-MM-DD")
+        : values.orderDate?.[1],
+      expected_shipment_start: values.expectedDate?.[0]?.format
+        ? values.expectedDate[0].format("YYYY-MM-DD")
+        : values.expectedDate?.[0],
+      expected_shipment_end: values.expectedDate?.[1]?.format
+        ? values.expectedDate[1].format("YYYY-MM-DD")
+        : values.expectedDate?.[1],
+      actual_shipment_start: values.actualDate?.[0]?.format
+        ? values.actualDate[0].format("YYYY-MM-DD")
+        : values.actualDate?.[0],
+      actual_shipment_end: values.actualDate?.[1]?.format
+        ? values.actualDate[1].format("YYYY-MM-DD")
+        : values.actualDate?.[1],
+    };
 
-    if (useAlternativeFieldNames) {
-      // 用于 handleTableChange 的字段名映射
-      searchParams = {
-        orderNumber: values.orderNumber,
-        orderName: values.orderName,
-        splitStatus: values.splitStatus,
-        orderCategory: values.orderCategory, // 添加下单类目
-        // 时间筛选参数
-        expectedDeliveryDate: values.expectedDeliveryDate,
-        orderDate: values.orderDate,
-        entryDate: values.entryDate,
-        expectedDate: values.expectedDate,
-        actualDate: values.actualDate,
-      };
-    } else {
-      // 标准的API字段名映射
-      searchParams = {
-        order_number: values.orderNumber,
-        customer_name: values.orderName,
-        order_status: values.splitStatus,
-        sort: values.sort, // 添加排序字段
-        order_category: values.orderCategory, // 添加下单类
-        // 时间筛选参数
-        expected_delivery_start: values.expectedDeliveryDate?.[0]?.format
-          ? values.expectedDeliveryDate[0].format("YYYY-MM-DD")
-          : values.expectedDeliveryDate?.[0],
-        expected_delivery_end: values.expectedDeliveryDate?.[1]?.format
-          ? values.expectedDeliveryDate[1].format("YYYY-MM-DD")
-          : values.expectedDeliveryDate?.[1],
-        cutting_date_start: values.orderDate?.[0]?.format
-          ? values.orderDate[0].format("YYYY-MM-DD")
-          : values.orderDate?.[0],
-        cutting_date_end: values.orderDate?.[1]?.format
-          ? values.orderDate[1].format("YYYY-MM-DD")
-          : values.orderDate?.[1],
-        expected_shipment_start: values.expectedDate?.[0]?.format
-          ? values.expectedDate[0].format("YYYY-MM-DD")
-          : values.expectedDate?.[0],
-        expected_shipment_end: values.expectedDate?.[1]?.format
-          ? values.expectedDate[1].format("YYYY-MM-DD")
-          : values.expectedDate?.[1],
-        actual_shipment_start: values.actualDate?.[0]?.format
-          ? values.actualDate[0].format("YYYY-MM-DD")
-          : values.actualDate?.[0],
-        actual_shipment_end: values.actualDate?.[1]?.format
-          ? values.actualDate[1].format("YYYY-MM-DD")
-          : values.actualDate?.[1],
-      };
-
-      // 如果需要获取全量数据，添加 no_pagination 参数
-      if (noPagination) {
-        searchParams.no_pagination = true;
-      }
+    // 如果需要获取全量数据，添加 no_pagination 参数
+    if (noPagination) {
+      searchParams.no_pagination = true;
     }
 
     // 过滤掉空值
@@ -622,10 +602,8 @@ const ProductionPage: React.FC = () => {
       setCurrentPage(page);
     }
 
-    // 获取当前搜索条件
-    const filteredParams = getSearchParams(undefined, {
-      useAlternativeFieldNames: true,
-    });
+    // 获取当前搜索条件（统一使用标准API字段名映射）
+    const filteredParams = getSearchParams();
 
     // 使用当前的筛选条件和新的分页参数重新搜索数据
     await handleSearch(filteredParams, newPage, newPageSize);
@@ -743,7 +721,7 @@ const ProductionPage: React.FC = () => {
               const { status, planned, actual } = parseProgressItem(item);
               const hasPlanned = planned && planned !== "-";
               const hasActual = actual && actual !== "-";
-              const isCompleted = !!hasPlanned && !!hasActual;
+              const isCompleted = !!hasActual;
               return (
                 <div key={itemIndex}>
                   <span>
@@ -1231,7 +1209,7 @@ const ProductionPage: React.FC = () => {
             showTotal: (total) => `共 ${total} 条`,
             onChange: handlePageChange,
             onShowSizeChange: handlePageChange,
-            pageSizeOptions: ["10", "20", "50", "100"],
+            pageSizeOptions: ["2", "20", "50", "100"],
           }}
           rowClassName="hover:bg-blue-50"
           rowKey={(record) => record.id}
