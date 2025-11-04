@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "前端下单系统",
+  title: "进度管理系统",
   description: "基于Next.js、TypeScript和Ant Design构建的订单系统",
   icons: {
     icon: '/favicon.ico',

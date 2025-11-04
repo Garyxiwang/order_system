@@ -1,0 +1,208 @@
+<!-- pages/filter/filter.wxml -->
+<view class="filter-container">
+  <!-- 筛选标题 -->
+  <view class="filter-header">
+    <view class="header-content">
+      <view class="header-left">
+        <text class="filter-title">🔍 筛选订单</text>
+        <text class="filter-subtitle">设置查询条件</text>
+      </view>
+      <view class="header-right">
+        <van-button 
+          size="mini" 
+          type="default" 
+          plain
+          bind:click="handleLogout"
+          custom-class="logout-btn"
+        >
+          退出
+        </van-button>
+      </view>
+    </view>
+  </view>
+  <!-- 文本输入筛选 -->
+  <van-cell-group title="基本信息">
+    <van-field value="{{ orderNumber }}" label="订单编号" placeholder="请输入订单编号" clearable bind:change="onOrderNumberInput" />
+    <van-field value="{{ customerName }}" label="客户名称" placeholder="请输入客户名称" clearable bind:change="onCustomerNameInput" />
+    <!-- 设计师 -->
+    <van-cell title="设计师" value="{{ designer || '请选择设计师' }}" is-link bind:click="showDesignerPicker" custom-class="picker-cell" />
+    <!-- 销售员 -->
+    <van-cell title="销售员" value="{{ salesperson || '请选择销售员' }}" is-link bind:click="showSalespersonPicker" custom-class="picker-cell" />
+    <!-- 拆单员 -->
+    <van-cell title="拆单员" value="{{ splitter || '请选择拆单员' }}" is-link bind:click="showSplitterPicker" custom-class="picker-cell" />
+  </van-cell-group>
+  <!-- 订单状态 -->
+  <van-cell-group title="订单信息">
+    <van-cell title="订单类型" value="{{ orderType || '请选择订单类型' }}" is-link bind:click="showOrderTypePicker" custom-class="picker-cell" />
+    <van-cell title="订单状态" value="{{ orderStatusDisplay || '请选择订单状态' }}" is-link bind:click="showOrderStatusPicker" custom-class="picker-cell" />
+    <van-cell title="报价状态" value="{{ quoteStatusDisplay || '请选择报价状态' }}" is-link bind:click="showQuoteStatusPicker" custom-class="picker-cell" />
+    <van-cell title="下单类目" value="{{ orderCategoryDisplay || '请选择下单类目' }}" is-link bind:click="showOrderCategoryPicker" custom-class="picker-cell" />
+  </van-cell-group>
+</view>
+
+<!-- 设计师选择器 -->
+<van-popup
+  show="{{ showDesignerPicker }}"
+  position="bottom"
+  bind:close="onDesignerCancel"
+  custom-style="height: 50%;"
+>
+  <van-picker
+    show-toolbar
+    title="选择设计师"
+    columns="{{ [designerList] }}"
+    bind:confirm="onDesignerConfirm"
+    bind:cancel="onDesignerCancel"
+  />
+</van-popup>
+
+<!-- 销售员选择器 -->
+<van-popup
+  show="{{ showSalespersonPicker }}"
+  position="bottom"
+  bind:close="onSalespersonCancel"
+  custom-style="height: 50%;"
+>
+  <van-picker
+    show-toolbar
+    title="选择销售员"
+    columns="{{ [salespersonList] }}"
+    bind:confirm="onSalespersonConfirm"
+    bind:cancel="onSalespersonCancel"
+  />
+</van-popup>
+
+<!-- 拆单员选择器 -->
+<van-popup
+  show="{{ showSplitterPicker }}"
+  position="bottom"
+  bind:close="onSplitterCancel"
+  custom-style="height: 50%;"
+>
+  <van-picker
+    show-toolbar
+    title="选择拆单员"
+    columns="{{ [splitterList] }}"
+    bind:confirm="onSplitterConfirm"
+    bind:cancel="onSplitterCancel"
+  />
+</van-popup>
+
+<!-- 订单类型选择器（单选） -->
+<van-popup
+  show="{{ showOrderTypePicker }}"
+  position="bottom"
+  bind:close="onOrderTypeCancel"
+  custom-style="height: 60%;"
+>
+  <view class="picker-popup">
+    <view class="picker-header">
+      <text class="picker-title">选择订单类型</text>
+      <van-button size="small" type="primary" bind:click="onOrderTypeConfirm">确定</van-button>
+    </view>
+    <view class="picker-content">
+      <van-radio-group value="{{ orderType }}" bind:change="onOrderTypeChange">
+        <view
+          wx:for="{{ orderTypeOptions }}"
+          wx:key="value"
+          class="picker-cell-item"
+          data-name="{{ item.value }}"
+          bind:tap="toggleOrderType"
+        >
+          <text class="picker-cell-label">{{ item.label }}</text>
+          <view class="picker-checkbox-wrapper" catch:tap="stopPropagation">
+            <van-radio name="{{ item.value }}" />
+          </view>
+        </view>
+      </van-radio-group>
+    </view>
+  </view>
+</van-popup>
+
+<!-- 订单状态选择器（多选） -->
+<van-popup
+  show="{{ showOrderStatusPicker }}"
+  position="bottom"
+  bind:close="onOrderStatusCancel"
+  custom-style="height: 60%;"
+>
+  <view class="picker-popup">
+    <view class="picker-header">
+      <text class="picker-title">选择订单状态</text>
+      <van-button size="small" type="primary" bind:click="onOrderStatusConfirm">确定</van-button>
+    </view>
+    <view class="picker-content">
+      <van-checkbox-group value="{{ orderStatus }}" bind:change="onOrderStatusChange">
+        <view
+          wx:for="{{ orderStatusOptions }}"
+          wx:key="value"
+          class="picker-cell-item"
+          data-name="{{ item.value }}"
+          bind:tap="toggleOrderStatus"
+        >
+          <text class="picker-cell-label">{{ item.label }}</text>
+          <view class="picker-checkbox-wrapper" catch:tap="stopPropagation">
+            <van-checkbox name="{{ item.value }}" />
+          </view>
+        </view>
+      </van-checkbox-group>
+    </view>
+  </view>
+</van-popup>
+
+<!-- 报价状态选择器（多选） -->
+<van-popup
+  show="{{ showQuoteStatusPicker }}"
+  position="bottom"
+  bind:close="onQuoteStatusCancel"
+  custom-style="height: 60%;"
+>
+  <view class="picker-popup">
+    <view class="picker-header">
+      <text class="picker-title">选择报价状态</text>
+      <van-button size="small" type="primary" bind:click="onQuoteStatusConfirm">确定</van-button>
+    </view>
+    <view class="picker-content">
+      <van-checkbox-group value="{{ quoteStatus }}" bind:change="onQuoteStatusChange">
+        <view
+          wx:for="{{ quoteStatusOptions }}"
+          wx:key="value"
+          class="picker-cell-item"
+          data-name="{{ item.value }}"
+          bind:tap="toggleQuoteStatus"
+        >
+          <text class="picker-cell-label">{{ item.label }}</text>
+          <view class="picker-checkbox-wrapper" catch:tap="stopPropagation">
+            <van-checkbox name="{{ item.value }}" />
+          </view>
+        </view>
+      </van-checkbox-group>
+    </view>
+  </view>
+</van-popup>
+
+<!-- 下单类目选择器 -->
+<van-popup
+  show="{{ showOrderCategoryPicker }}"
+  position="bottom"
+  bind:close="onOrderCategoryCancel"
+  custom-style="height: 50%;"
+>
+  <van-picker
+    show-toolbar
+    title="选择下单类目"
+    columns="{{ [[]] }}"
+    bind:confirm="onOrderCategoryConfirm"
+    bind:cancel="onOrderCategoryCancel"
+  />
+</van-popup>
+
+<!-- 底部操作按钮 -->
+<view class="filter-actions">
+  <van-button size="large" block round bind:click="handleReset" custom-class="reset-btn">
+    重置
+  </van-button>
+  <van-button type="primary" size="large" block round bind:click="handleConfirm" custom-class="confirm-btn">
+    查询
+  </van-button>
+</view>

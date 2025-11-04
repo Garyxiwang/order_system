@@ -1,0 +1,102 @@
+<!--pages/order-list/order-list.wxml-->
+<view class="order-list-container">
+  <!-- 筛选按钮 -->
+  <view class="filter-bar">
+    <van-button
+      type="primary"
+      size="large"
+      icon="filter-o"
+      bind:click="goToFilter"
+      custom-class="filter-btn"
+    >
+      筛选订单
+    </van-button>
+  </view>
+
+  <!-- 订单列表 -->
+  <view class="order-list">
+    <view
+      wx:for="{{ orderList }}"
+      wx:key="id"
+      class="order-card"
+      bindtap="goToDetail"
+      data-id="{{ item.id }}"
+    >
+      <!-- 卡片头部 -->
+      <view class="card-header">
+        <view class="order-number">
+          <text class="number-label">订单编号</text>
+          <text class="number-value">{{ item.order_number }}</text>
+        </view>
+        <van-tag
+          type="primary"
+          size="medium"
+          custom-style="background: linear-gradient(135deg, {{ item.statusColor }} 0%, {{ item.statusColor }}dd 100%); border: none; color: #fff; font-weight: 500; padding: 8rpx 20rpx; border-radius: 20rpx;"
+        >
+          {{ item.order_status }}
+        </van-tag>
+      </view>
+
+      <!-- 客户信息 -->
+      <view class="customer-info">
+        <view class="customer-name">
+          <text class="name-icon">👤</text>
+          <text class="name-text">{{ item.customer_name }}</text>
+        </view>
+      </view>
+
+      <!-- 订单信息 -->
+      <view class="order-details">
+        <view class="detail-row" wx:if="{{ item.order_type }}">
+          <text class="detail-icon">📋</text>
+          <text class="detail-label">订单类型：</text>
+          <text class="detail-value">{{ item.order_type }}</text>
+        </view>
+        <view class="detail-row" wx:if="{{ item.designer }}">
+          <text class="detail-icon">🎨</text>
+          <text class="detail-label">设计师：</text>
+          <text class="detail-value">{{ item.designer }}</text>
+        </view>
+        <view class="detail-row" wx:if="{{ item.salesperson }}">
+          <text class="detail-icon">💼</text>
+          <text class="detail-label">销售员：</text>
+          <text class="detail-value">{{ item.salesperson }}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-icon">📅</text>
+          <text class="detail-label">分单日期：</text>
+          <text class="detail-value">{{ item.assignment_date }}</text>
+        </view>
+      </view>
+
+      <!-- 订单金额 -->
+      <view class="order-footer" wx:if="{{ item.order_amount }}">
+        <view class="amount-wrapper">
+          <text class="amount-label">订单金额</text>
+          <text class="amount-value">¥{{ item.order_amount }}</text>
+        </view>
+      </view>
+
+      <!-- 箭头 -->
+      <view class="card-arrow">›</view>
+    </view>
+
+    <!-- 空状态 -->
+    <van-empty
+      wx:if="{{ !loading && orderList.length === 0 }}"
+      description="暂无订单数据"
+      image="search"
+      custom-class="empty-state"
+    />
+
+    <!-- 加载状态 -->
+    <view class="loading" wx:if="{{ loading }}">
+      <van-loading type="spinner" size="24px" color="#1989fa">加载中...</van-loading>
+    </view>
+
+    <!-- 没有更多 -->
+    <view class="no-more" wx:if="{{ !hasMore && orderList.length > 0 }}">
+      <van-divider>没有更多了</van-divider>
+    </view>
+  </view>
+</view>

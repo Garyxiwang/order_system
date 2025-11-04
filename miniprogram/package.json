@@ -1,0 +1,19 @@
+{
+  "name": "order-assistant-miniprogram",
+  "version": "1.0.0",
+  "description": "订单助手小程序",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@vant/weapp": "^1.11.7"
+  },
+  "keywords": [
+    "miniprogram",
+    "order",
+    "vant"
+  ],
+  "author": "",
+  "license": "MIT"
+}

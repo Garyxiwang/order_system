@@ -1,0 +1,128 @@
+/* app.wxss - 全局样式 */
+page {
+  background-color: #f7f8fa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  font-size: 14px;
+  color: #323233;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 通用样式 */
+.container {
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* 卡片样式 */
+.card {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  transition: all 0.3s;
+}
+
+.card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+/* 标题样式 */
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #323233;
+  margin-bottom: 20rpx;
+  letter-spacing: 1rpx;
+}
+
+.subtitle {
+  font-size: 28rpx;
+  color: #646566;
+  margin-bottom: 16rpx;
+  font-weight: 300;
+}
+
+/* 文本样式 */
+.text-primary {
+  color: #1989fa;
+}
+
+.text-success {
+  color: #07c160;
+}
+
+.text-warning {
+  color: #ff976a;
+}
+
+.text-danger {
+  color: #ee0a24;
+}
+
+.text-secondary {
+  color: #969799;
+}
+
+/* 分割线 */
+.divider {
+  height: 1rpx;
+  background-color: #ebedf0;
+  margin: 24rpx 0;
+}
+
+/* 空状态 */
+.empty {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #969799;
+}
+
+/* 加载状态 */
+.loading {
+  text-align: center;
+  padding: 40rpx 0;
+  color: #969799;
+}
+
+/* 全局动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* 滚动条样式优化 */
+::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}

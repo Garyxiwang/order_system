@@ -1,0 +1,36 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/filter/filter",
+    "pages/order-list/order-list",
+    "pages/order-detail/order-detail"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1890ff",
+    "navigationBarTitleText": "订单助手",
+    "navigationBarTextStyle": "white",
+    "enablePullDownRefresh": true
+  },
+  "usingComponents": {
+    "van-button": "@vant/weapp/button/index",
+    "van-field": "@vant/weapp/field/index",
+    "van-cell": "@vant/weapp/cell/index",
+    "van-cell-group": "@vant/weapp/cell-group/index",
+    "van-checkbox": "@vant/weapp/checkbox/index",
+    "van-checkbox-group": "@vant/weapp/checkbox-group/index",
+    "van-radio": "@vant/weapp/radio/index",
+    "van-radio-group": "@vant/weapp/radio-group/index",
+    "van-tag": "@vant/weapp/tag/index",
+    "van-card": "@vant/weapp/card/index",
+    "van-empty": "@vant/weapp/empty/index",
+    "van-loading": "@vant/weapp/loading/index",
+    "van-toast": "@vant/weapp/toast/index",
+    "van-divider": "@vant/weapp/divider/index",
+    "van-search": "@vant/weapp/search/index",
+    "van-picker": "@vant/weapp/picker/index",
+    "van-popup": "@vant/weapp/popup/index"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
