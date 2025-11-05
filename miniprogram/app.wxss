@@ -69,6 +69,16 @@ page {
   color: #969799;
 }
 
+/* 主题色 - 简化配色 */
+.theme-primary {
+  background-color: #1989fa;
+  color: #fff;
+}
+
+.theme-bg {
+  background-color: #f7f8fa;
+}
+
 /* 分割线 */
 .divider {
   height: 1rpx;

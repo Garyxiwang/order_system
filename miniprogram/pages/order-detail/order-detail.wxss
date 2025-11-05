@@ -1,7 +1,7 @@
 /* pages/order-detail/order-detail.wxss */
 .order-detail-container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f0f2f5 0%, #f7f8fa 100%);
+  background-color: #f7f8fa;
   padding-bottom: 40rpx;
 }
 
@@ -16,7 +16,7 @@
 
 .order-detail-container .van-cell-group__title {
   padding: 28rpx 32rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #1989fa;
   color: #fff;
   font-size: 32rpx;
   font-weight: 600;
@@ -58,7 +58,7 @@
 /* 备注内容 */
 .remarks-content {
   padding: 32rpx;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
+  background-color: #f7f8fa;
   font-size: 28rpx;
   color: #323233;
   line-height: 1.8;
@@ -80,7 +80,7 @@
   display: flex;
   align-items: center;
   padding: 24rpx 32rpx;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
+  background-color: #f7f8fa;
   border-bottom: 1rpx solid #ebedf0;
 }
 

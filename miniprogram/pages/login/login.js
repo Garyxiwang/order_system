@@ -8,13 +8,20 @@ Page({
   data: {
     username: '',
     password: '',
-    loading: false
+    loading: false,
+    statusBarHeight: 0
   },
 
   /**
    * 生命周期函数--监听页面加载
    */
   onLoad(options) {
+    // 获取系统信息，设置状态栏高度
+    const systemInfo = wx.getSystemInfoSync();
+    this.setData({
+      statusBarHeight: systemInfo.statusBarHeight || 0
+    });
+
     // 检查是否已登录
     if (authService.isLoggedIn()) {
       this.redirectToFilter();

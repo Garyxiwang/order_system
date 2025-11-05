@@ -1,8 +1,17 @@
 <!--pages/login/login.wxml-->
 <view class="login-container">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 背景图 -->
+  <image class="bg-image" src="/images/bgm.jpg" mode="aspectFill" />
+  <!-- 背景遮罩层 -->
+  <view class="bg-overlay"></view>
+  
   <view class="login-box">
     <!-- Logo区域 -->
     <view class="logo-section">
+      <image class="logo-image" src="/images/logo3.png" mode="aspectFit" />
       <text class="logo-text">进度管理系统</text>
     </view>
 

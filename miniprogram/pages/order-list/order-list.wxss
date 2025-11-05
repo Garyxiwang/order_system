@@ -1,16 +1,16 @@
 /* pages/order-list/order-list.wxss */
 .order-list-container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f0f2f5 0%, #f7f8fa 100%);
+  background-color: #f7f8fa;
 }
 
 .filter-bar {
   padding: 30rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #1989fa;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
 .filter-btn {
@@ -49,7 +49,7 @@
   left: 0;
   width: 6rpx;
   height: 100%;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background-color: #1989fa;
 }
 
 .order-card:active {
@@ -111,7 +111,7 @@
   gap: 16rpx;
   margin-bottom: 24rpx;
   padding: 24rpx;
-  background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%);
+  background-color: #f7f8fa;
   border-radius: 16rpx;
 }
 
@@ -149,7 +149,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 20rpx;
-  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  background-color: #fff5f5;
   border-radius: 16rpx;
 }
 

@@ -1,13 +1,13 @@
 /* pages/filter/filter.wxss */
 .filter-container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f0f2f5 0%, #f7f8fa 100%);
+  background-color: #f7f8fa;
   padding-bottom: 140rpx;
 }
 
 .filter-header {
   padding: 40rpx 30rpx 30rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #1989fa;
   color: #fff;
   margin-bottom: 20rpx;
 }
@@ -92,7 +92,7 @@
   border-radius: 44rpx;
   font-size: 30rpx;
   font-weight: 500;
-  box-shadow: 0 8rpx 16rpx rgba(102, 126, 234, 0.3);
+  background-color: #1989fa;
 }
 
 .confirm-btn::after {
@@ -110,7 +110,7 @@
 
 .filter-container .van-cell-group__title {
   padding: 28rpx 32rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #1989fa;
   color: #fff;
   font-size: 30rpx;
   font-weight: 600;
