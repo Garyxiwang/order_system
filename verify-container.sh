@@ -66,7 +66,7 @@ if docker compose exec -T frontend test -d /app/.next/static/chunks; then
     docker compose exec -T frontend ls -la /app/.next/static/chunks | head -20
     
     # 统计 chunk 文件数量
-    local chunk_count=$(docker compose exec -T frontend find /app/.next/static/chunks -name "*.js" 2>/dev/null | wc -l || echo "0")
+    chunk_count=$(docker compose exec -T frontend find /app/.next/static/chunks -name "*.js" 2>/dev/null | wc -l || echo "0")
     log_info "找到 $chunk_count 个 chunk 文件"
     
     if [ "$chunk_count" -lt 10 ]; then
