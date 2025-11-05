@@ -53,7 +53,7 @@
   <van-picker
     show-toolbar
     title="选择设计师"
-    columns="{{ [designerList] }}"
+    columns="{{ designerList }}"
     bind:confirm="onDesignerConfirm"
     bind:cancel="onDesignerCancel"
   />
@@ -69,7 +69,7 @@
   <van-picker
     show-toolbar
     title="选择销售员"
-    columns="{{ [salespersonList] }}"
+    columns="{{ salespersonList }}"
     bind:confirm="onSalespersonConfirm"
     bind:cancel="onSalespersonCancel"
   />
@@ -85,7 +85,7 @@
   <van-picker
     show-toolbar
     title="选择拆单员"
-    columns="{{ [splitterList] }}"
+    columns="{{ splitterList }}"
     bind:confirm="onSplitterConfirm"
     bind:cancel="onSplitterCancel"
   />
@@ -184,20 +184,35 @@
   </view>
 </van-popup>
 
-<!-- 下单类目选择器 -->
+<!-- 下单类目选择器（多选） -->
 <van-popup
   show="{{ showOrderCategoryPicker }}"
   position="bottom"
   bind:close="onOrderCategoryCancel"
-  custom-style="height: 50%;"
+  custom-style="height: 60%;"
 >
-  <van-picker
-    show-toolbar
-    title="选择下单类目"
-    columns="{{ [[]] }}"
-    bind:confirm="onOrderCategoryConfirm"
-    bind:cancel="onOrderCategoryCancel"
-  />
+  <view class="picker-popup">
+    <view class="picker-header">
+      <text class="picker-title">选择下单类目</text>
+      <van-button size="small" type="primary" bind:click="onOrderCategoryConfirm">确定</van-button>
+    </view>
+    <view class="picker-content">
+      <van-checkbox-group value="{{ orderCategory }}" bind:change="onOrderCategoryChange">
+        <view
+          wx:for="{{ categoryList }}"
+          wx:key="index"
+          class="picker-cell-item"
+          data-name="{{ item }}"
+          bind:tap="toggleOrderCategory"
+        >
+          <text class="picker-cell-label">{{ item }}</text>
+          <view class="picker-checkbox-wrapper" catch:tap="stopPropagation">
+            <van-checkbox name="{{ item }}" />
+          </view>
+        </view>
+      </van-checkbox-group>
+    </view>
+  </view>
 </van-popup>
 
 <!-- 底部操作按钮 -->

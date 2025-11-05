@@ -1,6 +1,7 @@
 // pages/filter/filter.js
 const authService = require('../../services/authService.js');
 const userService = require('../../services/userService.js');
+const categoryService = require('../../services/categoryService.js');
 
 Page({
   /**
@@ -23,6 +24,8 @@ Page({
     designerList: [],
     salespersonList: [],
     splitterList: [],
+    // 类目列表
+    categoryList: [],
     // Picker 显示状态
     showDesignerPicker: false,
     showSalespersonPicker: false,
@@ -78,6 +81,9 @@ Page({
     // 加载用户列表
     this.loadUserList();
 
+    // 加载类目列表
+    this.loadCategoryList();
+
     // 如果有传入的筛选条件，恢复筛选状态
     if (options.params) {
       try {
@@ -95,6 +101,7 @@ Page({
   async loadUserList() {
     try {
       const res = await userService.getUserList();
+      console.log(res)
       const users = res.users || [];
       
       // 根据角色分类
@@ -128,6 +135,35 @@ Page({
     } catch (error) {
       console.error('加载用户列表失败:', error);
       // 如果加载失败，使用空数组，不影响其他功能
+    }
+  },
+
+  /**
+   * 加载类目列表
+   */
+  async loadCategoryList() {
+    try {
+      const res = await categoryService.getCategoryList();
+      // API 返回格式: { categories: [...], total: number }
+      const categories = res.categories || res || [];
+      
+      // 提取类目名称列表
+      const categoryList = categories.map(category => {
+        return typeof category === 'string' ? category : category.name;
+      });
+      
+      // 排序
+      categoryList.sort();
+      
+      this.setData({
+        categoryList: categoryList
+      });
+    } catch (error) {
+      console.error('加载类目列表失败:', error);
+      // 如果加载失败，使用空数组，不影响其他功能
+      this.setData({
+        categoryList: []
+      });
     }
   },
 
@@ -186,10 +222,8 @@ Page({
    * 设计师选择
    */
   onDesignerConfirm(e) {
-    const index = e.detail.value[0];
-    const designer = this.data.designerList[index] || '';
     this.setData({
-      designer: designer,
+      designer: e.detail.value,
       showDesignerPicker: false
     });
   },
@@ -216,10 +250,9 @@ Page({
    * 销售员选择
    */
   onSalespersonConfirm(e) {
-    const index = e.detail.value[0];
-    const salesperson = this.data.salespersonList[index] || '';
+    
     this.setData({
-      salesperson: salesperson,
+      salesperson:  e.detail.value,
       showSalespersonPicker: false
     });
   },
@@ -246,10 +279,9 @@ Page({
    * 拆单员选择
    */
   onSplitterConfirm(e) {
-    const index = e.detail.value[0];
-    const splitter = this.data.splitterList[index] || '';
+    
     this.setData({
-      splitter: splitter,
+      splitter: e.detail.value,
       showSplitterPicker: false
     });
   },
@@ -417,11 +449,41 @@ Page({
   },
 
   /**
-   * 下单类目选择（多选）
+   * 下单类目选择变化
+   */
+  onOrderCategoryChange(e) {
+    this.setData({
+      orderCategory: e.detail || e.detail.value || []
+    });
+  },
+
+  /**
+   * 切换下单类目
+   */
+  toggleOrderCategory(e) {
+    const name = e.currentTarget.dataset.name;
+    const orderCategory = [...this.data.orderCategory];
+    const index = orderCategory.indexOf(name);
+    
+    if (index > -1) {
+      orderCategory.splice(index, 1);
+    } else {
+      orderCategory.push(name);
+    }
+    
+    this.setData({
+      orderCategory: orderCategory
+    });
+  },
+
+  /**
+   * 确认下单类目选择
    */
   onOrderCategoryConfirm(e) {
-    // TODO: 实现下单类目选择逻辑
+    // 多选逻辑已经在 toggleOrderCategory 中处理
+    const displayText = this.data.orderCategory.length > 0 ? this.data.orderCategory.join(', ') : '';
     this.setData({
+      orderCategoryDisplay: displayText,
       showOrderCategoryPicker: false
     });
   },

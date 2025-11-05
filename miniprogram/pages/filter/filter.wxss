@@ -23,7 +23,6 @@
   padding: 0 30rpx 30rpx;
   background: #5b7fff;
   color: #fff;
-  margin-bottom: 20rpx;
   margin-top: 0;
   z-index: 9;
   box-shadow: 0 2rpx 12rpx rgba(91, 127, 255, 0.2);
