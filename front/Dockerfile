@@ -25,6 +25,12 @@ ENV NODE_ENV production
 # 构建应用
 RUN npm run build
 
+# 验证构建结果（确保 .next 目录存在）
+RUN test -d .next || (echo "错误: .next 目录不存在" && exit 1)
+RUN test -d .next/static || (echo "错误: .next/static 目录不存在" && exit 1)
+RUN test -d .next/static/chunks || (echo "错误: .next/static/chunks 目录不存在" && exit 1)
+RUN echo "构建验证通过: .next/static/chunks 目录存在"
+
 # 运行阶段
 FROM base AS runner
 WORKDIR /app
@@ -48,6 +54,12 @@ COPY --from=builder /app/public ./public
 # 复制 .next 目录的所有内容（确保所有 chunk 文件都被复制）
 # 使用 --chown 确保文件权限正确，避免权限问题导致的文件无法访问
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+
+# 验证复制后的文件（在 runner 阶段验证）
+RUN test -d .next || (echo "错误: .next 目录复制失败" && exit 1)
+RUN test -d .next/static || (echo "错误: .next/static 目录复制失败" && exit 1)
+RUN test -d .next/static/chunks || (echo "错误: .next/static/chunks 目录复制失败" && exit 1)
+RUN echo "复制验证通过: .next/static/chunks 目录存在"
 
 # 切换到非 root 用户
 USER nextjs
