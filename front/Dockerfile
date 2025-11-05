@@ -44,6 +44,9 @@ RUN --mount=type=cache,target=/root/.npm npm install --only=production --no-audi
 
 # 复制构建产物
 COPY --from=builder /app/public ./public
+
+# 复制 .next 目录的所有内容（确保所有 chunk 文件都被复制）
+# 使用 --chown 确保文件权限正确，避免权限问题导致的文件无法访问
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 
 # 切换到非 root 用户

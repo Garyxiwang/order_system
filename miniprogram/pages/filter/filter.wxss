@@ -1,15 +1,44 @@
 /* pages/filter/filter.wxss */
 .filter-container {
   min-height: 100vh;
-  background-color: #f7f8fa;
+  background: #f5f7fa;
   padding-bottom: 140rpx;
+  padding-top: 0;
+  position: relative;
+}
+
+/* 状态栏占位 - 让header背景延伸到顶部 */
+.status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 11;
+  background: transparent;
+  pointer-events: none;
 }
 
 .filter-header {
-  padding: 40rpx 30rpx 30rpx;
-  background-color: #1989fa;
+  position: relative;
+  padding: 0 30rpx 30rpx;
+  background: #5b7fff;
   color: #fff;
   margin-bottom: 20rpx;
+  margin-top: 0;
+  z-index: 9;
+  box-shadow: 0 2rpx 12rpx rgba(91, 127, 255, 0.2);
+}
+
+/* header背景延伸到顶部覆盖状态栏 */
+.filter-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #5b7fff;
+  z-index: -1;
 }
 
 .header-content {
@@ -44,7 +73,7 @@
 
 .logout-btn {
   background-color: rgba(255, 255, 255, 0.2) !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
   color: #fff !important;
   font-size: 24rpx !important;
   padding: 8rpx 24rpx !important;
@@ -53,7 +82,7 @@
 }
 
 .logout-btn::after {
-  border: 1rpx solid rgba(255, 255, 255, 0.5);
+  border: 1rpx solid rgba(255, 255, 255, 0.4);
   border-radius: 20rpx;
 }
 
@@ -66,8 +95,8 @@
   gap: 20rpx;
   padding: 30rpx;
   background: #fff;
-  border-top: 1rpx solid #ebedf0;
-  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.08);
+  border-top: 1rpx solid #e8ebf0;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
   z-index: 90;
 }
 
@@ -75,9 +104,9 @@
   flex: 1;
   height: 88rpx;
   border-radius: 44rpx;
-  background-color: #f7f8fa !important;
-  color: #323233 !important;
-  border: 2rpx solid #ebedf0 !important;
+  background-color: #f5f7fa !important;
+  color: #5b7fff !important;
+  border: 2rpx solid #e8ebf0 !important;
   font-size: 30rpx;
   font-weight: 500;
 }
@@ -92,7 +121,8 @@
   border-radius: 44rpx;
   font-size: 30rpx;
   font-weight: 500;
-  background-color: #1989fa;
+  background-color: #5b7fff;
+  box-shadow: 0 4rpx 12rpx rgba(91, 127, 255, 0.3);
 }
 
 .confirm-btn::after {
@@ -102,15 +132,16 @@
 /* 优化 Vant CellGroup 样式 */
 .filter-container .van-cell-group {
   margin: 20rpx;
-  border-radius: 20rpx;
+  border-radius: 16rpx;
   overflow: hidden;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
   margin-bottom: 24rpx;
+  background: #fff;
 }
 
 .filter-container .van-cell-group__title {
   padding: 28rpx 32rpx;
-  background-color: #1989fa;
+  background-color: #5b7fff;
   color: #fff;
   font-size: 30rpx;
   font-weight: 600;
@@ -137,7 +168,7 @@
 }
 
 .filter-cell:active {
-  background-color: #f7f8fa;
+  background-color: #f5f7fa;
 }
 
 /* 优化 Checkbox 和 Radio 样式 */
@@ -151,7 +182,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #fff;
+  background: #f5f7fa;
 }
 
 .picker-header {
@@ -159,13 +190,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 24rpx 32rpx;
-  border-bottom: 1rpx solid #ebedf0;
+  border-bottom: 1rpx solid #e8ebf0;
+  background: #fff;
 }
 
 .picker-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #323233;
+  color: #5b7fff;
 }
 
 .picker-content {
@@ -181,12 +213,12 @@
   justify-content: space-between;
   padding: 28rpx 32rpx;
   background: #fff;
-  border-bottom: 1rpx solid #ebedf0;
+  border-bottom: 1rpx solid #e8ebf0;
   transition: background-color 0.3s;
 }
 
 .picker-cell-item:active {
-  background-color: #f7f8fa;
+  background-color: #f5f7fa;
 }
 
 .picker-cell-item:last-child {

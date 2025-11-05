@@ -1,7 +1,10 @@
 <!-- pages/filter/filter.wxml -->
 <view class="filter-container">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
   <!-- 筛选标题 -->
-  <view class="filter-header">
+  <view class="filter-header" style="padding-top: {{headerPaddingTop}}rpx">
     <view class="header-content">
       <view class="header-left">
         <text class="filter-title">🔍 筛选订单</text>

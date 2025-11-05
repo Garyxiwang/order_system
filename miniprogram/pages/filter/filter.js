@@ -7,6 +7,8 @@ Page({
    * 页面的初始数据
    */
   data: {
+    statusBarHeight: 0,
+    headerPaddingTop: 30,
     // 筛选条件
     orderNumber: '',
     customerName: '',
@@ -55,6 +57,16 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad(options) {
+    // 获取系统信息，设置状态栏高度
+    const systemInfo = wx.getSystemInfoSync();
+    const statusBarHeight = systemInfo.statusBarHeight || 0;
+    // 计算header的padding-top（状态栏高度 + 30rpx，转换为rpx）
+    const headerPaddingTop = statusBarHeight * 2 + 30; // 1px = 2rpx (在375px宽度下)
+    this.setData({
+      statusBarHeight: statusBarHeight,
+      headerPaddingTop: headerPaddingTop
+    });
+
     // 检查登录状态
     if (!authService.isLoggedIn()) {
       wx.redirectTo({

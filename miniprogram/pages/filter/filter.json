@@ -1,7 +1,6 @@
 {
-  "navigationBarTitleText": "筛选订单",
+  "navigationStyle": "custom",
   "navigationBarTextStyle": "white",
-  "navigationBarBackgroundColor": "#667eea",
   "usingComponents": {
     "van-button": "@vant/weapp/button/index",
     "van-field": "@vant/weapp/field/index",
