@@ -20,7 +20,7 @@ function getOrderList(params = {}) {
     ...params
   };
   
-  return api.post('/orders/list', queryParams);
+  return api.post('/miniprogram-orders/list', queryParams);
 }
 
 /**

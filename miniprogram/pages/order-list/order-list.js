@@ -8,6 +8,8 @@ Page({
    * 页面的初始数据
    */
   data: {
+    statusBarHeight: 0,
+    headerPaddingTop: 30,
     // 订单列表
     orderList: [],
     // 分页信息
@@ -26,6 +28,16 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad(options) {
+    // 获取系统信息，设置状态栏高度
+    const systemInfo = wx.getSystemInfoSync();
+    const statusBarHeight = systemInfo.statusBarHeight || 0;
+    // 计算header的padding-top（状态栏高度 + 30rpx，转换为rpx）
+    const headerPaddingTop = statusBarHeight * 2 + 30; // 1px = 2rpx (在375px宽度下)
+    this.setData({
+      statusBarHeight: statusBarHeight,
+      headerPaddingTop: headerPaddingTop
+    });
+
     // 检查登录状态
     if (!authService.isLoggedIn()) {
       wx.redirectTo({
@@ -53,9 +65,7 @@ Page({
    * 生命周期函数--监听页面初次渲染完成
    */
   onReady() {
-    wx.setNavigationBarTitle({
-      title: '订单列表'
-    });
+    // 使用自定义导航栏，不需要设置标题
   },
 
   /**
@@ -132,6 +142,10 @@ Page({
     if (filters.quoteStatus && filters.quoteStatus.length > 0) {
       params.quote_status = filters.quoteStatus;
     }
+    // 订单进度（设计、拆单、生产）
+    if (filters.orderProgress && filters.orderProgress.length > 0) {
+      params.order_progress = filters.orderProgress;
+    }
 
     this.setData({
       loading: true
@@ -139,11 +153,32 @@ Page({
 
     orderService.getOrderList(params)
       .then((res) => {
-        // 处理订单列表，添加状态颜色
+        // 处理订单列表，添加状态颜色和格式化字段
         const items = res.items.map(item => {
+          // 处理类目名称（可能是单个字符串或数组）
+          let categoryNames = '';
+          if (item.category_names) {
+            categoryNames = Array.isArray(item.category_names) 
+              ? item.category_names.join(', ') 
+              : item.category_names;
+          } else if (item.category_name) {
+            categoryNames = item.category_name;
+          }
+          
+          // 格式化金额
+          let formattedAmount = '';
+          if (item.order_amount) {
+            formattedAmount = this.formatAmount(item.order_amount);
+          }
+          
           return {
             ...item,
-            statusColor: this.getStatusColor(item.order_status)
+            statusColor: this.getStatusColor(item.order_status),
+            category_names: categoryNames,
+            // 确保拆单员和报价状态字段存在
+            splitter: item.splitter || '',
+            quote_status: item.quote_status || '',
+            formatted_amount: formattedAmount
           };
         });
         const newList = refresh ? items : [...this.data.orderList, ...items];
@@ -206,15 +241,44 @@ Page({
 
   /**
    * 获取状态颜色
+   * 根据订单进度前缀（设计、拆单、生产）返回不同颜色
    */
   getStatusColor(status) {
-    const statusColors = {
-      '待处理': '#faad14',
-      '进行中': '#1890ff',
-      '已完成': '#52c41a',
-      '已下单': '#1890ff',
-      '已取消': '#f5222d'
-    };
-    return statusColors[status] || '#8c8c8c';
+    if (!status) return '#8c8c8c';
+    
+    // 根据进度前缀返回不同颜色
+    if (status.startsWith('设计-')) {
+      // 设计阶段：蓝色
+      return '#1890ff';
+    } else if (status.startsWith('拆单-')) {
+      // 拆单阶段：紫色
+      return '#722ed1';
+    } else if (status.startsWith('生产-')) {
+      // 生产阶段：绿色
+      return '#52c41a';
+    }
+    
+    // 默认颜色（兼容旧状态格式）
+    return '#8c8c8c';
+  },
+
+  /**
+   * 格式化金额
+   * 添加千位分隔符，保留两位小数
+   */
+  formatAmount(amount) {
+    if (!amount && amount !== 0) return '';
+    
+    // 转换为数字
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    
+    // 检查是否为有效数字
+    if (isNaN(num)) return '';
+    
+    // 格式化为带千位分隔符的字符串，保留两位小数
+    return num.toLocaleString('zh-CN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   }
 });

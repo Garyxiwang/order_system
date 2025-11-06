@@ -1,10 +1,23 @@
 <!--pages/order-list/order-list.wxml-->
 <view class="order-list-container">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
+  
+  <!-- 列表标题头部 -->
+  <view class="list-header" style="padding-top: {{headerPaddingTop}}rpx">
+    <view class="header-content">
+      <view class="header-left">
+        <text class="list-title">📋 订单列表</text>
+        <text class="list-subtitle">查看所有订单信息</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 筛选按钮 -->
   <view class="filter-bar">
     <van-button
       type="primary"
-      size="large"
+      size="normal"
       icon="filter-o"
       bind:click="goToFilter"
       custom-class="filter-btn"
@@ -28,13 +41,9 @@
           <text class="number-label">订单编号</text>
           <text class="number-value">{{ item.order_number }}</text>
         </view>
-        <van-tag
-          type="primary"
-          size="medium"
-          custom-style="background: linear-gradient(135deg, {{ item.statusColor }} 0%, {{ item.statusColor }}dd 100%); border: none; color: #fff; font-weight: 500; padding: 8rpx 20rpx; border-radius: 20rpx;"
-        >
+        <view class="status-tag" style="background-color: {{ item.statusColor }}; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);">
           {{ item.order_status }}
-        </van-tag>
+        </view>
       </view>
 
       <!-- 客户信息 -->
@@ -47,25 +56,35 @@
 
       <!-- 订单信息 -->
       <view class="order-details">
-        <view class="detail-row" wx:if="{{ item.order_type }}">
-          <text class="detail-icon">📋</text>
-          <text class="detail-label">订单类型：</text>
-          <text class="detail-value">{{ item.order_type }}</text>
-        </view>
-        <view class="detail-row" wx:if="{{ item.designer }}">
+        <view class="detail-row" >
           <text class="detail-icon">🎨</text>
           <text class="detail-label">设计师：</text>
           <text class="detail-value">{{ item.designer }}</text>
         </view>
-        <view class="detail-row" wx:if="{{ item.salesperson }}">
+        <view class="detail-row" >
           <text class="detail-icon">💼</text>
           <text class="detail-label">销售员：</text>
           <text class="detail-value">{{ item.salesperson }}</text>
         </view>
+        <view class="detail-row" >
+          <text class="detail-icon">✂️</text>
+          <text class="detail-label">拆单员：</text>
+          <text class="detail-value">{{ item.splitter || '-' }}</text>
+        </view>
+        <view class="detail-row" >
+          <text class="detail-icon">📋</text>
+          <text class="detail-label">订单类型：</text>
+          <text class="detail-value">{{ item.order_type }}</text>
+        </view>
         <view class="detail-row">
-          <text class="detail-icon">📅</text>
-          <text class="detail-label">分单日期：</text>
-          <text class="detail-value">{{ item.assignment_date }}</text>
+          <text class="detail-icon">💰</text>
+          <text class="detail-label">报价状态：</text>
+          <text class="detail-value">{{ item.quote_status || '-' }}</text>
+        </view>
+        <view class="detail-row" wx:if="{{ item.category_names || item.category_name }}">
+          <text class="detail-icon">📁</text>
+          <text class="detail-label">下单类目：</text>
+          <text class="detail-value">{{ item.category_names || item.category_name }}</text>
         </view>
       </view>
 
@@ -73,7 +92,7 @@
       <view class="order-footer" wx:if="{{ item.order_amount }}">
         <view class="amount-wrapper">
           <text class="amount-label">订单金额</text>
-          <text class="amount-value">¥{{ item.order_amount }}</text>
+          <text class="amount-value">¥{{ item.formatted_amount || item.order_amount }}</text>
         </view>
       </view>
 

@@ -36,8 +36,8 @@
   </van-cell-group>
   <!-- 订单状态 -->
   <van-cell-group title="订单信息">
+    <van-cell title="订单进度" value="{{ orderStatusDisplay || '请选择订单进度' }}" is-link bind:click="showOrderStatusPicker" custom-class="picker-cell" />
     <van-cell title="订单类型" value="{{ orderType || '请选择订单类型' }}" is-link bind:click="showOrderTypePicker" custom-class="picker-cell" />
-    <van-cell title="订单状态" value="{{ orderStatusDisplay || '请选择订单状态' }}" is-link bind:click="showOrderStatusPicker" custom-class="picker-cell" />
     <van-cell title="报价状态" value="{{ quoteStatusDisplay || '请选择报价状态' }}" is-link bind:click="showQuoteStatusPicker" custom-class="picker-cell" />
     <van-cell title="下单类目" value="{{ orderCategoryDisplay || '请选择下单类目' }}" is-link bind:click="showOrderCategoryPicker" custom-class="picker-cell" />
   </van-cell-group>

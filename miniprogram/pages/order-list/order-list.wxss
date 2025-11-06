@@ -2,24 +2,89 @@
 .order-list-container {
   min-height: 100vh;
   background-color: #f7f8fa;
+  padding-top: 0;
+  position: relative;
+}
+
+/* 状态栏占位 - 让header背景延伸到顶部 */
+.status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 11;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* 列表标题头部 - 固定定位 */
+.list-header {
+  position: sticky;
+  top: 0;
+  padding: 0 30rpx 30rpx;
+  background: #5b7fff;
+  color: #fff;
+  margin-top: 0;
+  z-index: 100;
+  box-shadow: 0 2rpx 12rpx rgba(91, 127, 255, 0.2);
+}
+
+/* header背景延伸到顶部覆盖状态栏 */
+.list-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #5b7fff;
+  z-index: -1;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.list-title {
+  display: block;
+  font-size: 40rpx;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+  letter-spacing: 1rpx;
+}
+
+.list-subtitle {
+  display: block;
+  font-size: 26rpx;
+  opacity: 0.9;
+  font-weight: 300;
 }
 
 .filter-bar {
-  padding: 30rpx;
-  background-color: #1989fa;
+  padding: 20rpx 30rpx;
+  background-color: #5b7fff;
   position: sticky;
   top: 0;
-  z-index: 100;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  z-index: 99;
+  margin-top: 0;
 }
 
 .filter-btn {
   width: 100%;
-  height: 88rpx;
-  font-size: 30rpx;
+  height: 64rpx;
+  font-size: 28rpx;
   font-weight: 500;
-  border-radius: 44rpx;
-  box-shadow: 0 8rpx 16rpx rgba(0, 0, 0, 0.15);
+  border-radius: 32rpx;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border: 2rpx solid rgba(255, 255, 255, 0.4) !important;
+  color: #fff !important;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
 .filter-btn::after {
@@ -49,7 +114,6 @@
   left: 0;
   width: 6rpx;
   height: 100%;
-  background-color: #1989fa;
 }
 
 .order-card:active {
@@ -93,16 +157,22 @@
   display: flex;
   align-items: center;
   gap: 12rpx;
+  overflow: hidden;
 }
 
 .name-icon {
   font-size: 32rpx;
+  flex-shrink: 0;
 }
 
 .name-text {
   font-size: 32rpx;
   font-weight: 500;
   color: #323233;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .order-details {
@@ -186,4 +256,16 @@
 
 .no-more {
   padding: 40rpx 0;
+}
+
+/* 状态标签样式 */
+.status-tag {
+  display: inline-block;
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #fff;
+  border: none;
+  white-space: nowrap;
 }

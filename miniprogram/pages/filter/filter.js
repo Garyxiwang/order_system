@@ -555,6 +555,7 @@ Page({
       designer: this.data.designer,
       salesperson: this.data.salesperson,
       orderStatus: this.data.orderStatus,
+      orderProgress: this.data.orderStatus, // 订单进度（设计、拆单、生产）
       orderType: this.data.orderType,
       orderCategory: this.data.orderCategory,
       splitter: this.data.splitter,

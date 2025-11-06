@@ -111,6 +111,7 @@ class OrderListItem(BaseModel):
     address: str = Field(..., description="地址")
     designer: Optional[str] = Field(None, description="设计师")
     salesperson: Optional[str] = Field(None, description="销售员")
+    splitter: Optional[str] = Field(None, description="拆单员")
     assignment_date: str = Field(..., description="分单日期")
     order_date: Optional[str] = Field(None, description="下单日期")
     design_cycle: Optional[str] = Field(None, description="设计周期")
@@ -121,6 +122,7 @@ class OrderListItem(BaseModel):
     order_amount: Optional[Decimal] = Field(None, description="订单金额")
     remarks: Optional[str] = Field(None, description="备注")
     order_status: str = Field(..., description="订单状态")
+    quote_status: Optional[str] = Field(None, description="报价状态")
     category_name: Optional[str] = Field(None, description="类目名称")
     design_process: Optional[str] = Field(None, description="设计过程")
     
@@ -137,8 +139,10 @@ class OrderListQuery(BaseModel):
     customer_name: Optional[str] = Field(None, description="客户名称")
     designer: Optional[str] = Field(None, description="设计师")
     salesperson: Optional[str] = Field(None, description="销售员")
+    splitter: Optional[str] = Field(None, description="拆单员")
     order_status: Optional[List[str]] = Field(None, description="订单状态（多选）")
     order_type: Optional[str] = Field(None, description="订单类型")
+    quote_status: Optional[List[str]] = Field(None, description="报价状态（多选）")
     design_cycle_filter: Optional[str] = Field(None, description="设计周期筛选：lte20(小于等于20天)、gt20(大于20天)、lt50(小于50天)")
     category_names: Optional[List[str]] = Field(None, description="类目名称（多选）")
     assignment_date_start: Optional[str] = Field(None, description="分单日期开始")
@@ -148,6 +152,8 @@ class OrderListQuery(BaseModel):
     # 新增：计划日期筛选
     planned_date_start: Optional[str] = Field(None, description="计划日期开始（设计过程中的计划日期）")
     planned_date_end: Optional[str] = Field(None, description="计划日期结束（设计过程中的计划日期）")
+    # 新增：订单进度筛选（小程序使用）
+    order_progress: Optional[List[str]] = Field(None, description="订单进度筛选（多选）：设计、拆单、生产，为空或包含全部时查询所有表并去重")
 
 
 class OrderListResponse(BaseModel):
