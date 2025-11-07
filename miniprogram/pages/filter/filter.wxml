@@ -7,7 +7,10 @@
   <view class="filter-header" style="padding-top: {{headerPaddingTop}}rpx">
     <view class="header-content">
       <view class="header-left">
-        <text class="filter-title">🔍 筛选订单</text>
+        <view class="filter-title">
+          <van-icon name="search" color="#fff" size="20px" style="margin-right: 8rpx;" />
+          <text>筛选订单</text>
+        </view>
         <text class="filter-subtitle">设置查询条件</text>
       </view>
       <view class="header-right">
@@ -36,7 +39,7 @@
   </van-cell-group>
   <!-- 订单状态 -->
   <van-cell-group title="订单信息">
-    <van-cell title="订单进度" value="{{ orderStatusDisplay || '请选择订单进度' }}" is-link bind:click="showOrderStatusPicker" custom-class="picker-cell" />
+    <van-cell title="订单进度" value="{{ orderStatus || '请选择订单进度' }}" is-link bind:click="showOrderStatusPicker" custom-class="picker-cell" />
     <van-cell title="订单类型" value="{{ orderType || '请选择订单类型' }}" is-link bind:click="showOrderTypePicker" custom-class="picker-cell" />
     <van-cell title="报价状态" value="{{ quoteStatusDisplay || '请选择报价状态' }}" is-link bind:click="showQuoteStatusPicker" custom-class="picker-cell" />
     <van-cell title="下单类目" value="{{ orderCategoryDisplay || '请选择下单类目' }}" is-link bind:click="showOrderCategoryPicker" custom-class="picker-cell" />
@@ -122,7 +125,7 @@
   </view>
 </van-popup>
 
-<!-- 订单状态选择器（多选） -->
+<!-- 订单状态选择器（单选） -->
 <van-popup
   show="{{ showOrderStatusPicker }}"
   position="bottom"
@@ -131,11 +134,11 @@
 >
   <view class="picker-popup">
     <view class="picker-header">
-      <text class="picker-title">选择订单状态</text>
+      <text class="picker-title">选择订单进度</text>
       <van-button size="small" type="primary" bind:click="onOrderStatusConfirm">确定</van-button>
     </view>
     <view class="picker-content">
-      <van-checkbox-group value="{{ orderStatus }}" bind:change="onOrderStatusChange">
+      <van-radio-group value="{{ orderStatus }}" bind:change="onOrderStatusChange">
         <view
           wx:for="{{ orderStatusOptions }}"
           wx:key="value"
@@ -145,10 +148,10 @@
         >
           <text class="picker-cell-label">{{ item.label }}</text>
           <view class="picker-checkbox-wrapper" catch:tap="stopPropagation">
-            <van-checkbox name="{{ item.value }}" />
+            <van-radio name="{{ item.value }}" />
           </view>
         </view>
-      </van-checkbox-group>
+      </van-radio-group>
     </view>
   </view>
 </van-popup>

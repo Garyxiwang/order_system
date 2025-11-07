@@ -15,7 +15,7 @@ Page({
     customerName: '',
     designer: '',
     salesperson: '',
-    orderStatus: [],
+    orderStatus: '',
     orderType: '',
     orderCategory: [],
     splitter: '',
@@ -34,8 +34,6 @@ Page({
     showOrderStatusPicker: false,
     showQuoteStatusPicker: false,
     showOrderCategoryPicker: false,
-    // 显示文本
-    orderStatusDisplay: '',
     quoteStatusDisplay: '',
     orderCategoryDisplay: '',
     // 状态选项
@@ -171,7 +169,14 @@ Page({
    * 恢复筛选条件
    */
   restoreFilters(params) {
-    const orderStatus = params.orderStatus || [];
+    // 处理订单状态：如果是数组，取第一个元素；如果是字符串，直接使用；否则为空字符串
+    let orderStatus = '';
+    if (Array.isArray(params.orderStatus) && params.orderStatus.length > 0) {
+      orderStatus = params.orderStatus[0];
+    } else if (typeof params.orderStatus === 'string' && params.orderStatus) {
+      orderStatus = params.orderStatus;
+    }
+    
     const quoteStatus = params.quoteStatus || [];
     const orderCategory = params.orderCategory || [];
     
@@ -185,7 +190,6 @@ Page({
       orderCategory: orderCategory,
       splitter: params.splitter || '',
       quoteStatus: quoteStatus,
-      orderStatusDisplay: orderStatus.length > 0 ? orderStatus.join(', ') : '',
       quoteStatusDisplay: quoteStatus.length > 0 ? quoteStatus.join(', ') : '',
       orderCategoryDisplay: orderCategory.length > 0 ? orderCategory.join(', ') : ''
     });
@@ -300,26 +304,19 @@ Page({
    */
   onOrderStatusChange(e) {
     this.setData({
-      orderStatus: e.detail || e.detail.value || []
+      orderStatus: e.detail || e.detail.value || ''
     });
   },
 
   /**
-   * 切换订单状态
+   * 切换订单状态（单选）
    */
   toggleOrderStatus(e) {
     const name = e.currentTarget.dataset.name;
-    const orderStatus = [...this.data.orderStatus];
-    const index = orderStatus.indexOf(name);
-    
-    if (index > -1) {
-      orderStatus.splice(index, 1);
-    } else {
-      orderStatus.push(name);
-    }
+    if (!name) return;
     
     this.setData({
-      orderStatus: orderStatus
+      orderStatus: name === this.data.orderStatus ? '' : name
     });
   },
 
@@ -389,13 +386,11 @@ Page({
   },
 
   /**
-   * 订单状态选择（多选）
+   * 订单状态选择（单选）
    */
   onOrderStatusConfirm() {
-    // 多选逻辑已经在 toggleOrderStatus 中处理
-    const displayText = this.data.orderStatus.length > 0 ? this.data.orderStatus.join(', ') : '';
+    // 单选逻辑已经在 toggleOrderStatus 中处理
     this.setData({
-      orderStatusDisplay: displayText,
       showOrderStatusPicker: false
     });
   },
@@ -534,12 +529,11 @@ Page({
       customerName: '',
       designer: '',
       salesperson: '',
-      orderStatus: [],
+      orderStatus: '',
       orderType: '',
       orderCategory: [],
       splitter: '',
       quoteStatus: [],
-      orderStatusDisplay: '',
       quoteStatusDisplay: '',
       orderCategoryDisplay: ''
     });
@@ -554,8 +548,8 @@ Page({
       customerName: this.data.customerName,
       designer: this.data.designer,
       salesperson: this.data.salesperson,
-      orderStatus: this.data.orderStatus,
-      orderProgress: this.data.orderStatus, // 订单进度（设计、拆单、生产）
+      orderStatus: this.data.orderStatus ? [this.data.orderStatus] : [],
+      orderProgress: this.data.orderStatus ? [this.data.orderStatus] : [], // 订单进度（设计、拆单、生产）
       orderType: this.data.orderType,
       orderCategory: this.data.orderCategory,
       splitter: this.data.splitter,

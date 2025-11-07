@@ -151,25 +151,31 @@ async def _get_orders_from_design(query_data: OrderListQuery, db: Session):
             splitter = None
             progress_prefix = "设计"  # 默认前缀
             
+            # 检查前端是否选择了具体的进度
+            order_progress = getattr(query_data, 'order_progress', None)
+            is_specific_progress = order_progress and len(order_progress) == 1 and order_progress[0] == "设计"
+            
             # 查询拆单表获取拆单员和报价状态
             split = db.query(Split).filter(Split.order_number == order.order_number).first()
             if split:
                 splitter = split.splitter
                 quote_status = split.quote_status
-                # 如果设计阶段状态是"已下单"，查看拆单表的状态
-                if order.order_status == "已下单":
-                    # 如果拆单状态也是"已下单"，查询生产表的状态
-                    if split.order_status == "已下单":
-                        production = db.query(Production).filter(Production.order_number == order.order_number).first()
-                        if production:
-                            final_order_status = production.order_status
-                            progress_prefix = "生产"
+                # 如果前端选择了具体的进度，就不自动变更状态前缀
+                if not is_specific_progress:
+                    # 如果设计阶段状态是"已下单"，查看拆单表的状态
+                    if order.order_status == "已下单":
+                        # 如果拆单状态也是"已下单"，查询生产表的状态
+                        if split.order_status == "已下单":
+                            production = db.query(Production).filter(Production.order_number == order.order_number).first()
+                            if production:
+                                final_order_status = production.order_status
+                                progress_prefix = "生产"
+                            else:
+                                final_order_status = split.order_status
+                                progress_prefix = "拆单"
                         else:
                             final_order_status = split.order_status
                             progress_prefix = "拆单"
-                    else:
-                        final_order_status = split.order_status
-                        progress_prefix = "拆单"
             
             # 添加进度前缀
             final_order_status = f"{progress_prefix}-{final_order_status}"
@@ -264,15 +270,21 @@ async def _get_orders_from_split(query_data: OrderListQuery, db: Session):
         
         # 转换为 OrderListResponse 格式
         order_items = []
+        # 检查前端是否选择了具体的进度
+        order_progress = getattr(query_data, 'order_progress', None)
+        is_specific_progress = order_progress and len(order_progress) == 1 and order_progress[0] == "拆单"
+        
         for split in splits:
             # 动态获取订单状态：如果拆单阶段状态是"已下单"，查看生产表的状态
             final_order_status = split.order_status
             progress_prefix = "拆单"  # 默认前缀
-            if split.order_status == "已下单":
-                production = db.query(Production).filter(Production.order_number == split.order_number).first()
-                if production:
-                    final_order_status = production.order_status
-                    progress_prefix = "生产"
+            # 如果前端选择了具体的进度，就不自动变更状态前缀
+            if not is_specific_progress:
+                if split.order_status == "已下单":
+                    production = db.query(Production).filter(Production.order_number == split.order_number).first()
+                    if production:
+                        final_order_status = production.order_status
+                        progress_prefix = "生产"
             
             # 添加进度前缀
             final_order_status = f"{progress_prefix}-{final_order_status}"

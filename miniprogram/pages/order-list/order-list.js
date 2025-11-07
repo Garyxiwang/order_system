@@ -241,21 +241,46 @@ Page({
 
   /**
    * 获取状态颜色
-   * 根据订单进度前缀（设计、拆单、生产）返回不同颜色
+   * 根据订单进度前缀和具体状态返回不同颜色
    */
   getStatusColor(status) {
     if (!status) return '#8c8c8c';
     
-    // 根据进度前缀返回不同颜色
-    if (status.startsWith('设计-')) {
-      // 设计阶段：蓝色
-      return '#1890ff';
-    } else if (status.startsWith('拆单-')) {
-      // 拆单阶段：紫色
-      return '#722ed1';
-    } else if (status.startsWith('生产-')) {
-      // 生产阶段：绿色
-      return '#52c41a';
+    // 提取前缀和具体状态
+    let prefix = '';
+    let statusText = status;
+    
+    if (status.includes('-')) {
+      const parts = status.split('-');
+      prefix = parts[0];
+      statusText = parts.slice(1).join('-'); // 处理可能包含多个-的情况
+    }
+    
+    // 根据前缀和具体状态返回颜色
+    if (prefix === '设计') {
+      if (statusText === '已下单') {
+        return '#59bf4d';
+      } else if (statusText === '暂停' || statusText === '撤销') {
+        return '#ea4f5b';
+      } else {
+        return '#3677e2';
+      }
+    } else if (prefix === '拆单') {
+      if (statusText === '已下单') {
+        return '#59bf4d';
+      } else if (statusText === '未开始') {
+        return '#8c8c8c';
+      } else if (statusText === '撤销中') {
+        return '#ea4f5b';
+      } else {
+        return '#0958d9';
+      }
+    } else if (prefix === '生产') {
+      if (statusText === '已完成') {
+        return '#389e0d';
+      } else {
+        return '#0958d9';
+      }
     }
     
     // 默认颜色（兼容旧状态格式）
