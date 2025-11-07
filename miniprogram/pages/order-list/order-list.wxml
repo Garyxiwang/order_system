@@ -23,7 +23,7 @@
   </view>
   <!-- 订单列表 -->
   <view class="order-list">
-    <view wx:for="{{ orderList }}" wx:key="id" class="order-card" bindtap="goToDetail" data-id="{{ item.id }}">
+    <view wx:for="{{ orderList }}" wx:key="id" class="order-card" bindtap="goToDetail" data-id="{{ item.id }}" data-number="{{ item.order_number }}">
       <!-- 卡片头部 -->
       <view class="card-header">
         <view class="order-number">
@@ -83,7 +83,7 @@
       <!-- 订单金额 -->
       <view class="order-footer">
         <view class="detail-action">
-          <van-button type="info" size="mini" plain icon="arrow" catch:click="goToDetail" data-id="{{ item.id }}" custom-class="detail-btn">
+          <van-button type="info" size="mini" plain icon="arrow" catch:click="goToDetail" data-id="{{ item.id }}" data-number="{{ item.order_number }}" custom-class="detail-btn">
             订单详情
           </van-button>
         </view>

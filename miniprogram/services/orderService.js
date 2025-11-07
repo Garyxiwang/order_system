@@ -31,8 +31,17 @@ function getOrderDetail(orderId) {
   return api.get(`/orders/${orderId}`);
 }
 
+/**
+ * 获取订单综合详情（小程序专用）
+ * @param {string} orderNumber - 订单编号
+ */
+function getOrderDetailByNumber(orderNumber) {
+  return api.get(`/miniprogram-orders/detail/${orderNumber}`);
+}
+
 module.exports = {
   getOrderList,
-  getOrderDetail
+  getOrderDetail,
+  getOrderDetailByNumber
 };
 

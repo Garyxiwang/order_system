@@ -234,9 +234,18 @@ Page({
    */
   goToDetail(e) {
     const orderId = e.currentTarget.dataset.id;
-    wx.navigateTo({
-      url: `/pages/order-detail/order-detail?id=${orderId}`
-    });
+    const orderNumber = e.currentTarget.dataset.number;
+    // 使用订单编号跳转，因为新接口使用订单编号查询
+    if (orderNumber) {
+      wx.navigateTo({
+        url: `/pages/order-detail/order-detail?order_number=${orderNumber}`
+      });
+    } else {
+      // 兼容旧方式
+      wx.navigateTo({
+        url: `/pages/order-detail/order-detail?id=${orderId}`
+      });
+    }
   },
 
   /**

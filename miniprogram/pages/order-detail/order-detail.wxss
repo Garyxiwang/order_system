@@ -2,45 +2,178 @@
 .order-detail-container {
   min-height: 100vh;
   background-color: #f7f8fa;
+  padding-top: 0;
   padding-bottom: 40rpx;
+  position: relative;
 }
 
-/* 优化 Vant CellGroup 样式 */
-.order-detail-container .van-cell-group {
-  margin: 20rpx;
-  border-radius: 20rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
-  margin-bottom: 24rpx;
+/* 状态栏占位 - 让header背景延伸到顶部 */
+.status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 11;
+  background: transparent;
+  pointer-events: none;
 }
 
-.order-detail-container .van-cell-group__title {
-  padding: 28rpx 32rpx;
-  background-color: #1989fa;
+/* 列表标题头部 - 固定定位 */
+.list-header {
+  position: sticky;
+  top: 0;
+  padding: 0 30rpx 30rpx;
+  background: #5b7fff;
   color: #fff;
-  font-size: 32rpx;
-  font-weight: 600;
+  margin-top: 0;
+  z-index: 100;
+  box-shadow: 0 2rpx 12rpx rgba(91, 127, 255, 0.2);
+}
+
+/* header背景延伸到顶部覆盖状态栏 */
+.list-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #5b7fff;
+  z-index: -1;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.header-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60rpx;
+  height: 60rpx;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.header-title-wrapper {
+  flex: 1;
+}
+
+.list-title {
+  display: flex;
+  align-items: center;
+  font-size: 40rpx;
+  font-weight: bold;
+  margin-bottom: 12rpx;
   letter-spacing: 1rpx;
 }
 
-.order-detail-container .van-cell {
+.list-subtitle {
+  display: block;
+  font-size: 26rpx;
+  opacity: 0.9;
+  font-weight: 300;
+}
+
+/* 详情部分 */
+.detail-section {
+  margin: 20rpx 20rpx 24rpx;
+  background-color: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 部分标题栏 - 与列表页保持一致 */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 30rpx;
+  background-color: #5b7fff;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2rpx 12rpx rgba(91, 127, 255, 0.2);
+}
+
+.section-header-fixed {
+  cursor: default;
+}
+
+.section-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.section-icon {
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 1rpx;
+}
+
+.section-arrow {
+  flex-shrink: 0;
+  transition: transform 0.3s;
+  color: #fff !important;
+}
+
+/* 部分内容 */
+.section-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.section-content.expanded {
+  max-height: 5000rpx;
+  transition: max-height 0.5s ease-in;
+}
+
+.section-content.collapsed {
+  max-height: 0;
+}
+
+/* Cell Group 样式 */
+.section-content .van-cell-group {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.section-content .van-cell {
   padding: 32rpx;
   background: #fff;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
-.order-detail-container .van-cell:last-child {
+.section-content .van-cell:last-child {
   border-bottom: none;
 }
 
-.order-detail-container .van-cell__title {
+.section-content .van-cell__title {
   font-size: 28rpx;
   color: #646566;
   font-weight: 400;
   min-width: 160rpx;
 }
 
-.order-detail-container .van-cell__value {
+.section-content .van-cell__value {
   font-size: 28rpx;
   color: #323233;
   font-weight: 500;
@@ -55,78 +188,6 @@
   letter-spacing: 1rpx;
 }
 
-/* 备注内容 */
-.remarks-content {
-  padding: 32rpx;
-  background-color: #f7f8fa;
-  font-size: 28rpx;
-  color: #323233;
-  line-height: 1.8;
-  word-break: break-all;
-  border-radius: 16rpx;
-  margin: 20rpx;
-}
-
-/* 进度信息 */
-.progress-item {
-  margin-bottom: 24rpx;
-  background: #fff;
-  border-radius: 16rpx;
-  overflow: hidden;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-}
-
-.progress-header {
-  display: flex;
-  align-items: center;
-  padding: 24rpx 32rpx;
-  background-color: #f7f8fa;
-  border-bottom: 1rpx solid #ebedf0;
-}
-
-.progress-task {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #323233;
-  flex: 1;
-}
-
-.progress-details {
-  padding: 24rpx 32rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.detail-icon {
-  font-size: 28rpx;
-  width: 40rpx;
-  text-align: center;
-}
-
-.detail-text {
-  font-size: 26rpx;
-  color: #646566;
-  line-height: 1.6;
-  flex: 1;
-}
-
-.progress-remarks {
-  padding: 0 32rpx 24rpx;
-}
-
-.progress-remarks .van-cell {
-  padding: 20rpx 0;
-  background: transparent;
-  border: none;
-}
-
 .amount-cell .van-cell__value {
   color: #ee0a24;
   font-weight: bold;
@@ -134,6 +195,27 @@
   letter-spacing: 1rpx;
 }
 
+/* 进度部分标题 */
+.progress-section {
+  margin-top: 20rpx;
+}
+
+.section-subtitle {
+  padding: 20rpx 32rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #323233;
+  background-color: #f7f8fa;
+  border-bottom: 1rpx solid #ebedf0;
+}
+
+.progress-section .van-cell-group {
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 加载状态 */
 .loading {
   text-align: center;
   padding: 120rpx 0;
@@ -143,8 +225,101 @@
   margin-top: 100rpx;
 }
 
-/* 分割线优化 */
-.order-detail-container .van-divider {
-  margin: 24rpx 32rpx;
-  border-color: #ebedf0;
+/* 状态标签样式 - 与列表页保持一致 */
+.status-tag-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* 设计过程样式 */
+.design-process-section {
+  padding: 0;
+  background: #fff;
+}
+
+.design-process-section .section-subtitle {
+  margin: 0;
+  border-top: 1rpx solid #ebedf0;
+}
+
+.process-list {
+  padding: 0 32rpx 32rpx;
+}
+
+.process-item {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.process-item:last-child {
+  border-bottom: none;
+}
+
+.process-task-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #323233;
+  margin-bottom: 20rpx;
+  line-height: 1.5;
+}
+
+.process-dates {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  flex-wrap: wrap;
+}
+
+.date-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.date-label {
+  font-size: 28rpx;
+  color: #646566;
+  white-space: nowrap;
+}
+
+.date-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 24rpx;
+  border-radius: 24rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  min-width: 120rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.date-badge.planned {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border: 1rpx solid #91d5ff;
+}
+
+.date-badge.actual {
+  background-color: #f6ffed;
+  color: #52c41a;
+  border: 1rpx solid #b7eb8f;
+}
+
+.date-badge.actual-empty {
+  background-color: #f5f5f5;
+  color: #969799;
+  border: 1rpx solid #d9d9d9;
 }

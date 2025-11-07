@@ -303,13 +303,13 @@ async def _get_orders_from_split(query_data: OrderListQuery, db: Session):
                 design_cycle="",
                 order_date=split.order_date,
                 order_type=split.order_type,
-                is_installation=False,
+                is_installation=False,  # 拆单表没有is_installation字段
                 cabinet_area=split.cabinet_area,
                 wall_panel_area=split.wall_panel_area,
                 order_amount=split.order_amount,
                 remarks=split.remarks,
                 order_status=final_order_status,
-                quote_status=split.quote_status  # 拆单表有报价状态
+                quote_status=split.quote_status
             )
             order_items.append(order_item)
         
@@ -513,3 +513,188 @@ async def _get_orders_merged(query_data: OrderListQuery, db: Session):
             total_pages=0
         )
 
+
+@router.get("/detail/{order_number}", summary="小程序订单综合详情查询")
+async def get_miniprogram_order_detail(
+    order_number: str,
+    db: Session = Depends(get_db)
+):
+    """
+    小程序订单综合详情查询接口
+    综合查询设计、拆单、生产三个表的信息
+    """
+    try:
+        result = {}
+        split = None
+        production = None
+        
+        # 1. 查询设计表
+        order = db.query(Order).options(
+            joinedload(Order.progresses)
+        ).filter(Order.order_number == order_number).first()
+        
+        if order:
+            # 处理设计过程
+            design_process_items = []
+            if order.progresses:
+                sorted_progresses = sorted(
+                    order.progresses, key=lambda p: p.created_at, reverse=True)
+                for p in sorted_progresses:
+                    planned = p.planned_date if p.planned_date else "-"
+                    actual = p.actual_date if p.actual_date else "-"
+                    design_process_items.append(f"{p.task_item}:{planned}:{actual}")
+                design_process = ",".join(design_process_items)
+            else:
+                design_process = "暂无进度"
+            
+            calculated_design_cycle = str(calculate_design_cycle_days(
+                order.assignment_date, 
+                order.order_date, 
+                order.order_status
+            ))
+            
+            result['order_info'] = {
+                'order_number': order.order_number,
+                'order_status': order.order_status,
+                'customer_name': order.customer_name,
+                'address': order.address,
+                'order_type': order.order_type,
+                'category_name': order.category_name,
+                'is_installation': order.is_installation,
+                'designer': order.designer,
+                'salesperson': order.salesperson,
+                'cabinet_area': float(order.cabinet_area) if order.cabinet_area else None,
+                'wall_panel_area': float(order.wall_panel_area) if order.wall_panel_area else None,
+                'order_amount': float(order.order_amount) if order.order_amount else None,
+                'assignment_date': order.assignment_date
+            }
+            
+            result['design_progress'] = {
+                'order_date': order.order_date,
+                'design_cycle': calculated_design_cycle,
+                'design_process': design_process
+            }
+        
+        # 2. 查询拆单表
+        split = db.query(Split).options(
+            joinedload(Split.progress_items)
+        ).filter(Split.order_number == order_number).first()
+        
+        if split:
+            if not result.get('order_info'):
+                result['order_info'] = {}
+            result['order_info']['splitter'] = split.splitter
+            result['order_info']['quote_status'] = split.quote_status
+            
+            # 处理拆单进度
+            internal_items = []
+            external_items = []
+            for item in split.progress_items:
+                item_data = {
+                    'category_name': item.category_name,
+                    'planned_date': item.planned_date,
+                    'split_date': item.split_date if item.item_type.value == 'internal' else None,
+                    'purchase_date': item.purchase_date if item.item_type.value == 'external' else None,
+                    'cycle_days': item.cycle_days,
+                    'status': item.status,
+                    'remarks': item.remarks
+                }
+                if item.item_type.value == 'internal':
+                    internal_items.append(item_data)
+                else:
+                    external_items.append(item_data)
+            
+            result['split_progress'] = {
+                'order_date': split.order_date,
+                'completion_date': split.completion_date,
+                'internal_items': internal_items,
+                'external_items': external_items
+            }
+        
+        # 3. 查询生产表
+        production = db.query(Production).options(
+            joinedload(Production.progress_items)
+        ).filter(Production.order_number == order_number).first()
+        
+        if production:
+            # 处理生产进度
+            production_progress_items = []
+            for item in production.progress_items:
+                item_data = {
+                    'category_name': item.category_name,
+                    'item_type': item.item_type.value,
+                    'order_date': item.order_date,
+                    'expected_material_date': item.expected_material_date if item.item_type.value == 'internal' else None,
+                    'actual_storage_date': item.actual_storage_date if item.item_type.value == 'internal' else None,
+                    'storage_time': item.storage_time if item.item_type.value == 'internal' else None,
+                    'quantity': item.quantity if item.item_type.value == 'internal' else None,
+                    'expected_arrival_date': item.expected_arrival_date if item.item_type.value == 'external' else None,
+                    'actual_arrival_date': item.actual_arrival_date if item.item_type.value == 'external' else None
+                }
+                production_progress_items.append(item_data)
+            
+            # 计算下单天数（从拆单下单日期到当前）
+            order_days = None
+            if production.split_order_date:
+                try:
+                    split_date = datetime.strptime(production.split_order_date, '%Y-%m-%d')
+                    today = datetime.now()
+                    order_days = str((today - split_date).days)
+                except:
+                    order_days = None
+            
+            result['production_progress'] = {
+                'customer_payment_date': production.customer_payment_date,
+                'split_order_date': production.split_order_date,
+                'order_days': order_days,
+                'expected_delivery_date': production.expected_delivery_date,
+                'purchase_status': production.order_status,  # 采购状态使用订单状态字段
+                'storage_count': len([item for item in production.progress_items if item.item_type.value == 'internal' and item.actual_storage_date]),
+                'material_count': len(production.progress_items),
+                'cutting_date': production.cutting_date,
+                'expected_shipping_date': production.expected_shipping_date,
+                'progress_items': production_progress_items
+            }
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="订单不存在")
+        
+        # 动态获取订单状态并添加前缀（与列表页逻辑一致）
+        if result.get('order_info'):
+            final_order_status = result['order_info'].get('order_status', '')
+            progress_prefix = "设计"  # 默认前缀
+            
+            # 如果设计阶段状态是"已下单"，查看拆单表的状态
+            if final_order_status == "已下单" and split:
+                # 如果拆单状态也是"已下单"，查看生产表的状态
+                if split.order_status == "已下单":
+                    if production:
+                        final_order_status = production.order_status
+                        progress_prefix = "生产"
+                    else:
+                        final_order_status = split.order_status
+                        progress_prefix = "拆单"
+                else:
+                    final_order_status = split.order_status
+                    progress_prefix = "拆单"
+            elif production:
+                # 如果有生产进度，说明已进入生产阶段
+                final_order_status = production.order_status
+                progress_prefix = "生产"
+            elif split:
+                # 如果有拆单进度，说明已进入拆单阶段
+                final_order_status = split.order_status
+                progress_prefix = "拆单"
+            
+            # 添加进度前缀
+            if final_order_status and not final_order_status.startswith(('设计-', '拆单-', '生产-')):
+                final_order_status = f"{progress_prefix}-{final_order_status}"
+                result['order_info']['order_status'] = final_order_status
+        
+        return success_response(data=result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"查询订单详情失败: {str(e)}")
