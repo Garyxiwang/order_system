@@ -46,12 +46,12 @@
         <view class="detail-row">
           <van-icon name="edit" class="detail-icon" color="#ff6b9d" custom-style="line-height: 1.5; vertical-align: top;" />
           <text class="detail-label">设计师：</text>
-          <text class="detail-value">{{ item.designer }}</text>
+          <text class="detail-value">{{ item.designer|| '-' }}</text>
         </view>
         <view class="detail-row">
           <van-icon name="manager-o" class="detail-icon" color="#07c160" custom-style="line-height: 1.5; vertical-align: top;" />
           <text class="detail-label">销售员：</text>
-          <text class="detail-value">{{ item.salesperson }}</text>
+          <text class="detail-value">{{ item.salesperson|| '-' }}</text>
         </view>
         <view class="detail-row">
           <van-icon name="setting-o" class="detail-icon" color="#ff9500" custom-style="line-height: 1.5; vertical-align: top;" />

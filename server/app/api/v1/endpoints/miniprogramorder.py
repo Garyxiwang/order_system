@@ -81,6 +81,13 @@ async def _get_orders_from_design(query_data: OrderListQuery, db: Session):
             joinedload(Order.progresses)
         )
 
+        # 判断是否需要关联拆单表（用于拆单员和报价状态筛选）
+        need_join_split = query_data.splitter or query_data.quote_status
+        
+        if need_join_split:
+            # 使用 LEFT JOIN 关联拆单表，避免丢失没有拆单记录的订单
+            query = query.outerjoin(Split, Order.order_number == Split.order_number)
+
         # 应用搜索条件（仅保留小程序需要的字段）
         if query_data.order_number:
             query = query.filter(Order.order_number.ilike(
@@ -98,6 +105,15 @@ async def _get_orders_from_design(query_data: OrderListQuery, db: Session):
             query = query.filter(Order.salesperson.ilike(
                 f"%{query_data.salesperson}%"))
 
+        # 拆单员筛选：通过关联的拆单表筛选
+        if query_data.splitter:
+            query = query.filter(Split.splitter.ilike(
+                f"%{query_data.splitter}%"))
+
+        # 报价状态筛选：通过关联的拆单表筛选
+        if query_data.quote_status:
+            query = query.filter(Split.quote_status.in_(query_data.quote_status))
+
         if query_data.order_type:
             query = query.filter(Order.order_type == query_data.order_type)
 
@@ -107,6 +123,10 @@ async def _get_orders_from_design(query_data: OrderListQuery, db: Session):
                 category_conditions.append(
                     Order.category_name.like(f"%{category}%"))
             query = query.filter(or_(*category_conditions))
+        
+        # 如果关联了拆单表，需要去重（因为一个订单可能对应多个拆单记录，虽然理论上应该只有一个）
+        if need_join_split:
+            query = query.distinct()
 
         query = query.order_by(Order.assignment_date.desc())
 
@@ -338,22 +358,50 @@ async def _get_orders_from_production(query_data: OrderListQuery, db: Session):
         # 直接查询生产表
         query = db.query(Production)
         
+        # 判断是否需要关联拆单表（用于设计师、销售员、订单类型、报价状态筛选）
+        need_join_split = (query_data.designer or query_data.salesperson or 
+                          query_data.order_type or query_data.quote_status)
+        
+        if need_join_split:
+            # 使用 LEFT JOIN 关联拆单表
+            query = query.outerjoin(Split, Production.order_number == Split.order_number)
+        
         # 应用搜索条件（仅保留小程序需要的字段）
         if query_data.order_number:
             query = query.filter(Production.order_number.like(f"%{query_data.order_number}%"))
         if query_data.customer_name:
             query = query.filter(Production.customer_name.like(f"%{query_data.customer_name}%"))
+        
+        # 设计师筛选：通过关联的拆单表筛选
+        if query_data.designer:
+            query = query.filter(Split.designer.ilike(
+                f"%{query_data.designer}%"))
+        
+        # 销售员筛选：通过关联的拆单表筛选
+        if query_data.salesperson:
+            query = query.filter(Split.salesperson.ilike(
+                f"%{query_data.salesperson}%"))
+        
+        # 拆单员筛选：生产表本身有splitter字段
+        if query_data.splitter:
+            query = query.filter(Production.splitter.ilike(
+                f"%{query_data.splitter}%"))
+        
+        # 订单类型筛选：通过关联的拆单表筛选
         if query_data.order_type:
-            # 生产表没有order_type字段，但可以通过拆单表关联查询
-            # 通过order_number关联Split表查询order_type
-            split_subq = db.query(Split.order_number).filter(
-                Split.order_type == query_data.order_type
-            ).distinct().subquery()
-            query = query.filter(Production.order_number.in_(split_subq))
+            query = query.filter(Split.order_type == query_data.order_type)
+        
+        # 报价状态筛选：通过关联的拆单表筛选
+        if query_data.quote_status:
+            query = query.filter(Split.quote_status.in_(query_data.quote_status))
+        
         if query_data.category_names:
             # 通过ProductionProgress查询
             query = query.join(ProductionProgress, Production.id == ProductionProgress.production_id)
             query = query.filter(ProductionProgress.category_name.in_(query_data.category_names))
+            query = query.distinct()
+        elif need_join_split:
+            # 如果关联了拆单表但没有关联ProductionProgress，也需要去重
             query = query.distinct()
         
         # 排序
@@ -375,33 +423,51 @@ async def _get_orders_from_production(query_data: OrderListQuery, db: Session):
         
         # 转换为 OrderListResponse 格式
         order_items = []
+        # 检查前端是否选择了具体的进度
+        order_progress = getattr(query_data, 'order_progress', None)
+        is_specific_progress = order_progress and len(order_progress) == 1 and order_progress[0] == "生产"
+        
         for prod in productions:
             # 生产表已经是最新状态，直接使用
-            # 但需要查询拆单表获取报价状态和拆单员
+            # 需要查询拆单表获取设计师、销售员、订单类型、报价状态等信息
+            designer = None
+            salesperson = None
+            order_type = None
             quote_status = None
-            splitter = None
+            splitter = prod.splitter  # 生产表本身有splitter字段
+            
+            # 查询拆单表获取完整信息（设计师、销售员、订单类型、报价状态等）
             split = db.query(Split).filter(Split.order_number == prod.order_number).first()
             if split:
+                designer = split.designer
+                salesperson = split.salesperson
+                order_type = split.order_type
                 quote_status = split.quote_status
-                splitter = split.splitter
+                # 如果生产表的splitter为空，使用拆单表的splitter
+                if not splitter:
+                    splitter = split.splitter
+            
+            # 动态获取订单状态
+            final_order_status = prod.order_status
+            progress_prefix = "生产"  # 默认前缀
             
             # 添加进度前缀
-            final_order_status = f"生产-{prod.order_status}"
+            final_order_status = f"{progress_prefix}-{final_order_status}"
             
             order_item = OrderListItem(
                 id=prod.id,
                 order_number=prod.order_number,
                 customer_name=prod.customer_name,
                 address=prod.address or "",
-                designer="",  # 生产表没有designer
-                salesperson="",  # 生产表没有salesperson
-                splitter=splitter,  # 从拆单表获取拆单员
+                designer=designer or "",  # 从拆单表获取设计师
+                salesperson=salesperson or "",  # 从拆单表获取销售员
+                splitter=splitter or "",  # 优先使用生产表的splitter，否则使用拆单表的
                 assignment_date="",
                 design_process="",
                 category_name="",
                 design_cycle="",
                 order_date=prod.split_order_date or "",
-                order_type="",  # 生产表没有order_type
+                order_type=order_type or "",  # 从拆单表获取订单类型
                 is_installation=prod.is_installation,
                 cabinet_area=None,
                 wall_panel_area=None,
