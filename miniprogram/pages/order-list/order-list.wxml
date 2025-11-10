@@ -73,6 +73,11 @@
           <text class="detail-label">下单类目：</text>
           <text class="detail-value">{{ item.category_names || item.category_name }}</text>
         </view>
+        <view class="detail-row">
+          <van-icon name="calendar-o" class="detail-icon" custom-style="line-height: 1.5; vertical-align: top;" />
+          <text class="detail-label">分单日期：</text>
+          <text class="detail-value">{{ item.assignment_date }}</text>
+        </view>
         <!-- <view class="detail-row" wx:if="{{ item.order_amount }}">
           <van-icon name="balance-o" class="detail-icon" color="#ee0a24" />
           <text class="detail-label">订单金额：</text>

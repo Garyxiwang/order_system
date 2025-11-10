@@ -1,5 +1,5 @@
 <!-- pages/order-detail/order-detail.wxml -->
-<view class="order-detail-container">
+<view class="order-detail-container" id="order-detail-container">
   <!-- 状态栏占位 -->
   <view class="status-bar" style="height: {{statusBarHeight}}px"></view>
   <!-- 列表标题头部 -->
@@ -11,35 +11,34 @@
             <van-icon name="arrow-left" bindtap="goBack" color="#fff" size="20px" style="margin-right: 8rpx;" />
             <text>订单详情</text>
           </view>
-          <text class="list-subtitle" wx:if="{{ orderDetail && orderDetail.order_info }}">
-            {{ orderDetail.order_info.order_number }}
-          </text>
         </view>
       </view>
     </view>
   </view>
-  <view wx:if="{{ orderDetail }}">
+  <view wx:if="{{ orderDetail }}" class="content-wrapper">
     <!-- 订单信息 -->
     <view class="detail-section">
-      <view class="section-header section-header-fixed">
+      <view class="section-header" bindtap="toggleSection" data-section="order_info" style="top: {{headerHeight}}px">
         <view class="section-title-wrapper">
           <van-icon name="orders-o" class="section-icon" color="#fff" size="20px" />
           <text class="section-title">订单信息</text>
         </view>
+        <van-icon name="{{ expandedSections.order_info ? 'arrow-up' : 'arrow-down' }}" class="section-arrow" color="#fff" size="16px" />
       </view>
-      <view class="section-content expanded">
+      <view class="section-content {{ expandedSections.order_info ? 'expanded' : 'collapsed' }}">
         <van-cell-group>
           <van-cell title="订单编号" value="{{ orderDetail.order_info.order_number || '-' }}" data-text="{{ orderDetail.order_info.order_number }}" />
           <van-cell title="订单状态">
-            <van-tag wx:if="{{ orderDetail.order_info.order_status }}" size="medium" color="{{ orderDetail.order_info.statusColor || '#8c8c8c' }}" text-color="#fff" custom-style="font-weight: 500; padding: 8rpx 20rpx; border-radius: 20rpx; border: none;">
+            <van-tag wx:if="{{ orderDetail.order_info.order_status }}" round size="medium" color="{{ orderDetail.order_info.statusColor || '#8c8c8c' }}" text-color="#fff">
               {{ orderDetail.order_info.order_status }}
             </van-tag>
             <text wx:else>-</text>
           </van-cell>
           <van-cell title="客户名称" value="{{ orderDetail.order_info.customer_name || '-' }}" />
           <van-cell title="地址" value="{{ orderDetail.order_info.address || '-' }}" />
+          <van-cell title="分单日期" value="{{ orderDetail.order_info.assignment_date || '-' }}" />
           <van-cell title="订单类型" value="{{ orderDetail.order_info.order_type || '-' }}" />
-          <van-cell title="下单类目" value="{{ orderDetail.order_info.category_name || '-' }}" />
+          <van-cell title="下单类目" value="{{ orderDetail.order_info.category_name || '-' }}"></van-cell>
           <van-cell title="是否安装">{{ orderDetail.order_info.is_installation ? '是' : '否' }}</van-cell>
           <van-cell title="设计师" value="{{ orderDetail.order_info.designer || '-' }}" />
           <van-cell title="销售员" value="{{ orderDetail.order_info.salesperson || '-' }}" />
@@ -48,13 +47,12 @@
           <van-cell title="墙板面积" value="{{ orderDetail.order_info.wall_panel_area ? orderDetail.order_info.wall_panel_area + '㎡' : '-' }}" />
           <van-cell title="报价状态" value="{{ orderDetail.order_info.quote_status || '-' }}" />
           <van-cell title="订单金额" value="{{ orderDetail.order_info.formatted_amount || '-' }}" custom-class="{{ orderDetail.order_info.formatted_amount ? 'amount-cell' : '' }}" />
-          <van-cell title="分单日期" value="{{ orderDetail.order_info.assignment_date || '-' }}" />
         </van-cell-group>
       </view>
     </view>
     <!-- 设计进度 -->
     <view class="detail-section" wx:if="{{ orderDetail.design_progress }}">
-      <view class="section-header" bindtap="toggleSection" data-section="design_progress">
+      <view class="section-header" bindtap="toggleSection" data-section="design_progress" style="top: {{headerHeight}}px">
         <view class="section-title-wrapper">
           <van-icon name="edit" class="section-icon" color="#fff" size="20px" />
           <text class="section-title">设计进度</text>
@@ -63,8 +61,14 @@
       </view>
       <view class="section-content {{ expandedSections.design_progress ? 'expanded' : 'collapsed' }}">
         <van-cell-group>
-          <van-cell title="下单日期" value="{{ orderDetail.design_progress.order_date ? formatDate(orderDetail.design_progress.order_date) : '-' }}" />
-          <van-cell title="设计周期" value="{{ orderDetail.design_progress.design_cycle ? orderDetail.design_progress.design_cycle + '天' : '-' }}" />
+          <van-cell title="下单日期" value="{{ orderDetail.design_progress.order_date || '-' }}" />
+          <van-cell title="设计周期">
+            <van-tag wx:if="{{ orderDetail.design_progress.design_cycle }}" round size="medium" color="{{ orderDetail.design_progress.design_cycle_color || '#8c8c8c' }}" text-color="#fff" custom-style="font-weight: 500; padding: 8rpx 20rpx; border-radius: 20rpx; border: none;">
+              {{ orderDetail.design_progress.design_cycle }}天
+            </van-tag>
+            <text wx:else>-</text>
+          </van-cell>
+          <van-cell title="设计备注" value="{{ orderDetail.design_progress.design_remarks || '-' }}"></van-cell>
           <!-- 设计过程 -->
           <view wx:if="{{ orderDetail.design_progress.process_items && orderDetail.design_progress.process_items.length > 0 }}" class="design-process-section">
             <view class="section-subtitle">设计过程</view>
@@ -91,7 +95,7 @@
     </view>
     <!-- 拆单进度 -->
     <view class="detail-section" wx:if="{{ orderDetail.split_progress }}">
-      <view class="section-header" bindtap="toggleSection" data-section="split_progress">
+      <view class="section-header" bindtap="toggleSection" data-section="split_progress" style="top: {{headerHeight}}px">
         <view class="section-title-wrapper">
           <van-icon name="setting-o" class="section-icon" color="#fff" size="20px" />
           <text class="section-title">拆单进度</text>
@@ -100,20 +104,31 @@
       </view>
       <view class="section-content {{ expandedSections.split_progress ? 'expanded' : 'collapsed' }}">
         <van-cell-group>
-          <van-cell title="下单日期" value="{{ orderDetail.split_progress.order_date ? formatDate(orderDetail.split_progress.order_date) : '-' }}" />
-          <van-cell title="完成日期" value="{{ orderDetail.split_progress.completion_date ? formatDate(orderDetail.split_progress.completion_date) : '-' }}" />
+          <van-cell title="下单日期" value="{{ orderDetail.split_progress.order_date }}" />
+          <van-cell title="完成日期" value="{{ orderDetail.split_progress.completion_date || '-' }}" />
+          <van-cell title="拆单备注" value="{{ orderDetail.split_progress.split_remarks || '-' }}"></van-cell>
           <!-- 厂内生产项 -->
           <view wx:if="{{ orderDetail.split_progress.internal_items && orderDetail.split_progress.internal_items.length > 0 }}" class="progress-section">
             <view class="section-subtitle">厂内生产项</view>
             <van-cell-group>
-              <van-cell wx:for="{{ orderDetail.split_progress.internal_items }}" wx:key="index" title="{{ item.category_name || '-' }}" value="{{ item.split_date || '-' }}" />
+              <view wx:for="{{ orderDetail.split_progress.internal_items }}" wx:key="index" class="split-item-wrapper">
+                <van-cell title="{{ item.category_name || '-' }}" value="{{ item.displayValue || '-' }}" value-class="{{ item.isOverdue ? (item.isOverdueRed ? 'overdue-value overdue-red' : 'overdue-value') : '' }}" />
+                <view wx:if="{{ item.remarks }}" class="cell-remarks-wrapper">
+                  <text class="remarks-text">{{ item.remarks }}</text>
+                </view>
+              </view>
             </van-cell-group>
           </view>
           <!-- 外购项 -->
           <view wx:if="{{ orderDetail.split_progress.external_items && orderDetail.split_progress.external_items.length > 0 }}" class="progress-section">
             <view class="section-subtitle">外购项</view>
             <van-cell-group>
-              <van-cell wx:for="{{ orderDetail.split_progress.external_items }}" wx:key="index" title="{{ item.category_name || '-' }}" value="{{ item.purchase_date || '-' }}" />
+              <view wx:for="{{ orderDetail.split_progress.external_items }}" wx:key="index" class="split-item-wrapper">
+                <van-cell title="{{ item.category_name || '-' }}" value="{{ item.displayValue || '-' }}" value-class="{{ item.isOverdue ? (item.isOverdueRed ? 'overdue-value overdue-red' : 'overdue-value') : '' }}" />
+                <view wx:if="{{ item.remarks }}" class="cell-remarks-wrapper">
+                  <text class="remarks-text">{{ item.remarks }}</text>
+                </view>
+              </view>
             </van-cell-group>
           </view>
         </van-cell-group>
@@ -121,7 +136,7 @@
     </view>
     <!-- 生产进度 -->
     <view class="detail-section" wx:if="{{ orderDetail.production_progress }}">
-      <view class="section-header" bindtap="toggleSection" data-section="production_progress">
+      <view class="section-header" bindtap="toggleSection" data-section="production_progress" style="top: {{headerHeight}}px">
         <view class="section-title-wrapper">
           <van-icon name="orders-o" class="section-icon" color="#fff" size="20px" />
           <text class="section-title">生产进度</text>
@@ -129,17 +144,83 @@
         <van-icon name="{{ expandedSections.production_progress ? 'arrow-up' : 'arrow-down' }}" class="section-arrow" color="#fff" size="16px" />
       </view>
       <view class="section-content {{ expandedSections.production_progress ? 'expanded' : 'collapsed' }}">
-        <van-cell-group>
-          <van-cell title="客户打款日期" value="{{ orderDetail.production_progress.customer_payment_date ? formatDate(orderDetail.production_progress.customer_payment_date) : '-' }}" />
-          <van-cell title="拆单下单日期" value="{{ orderDetail.production_progress.split_order_date ? formatDate(orderDetail.production_progress.split_order_date) : '-' }}" />
-          <van-cell title="下单天数" value="{{ orderDetail.production_progress.order_days != null ? orderDetail.production_progress.order_days + '天' : '-' }}" />
-          <van-cell title="预计交货日期" value="{{ orderDetail.production_progress.expected_delivery_date ? formatDate(orderDetail.production_progress.expected_delivery_date) : '-' }}" />
-          <van-cell title="采购状态" value="{{ orderDetail.production_progress.purchase_status || '-' }}" />
-          <van-cell title="成品入库梳理" value="{{ orderDetail.production_progress.storage_count != null ? orderDetail.production_progress.storage_count : '-' }}" />
-          <van-cell title="材料数量" value="{{ orderDetail.production_progress.material_count != null ? orderDetail.production_progress.material_count : '-' }}" />
-          <van-cell title="下料日期" value="{{ orderDetail.production_progress.cutting_date ? formatDate(orderDetail.production_progress.cutting_date) : '-' }}" />
-          <van-cell title="预计出货日期" value="{{ orderDetail.production_progress.expected_shipping_date ? formatDate(orderDetail.production_progress.expected_shipping_date) : '-' }}" />
-        </van-cell-group>
+        <!-- 基本信息 -->
+        <van-cell title="客户打款日期" value="{{ orderDetail.production_progress.customer_payment_date || '-' }}" />
+        <van-cell title="拆单下单日期" value="{{ orderDetail.production_progress.split_order_date || '-' }}" />
+        <van-cell title="下单天数" value="{{ orderDetail.production_progress.calculated_order_days ? orderDetail.production_progress.calculated_order_days + '天' : (orderDetail.production_progress.order_days != null ? orderDetail.production_progress.order_days + '天' : '-') }}" />
+        <van-cell title="预计交货日期" value="{{ orderDetail.production_progress.expected_delivery_date || '-' }}" />
+        <van-cell title="生产备注" value="{{ orderDetail.production_progress.production_remarks || '-' }}"></van-cell>
+        <!-- 采购状态 -->
+        <view wx:if="{{ orderDetail.production_progress.progress_items && orderDetail.production_progress.progress_items.length > 0 }}" class="production-subsection">
+          <view class="subsection-header" bindtap="toggleSubSection" data-section="production_purchase">
+            <text class="subsection-title">采购状态</text>
+            <van-icon name="{{ expandedSections.production_purchase ? 'arrow-up' : 'arrow-down' }}" size="14px" color="#969799" />
+          </view>
+          <view class="subsection-content {{ expandedSections.production_purchase ? 'expanded' : 'collapsed' }}">
+            <view class="design-process-section">
+              <view class="process-list">
+                  <view class="process-item" wx:for="{{ orderDetail.production_progress.progress_items }}" wx:key="index">
+                    <view class="process-task-name">{{ item.category_name || '-' }}</view>
+                    <view class="process-dates">
+                      <view class="date-item">
+                        <text class="date-label">计划：</text>
+                        <view class="date-badge planned">
+                          {{ item.item_type === 'internal' ? (item.expected_material_date || '-') : (item.expected_arrival_date || '-') }}
+                        </view>
+                      </view>
+                      <view class="date-item">
+                        <text class="date-label">实际：</text>
+                        <view class="date-badge {{ (item.item_type === 'internal' ? (!item.actual_storage_date || item.actual_storage_date === '-') : (!item.actual_arrival_date || item.actual_arrival_date === '-')) ? 'actual-empty' : 'actual' }}">
+                          {{ item.item_type === 'internal' ? (item.actual_storage_date || '-') : (item.actual_arrival_date || '-') }}
+                        </view>
+                      </view>
+                    </view>
+                  </view>
+              </view>
+            </view>
+          </view>
+        </view>
+        <!-- 成品入库数量 -->
+        <view wx:if="{{ orderDetail.production_progress.finished_goods_quantity && orderDetail.production_progress.finished_goods_quantity.length > 0 }}" class="production-subsection">
+          <view class="subsection-header" bindtap="toggleSubSection" data-section="production_storage">
+            <text class="subsection-title">成品入库数量</text>
+            <van-icon name="{{ expandedSections.production_storage ? 'arrow-up' : 'arrow-down' }}" size="14px" color="#969799" />
+          </view>
+          <view class="subsection-content {{ expandedSections.production_storage ? 'expanded' : 'collapsed' }}">
+            <view class="design-process-section">
+              <view wx:for="{{ orderDetail.production_progress.finished_goods_quantity }}" wx:key="index">
+                <van-cell title="{{ item.category_name || '-' }}" value="{{ item.quantity ? item.quantity+'件':'-' }}" />
+              </view>
+            </view>
+          </view>
+        </view>
+        <!-- 材料数量 -->
+        <view class="production-subsection">
+          <view class="subsection-header" bindtap="toggleSubSection" data-section="production_material">
+            <text class="subsection-title">材料数量</text>
+            <van-icon name="{{ expandedSections.production_material ? 'arrow-up' : 'arrow-down' }}" size="14px" color="#969799" />
+          </view>
+          <view class="subsection-content {{ expandedSections.production_material ? 'expanded' : 'collapsed' }}">
+            <van-cell-group>
+              <van-cell title="18板" value="{{ orderDetail.production_progress.board_18 ? orderDetail.production_progress.board_18+'张':'-' }}" />
+              <van-cell title="09板" value="{{ orderDetail.production_progress.board_09 ? orderDetail.production_progress.board_09+'张':'-' }}" />
+            </van-cell-group>
+          </view>
+        </view>
+        <!-- 出货进度 -->
+        <view class="production-subsection">
+          <view class="subsection-header" bindtap="toggleSubSection" data-section="production_shipping">
+            <text class="subsection-title">出货进度</text>
+            <van-icon name="{{ expandedSections.production_shipping ? 'arrow-up' : 'arrow-down' }}" size="14px" color="#969799" />
+          </view>
+          <view class="subsection-content {{ expandedSections.production_shipping ? 'expanded' : 'collapsed' }}">
+            <van-cell-group>
+              <van-cell title="下料日期" value="{{ orderDetail.production_progress.cutting_date || '-' }}" />
+              <van-cell title="预计出货日期" value="{{ orderDetail.production_progress.expected_shipping_date || '-' }}" />
+              <van-cell title="实际出货日期" value="{{ orderDetail.production_progress.actual_delivery_date || '-' }}" />
+            </van-cell-group>
+          </view>
+        </view>
       </view>
     </view>
   </view>

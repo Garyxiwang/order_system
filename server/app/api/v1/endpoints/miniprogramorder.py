@@ -572,7 +572,8 @@ async def get_miniprogram_order_detail(
             result['design_progress'] = {
                 'order_date': order.order_date,
                 'design_cycle': calculated_design_cycle,
-                'design_process': design_process
+                'design_process': design_process,
+                'design_remarks': order.remarks,
             }
         
         # 2. 查询拆单表
@@ -608,7 +609,8 @@ async def get_miniprogram_order_detail(
                 'order_date': split.order_date,
                 'completion_date': split.completion_date,
                 'internal_items': internal_items,
-                'external_items': external_items
+                'external_items': external_items,
+                'split_remarks': split.remarks,
             }
         
         # 3. 查询生产表
@@ -619,9 +621,16 @@ async def get_miniprogram_order_detail(
         if production:
             # 处理生产进度
             production_progress_items = []
+            finished_goods_quantity = []  # 成品入库数量
             for item in production.progress_items:
+                # 如果是厂内项，给名称后面添加"材料"
+                category_name = item.category_name
+                category_name_internal = category_name
+                if item.item_type.value == 'internal' and category_name:
+                    category_name_internal = f"{category_name}材料"
+                
                 item_data = {
-                    'category_name': item.category_name,
+                    'category_name': category_name_internal,
                     'item_type': item.item_type.value,
                     'order_date': item.order_date,
                     'expected_material_date': item.expected_material_date if item.item_type.value == 'internal' else None,
@@ -632,6 +641,13 @@ async def get_miniprogram_order_detail(
                     'actual_arrival_date': item.actual_arrival_date if item.item_type.value == 'external' else None
                 }
                 production_progress_items.append(item_data)
+                
+                # 生成成品入库数量信息：参考PC端逻辑，对所有 internal 和 external 类型都处理
+                if item.item_type.value == 'internal' or item.item_type.value == 'external':
+                    finished_goods_quantity.append({
+                        'category_name': category_name,
+                        'quantity': item.quantity
+                    })
             
             # 计算下单天数（从拆单下单日期到当前）
             order_days = None
@@ -653,7 +669,12 @@ async def get_miniprogram_order_detail(
                 'material_count': len(production.progress_items),
                 'cutting_date': production.cutting_date,
                 'expected_shipping_date': production.expected_shipping_date,
-                'progress_items': production_progress_items
+                'progress_items': production_progress_items,
+                'finished_goods_quantity': finished_goods_quantity,
+                'actual_delivery_date': production.actual_delivery_date,
+                "board_18": production.board_18,
+                "board_09": production.board_09,
+                "production_remarks": production.remarks,
             }
         
         if not result:

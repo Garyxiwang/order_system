@@ -125,10 +125,11 @@ Page({
       salespersonList.sort();
       splitterList.sort();
       
+      // 在每个列表前面添加"清空"选项，用于取消选择
       this.setData({
-        designerList: designerList,
-        salespersonList: salespersonList,
-        splitterList: splitterList
+        designerList: ['清空', ...designerList],
+        salespersonList: ['清空', ...salespersonList],
+        splitterList: ['清空', ...splitterList]
       });
     } catch (error) {
       console.error('加载用户列表失败:', error);
@@ -226,8 +227,10 @@ Page({
    * 设计师选择
    */
   onDesignerConfirm(e) {
+    const selectedValue = e.detail.value;
+    // 如果选择的是"清空"，则设置为空字符串
     this.setData({
-      designer: e.detail.value,
+      designer: selectedValue === '清空' ? '' : selectedValue,
       showDesignerPicker: false
     });
   },
@@ -254,9 +257,10 @@ Page({
    * 销售员选择
    */
   onSalespersonConfirm(e) {
-    
+    const selectedValue = e.detail.value;
+    // 如果选择的是"清空"，则设置为空字符串
     this.setData({
-      salesperson:  e.detail.value,
+      salesperson: selectedValue === '清空' ? '' : selectedValue,
       showSalespersonPicker: false
     });
   },
@@ -283,9 +287,10 @@ Page({
    * 拆单员选择
    */
   onSplitterConfirm(e) {
-    
+    const selectedValue = e.detail.value;
+    // 如果选择的是"清空"，则设置为空字符串
     this.setData({
-      splitter: e.detail.value,
+      splitter: selectedValue === '清空' ? '' : selectedValue,
       showSplitterPicker: false
     });
   },

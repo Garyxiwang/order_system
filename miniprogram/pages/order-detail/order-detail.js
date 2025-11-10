@@ -15,15 +15,22 @@ Page({
   data: {
     statusBarHeight: 0,
     headerPaddingTop: 30,
+    headerHeight: 0,
     orderId: null,
     orderNumber: null,
     orderDetail: null,
     loading: false,
     expandedSections: {
       order_info: true, // 默认打开订单信息
-      design_progress: false,
-      split_progress: false,
-      production_progress: false,
+      design_progress: true, // 默认打开设计进度
+      split_progress: true, // 默认打开拆单进度
+      production_progress: true, // 默认打开生产进度
+      // 生产进度子项
+      production_basic: true,
+      production_purchase: true,
+      production_storage: true,
+      production_material: true,
+      production_shipping: true,
     },
   },
 
@@ -34,11 +41,13 @@ Page({
     // 获取系统信息，设置状态栏高度
     const systemInfo = wx.getSystemInfoSync();
     const statusBarHeight = systemInfo.statusBarHeight || 0;
-    // 计算header的padding-top（状态栏高度 + 30rpx，转换为rpx）
-    const headerPaddingTop = statusBarHeight * 2 + 30; // 1px = 2rpx (在375px宽度下)
+    const headerPaddingTop = statusBarHeight * 2 + 30;
+
+    const headerHeight = statusBarHeight * 2 + 25;
     this.setData({
       statusBarHeight: statusBarHeight,
       headerPaddingTop: headerPaddingTop,
+      headerHeight: headerHeight,
     });
 
     if (options.order_number) {
@@ -107,6 +116,12 @@ Page({
           if (!data.order_info) {
             data.order_info = {};
           }
+          // 处理下单类目，按逗号分割成数组
+          if (data.order_info.category_name) {
+            data.order_info.category_list = data.order_info.category_name.split(',').map(item => item.trim()).filter(item => item);
+          } else {
+            data.order_info.category_list = [];
+          }
           // 后端已经处理了状态前缀，直接使用
           // 添加状态颜色
           if (data.order_info && data.order_info.order_status) {
@@ -114,31 +129,104 @@ Page({
               data.order_info.order_status
             );
           }
-            // 格式化金额
-            if (data.order_info && data.order_info.order_amount) {
-              data.order_info.formatted_amount = this.formatAmount(
-                data.order_info.order_amount
-              );
+          // 格式化金额
+          if (data.order_info && data.order_info.order_amount) {
+            data.order_info.formatted_amount = this.formatAmount(
+              data.order_info.order_amount
+            );
+          }
+          // 处理设计过程，转换为数组格式
+          if (data.design_progress && data.design_progress.design_process) {
+            const designProcess = data.design_progress.design_process;
+            if (designProcess && designProcess !== "暂无进度") {
+              const processItems = designProcess.split(",").map((item) => {
+                const parts = item.split(":");
+                return {
+                  task_item: parts[0] || "",
+                  planned_date: parts[1] || "-",
+                  actual_date: parts[2] || "-",
+                };
+              });
+              data.design_progress.process_items = processItems;
             }
-            // 处理设计过程，转换为数组格式
-            if (data.design_progress && data.design_progress.design_process) {
-              const designProcess = data.design_progress.design_process;
-              if (designProcess && designProcess !== "暂无进度") {
-                const processItems = designProcess.split(',').map(item => {
-                  const parts = item.split(':');
+          }
+          // 处理设计周期颜色
+          if (data.design_progress && data.design_progress.design_cycle) {
+            const days = parseInt(data.design_progress.design_cycle);
+            if (!isNaN(days)) {
+              data.design_progress.design_cycle_color =
+                this.getDesignCycleColor(days);
+            }
+          }
+          // 处理拆单进度中的逾期天数
+          if (data.split_progress && data.split_progress.order_date) {
+            const orderDate = data.split_progress.order_date;
+            // 处理厂内生产项
+            if (data.split_progress.internal_items) {
+              data.split_progress.internal_items =
+                data.split_progress.internal_items.map((item) => {
+                  const daysPassed = this.calculateOverdueDays(
+                    orderDate,
+                    item.split_date
+                  );
+                  let displayValue = item.split_date || `逾期: ${daysPassed}天`;
+                  let isOverdue = !item.split_date && daysPassed >= 1;
+                  let isOverdueRed = !item.split_date && daysPassed >= 3;
                   return {
-                    task_item: parts[0] || '',
-                    planned_date: parts[1] || '-',
-                    actual_date: parts[2] || '-'
+                    ...item,
+                    daysPassed: daysPassed,
+                    displayValue: displayValue,
+                    isOverdue: isOverdue,
+                    isOverdueRed: isOverdueRed,
                   };
                 });
-                data.design_progress.process_items = processItems;
-              }
             }
-            this.setData({
-              orderDetail: data,
-              loading: false,
-            });
+            // 处理外购项
+            if (data.split_progress.external_items) {
+              data.split_progress.external_items =
+                data.split_progress.external_items.map((item) => {
+                  const daysPassed = this.calculateOverdueDays(
+                    orderDate,
+                    item.purchase_date
+                  );
+                  let displayValue =
+                    item.purchase_date || `逾期: ${daysPassed}天`;
+                  let isOverdue = !item.purchase_date && daysPassed >= 1;
+                  let isOverdueRed = !item.purchase_date && daysPassed >= 3;
+                  return {
+                    ...item,
+                    daysPassed: daysPassed,
+                    displayValue: displayValue,
+                    isOverdue: isOverdue,
+                    isOverdueRed: isOverdueRed,
+                  };
+                });
+            }
+          }
+          // 计算下单天数：拆单下单日期 - 客户打款日期，最小1天
+          if (data.production_progress) {
+            const splitOrderDate = data.production_progress.split_order_date;
+            const customerPaymentDate =
+              data.production_progress.customer_payment_date;
+            if (splitOrderDate && customerPaymentDate) {
+              const splitDate = new Date(splitOrderDate);
+              const paymentDate = new Date(customerPaymentDate);
+              // 重置时间为 00:00:00，只计算天数差
+              splitDate.setHours(0, 0, 0, 0);
+              paymentDate.setHours(0, 0, 0, 0);
+              const diffTime = splitDate.getTime() - paymentDate.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              // 确保最小值为1天
+              data.production_progress.calculated_order_days = Math.max(
+                diffDays,
+                1
+              );
+            }
+          }
+          this.setData({
+            orderDetail: data,
+            loading: false,
+          });
         })
         .catch((err) => {
           console.error("加载订单详情失败:", err);
@@ -235,6 +323,49 @@ Page({
     })}`;
   },
   /**
+   * 获取设计周期颜色
+   */
+  getDesignCycleColor(days) {
+    if (days <= 3) {
+      return "#389e0d"; // green
+    } else if (days > 3 && days <= 20) {
+      return "#fa8c16"; // orange
+    } else if (days > 20) {
+      return "#cf1322"; // red
+    }
+    return "#8c8c8c"; // default
+  },
+
+  /**
+   * 计算逾期天数
+   * @param {string} orderDate - 下单日期，格式 'YYYY-MM-DD'
+   * @param {string} splitDate - 拆单日期，格式 'YYYY-MM-DD'，可能为 null
+   * @returns {number} 逾期天数
+   */
+  calculateOverdueDays(orderDate, splitDate) {
+    if (!orderDate) return 0;
+
+    let endDate;
+    if (splitDate) {
+      // 如果有 split_date，用 split_date 减去下单日期
+      endDate = new Date(splitDate);
+    } else {
+      // 如果没有 split_date，用当前时间减去下单日期
+      endDate = new Date();
+    }
+
+    const startDate = new Date(orderDate);
+    // 重置时间为 00:00:00，只计算天数差
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    const diffTime = endDate.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays >= 0 ? diffDays : 0;
+  },
+
+  /**
    * 获取状态颜色
    */
   getStatusColor(status) {
@@ -286,10 +417,18 @@ Page({
    */
   toggleSection(e) {
     const section = e.currentTarget.dataset.section;
-    // 订单信息不可收起
-    if (section === 'order_info') {
-      return;
-    }
+    const expandedSections = { ...this.data.expandedSections };
+    expandedSections[section] = !expandedSections[section];
+    this.setData({
+      expandedSections: expandedSections,
+    });
+  },
+
+  /**
+   * 切换子项展开/收起
+   */
+  toggleSubSection(e) {
+    const section = e.currentTarget.dataset.section;
     const expandedSections = { ...this.data.expandedSections };
     expandedSections[section] = !expandedSections[section];
     this.setData({
