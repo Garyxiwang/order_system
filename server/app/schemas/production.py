@@ -14,9 +14,11 @@ class ProductionListQuery(BaseModel):
     customer_name: Optional[str] = Field(default=None, description="客户名称")
     order_status: Optional[List[str]] = Field(default=None, description="订单状态（多选）")
     order_category: Optional[List[str]] = Field(default=None, description="下单类目（多选）")
+    completion_status: Optional[str] = Field(default=None, description="完成状态：completed（完成）或 incomplete（未完成），与下单类目组合查询")
     
     # 排序字段
     sort: Optional[str] = Field(default="expected_shipping_date", description="排序字段")
+    sort_order: Optional[str] = Field(default="desc", description="排序规则：asc（升序）或 desc（降序）")
     
     # 日期区间搜索
     expected_delivery_start: Optional[str] = Field(default=None, description="预计交货日期开始")

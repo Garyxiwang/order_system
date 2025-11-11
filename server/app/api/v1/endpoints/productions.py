@@ -31,11 +31,8 @@ async def get_productions(
     支持多种搜索条件和分页
     """
     try:
-        # 构建查询，如果需要按order_category筛选，则需要JOIN ProductionProgress表
-        if query_data.order_category:
-            query = db.query(Production).join(ProductionProgress, Production.id == ProductionProgress.production_id)
-        else:
-            query = db.query(Production)
+        # 构建基础查询
+        query = db.query(Production)
 
         # 搜索条件
         if query_data.order_number:
@@ -50,8 +47,119 @@ async def get_productions(
             query = query.filter(
                 Production.order_status.in_(query_data.order_status))
 
-        # 新增：下单类目筛选（通过ProductionProgress表的category_name字段）
-        if query_data.order_category:
+        # 类目和完成状态组合过滤（从production_progress表中查询）
+        if query_data.completion_status:
+            # 根据完成状态筛选
+            if query_data.completion_status == "completed":
+                # 查询完成的：所有类目都有实际日期
+                if query_data.order_category:
+                    # 如果指定了类目，查询这些类目都完成的订单
+                    # 对于厂内生产项（INTERNAL），检查 actual_storage_date 不为空
+                    # 对于外购项（EXTERNAL），检查 actual_arrival_date 不为空
+                    completed_internal = db.query(ProductionProgress.production_id).filter(
+                        ProductionProgress.category_name.in_(query_data.order_category),
+                        ProductionProgress.item_type == ItemType.INTERNAL,
+                        ProductionProgress.actual_storage_date.isnot(None),
+                        ProductionProgress.actual_storage_date != ""
+                    ).distinct()
+                    
+                    completed_external = db.query(ProductionProgress.production_id).filter(
+                        ProductionProgress.category_name.in_(query_data.order_category),
+                        ProductionProgress.item_type == ItemType.EXTERNAL,
+                        ProductionProgress.actual_arrival_date.isnot(None),
+                        ProductionProgress.actual_arrival_date != ""
+                    ).distinct()
+                    
+                    # 合并两个查询结果
+                    completed_production_ids = completed_internal.union(completed_external).subquery()
+                    query = query.filter(Production.id.in_(completed_production_ids))
+                else:
+                    # 如果没有指定类目，查询所有类目都完成的订单
+                    # 需要确保订单的所有类目都有实际日期
+                    # 查询有实际日期的类目数量
+                    completed_counts = db.query(
+                        ProductionProgress.production_id,
+                        func.count(ProductionProgress.id).label('completed_count')
+                    ).filter(
+                        or_(
+                            and_(
+                                ProductionProgress.item_type == ItemType.INTERNAL,
+                                ProductionProgress.actual_storage_date.isnot(None),
+                                ProductionProgress.actual_storage_date != ""
+                            ),
+                            and_(
+                                ProductionProgress.item_type == ItemType.EXTERNAL,
+                                ProductionProgress.actual_arrival_date.isnot(None),
+                                ProductionProgress.actual_arrival_date != ""
+                            )
+                        )
+                    ).group_by(ProductionProgress.production_id).subquery()
+                    
+                    # 查询总类目数量
+                    total_counts = db.query(
+                        ProductionProgress.production_id,
+                        func.count(ProductionProgress.id).label('total_count')
+                    ).group_by(ProductionProgress.production_id).subquery()
+                    
+                    # 查询完成数量等于总数量的生产ID
+                    fully_completed = db.query(total_counts.c.production_id).join(
+                        completed_counts,
+                        total_counts.c.production_id == completed_counts.c.production_id
+                    ).filter(
+                        total_counts.c.total_count == completed_counts.c.completed_count
+                    ).subquery()
+                    
+                    query = query.filter(Production.id.in_(fully_completed))
+            elif query_data.completion_status == "incomplete":
+                # 查询未完成的：至少有一个类目没有实际日期
+                if query_data.order_category:
+                    # 如果指定了类目，查询这些类目未完成的订单
+                    incomplete_internal = db.query(ProductionProgress.production_id).filter(
+                        ProductionProgress.category_name.in_(query_data.order_category),
+                        ProductionProgress.item_type == ItemType.INTERNAL,
+                        or_(
+                            ProductionProgress.actual_storage_date.is_(None),
+                            ProductionProgress.actual_storage_date == ""
+                        )
+                    ).distinct()
+                    
+                    incomplete_external = db.query(ProductionProgress.production_id).filter(
+                        ProductionProgress.category_name.in_(query_data.order_category),
+                        ProductionProgress.item_type == ItemType.EXTERNAL,
+                        or_(
+                            ProductionProgress.actual_arrival_date.is_(None),
+                            ProductionProgress.actual_arrival_date == ""
+                        )
+                    ).distinct()
+                    
+                    # 合并两个查询结果
+                    incomplete_production_ids = incomplete_internal.union(incomplete_external).subquery()
+                    query = query.filter(Production.id.in_(incomplete_production_ids))
+                else:
+                    # 如果没有指定类目，查询至少有一个类目未完成的订单
+                    incomplete_internal = db.query(ProductionProgress.production_id).filter(
+                        ProductionProgress.item_type == ItemType.INTERNAL,
+                        or_(
+                            ProductionProgress.actual_storage_date.is_(None),
+                            ProductionProgress.actual_storage_date == ""
+                        )
+                    ).distinct()
+                    
+                    incomplete_external = db.query(ProductionProgress.production_id).filter(
+                        ProductionProgress.item_type == ItemType.EXTERNAL,
+                        or_(
+                            ProductionProgress.actual_arrival_date.is_(None),
+                            ProductionProgress.actual_arrival_date == ""
+                        )
+                    ).distinct()
+                    
+                    # 合并两个查询结果
+                    incomplete_production_ids = incomplete_internal.union(incomplete_external).subquery()
+                    query = query.filter(Production.id.in_(incomplete_production_ids))
+        elif query_data.order_category:
+            # 如果只选择了类目，没有选择完成状态，查询包含指定类目的生产ID
+            # 需要JOIN ProductionProgress表
+            query = query.join(ProductionProgress, Production.id == ProductionProgress.production_id)
             query = query.filter(ProductionProgress.category_name.in_(query_data.order_category))
             # 去重，因为一个Production可能对应多个ProductionProgress记录
             query = query.distinct()
@@ -90,6 +198,7 @@ async def get_productions(
 
         # 排序处理
         sort_field = query_data.sort
+        sort_order = query_data.sort_order or "desc"  # 默认降序
 
         # 定义排序字段映射
         sort_mapping = {
@@ -105,12 +214,20 @@ async def get_productions(
             # 默认按预计出货日期排序
             order_column = Production.expected_shipping_date
 
+        # 根据排序规则设置排序方向
+        if sort_order.lower() == "asc":
+            # 升序：从远到近
+            primary_order = order_column.asc().nulls_last()
+        else:
+            # 降序：从近到远（默认）
+            primary_order = order_column.desc().nulls_last()
+
         # 分页处理
         if query_data.no_pagination:
             # 不分页，返回全部数据
             # 使用 NULLS LAST 确保空值排在最后，然后按订单编号降序
             productions = query.order_by(
-                order_column.desc().nulls_last(),
+                primary_order,
                 Production.order_number.desc()
             ).all()
         else:
@@ -118,7 +235,7 @@ async def get_productions(
             offset = (query_data.page - 1) * query_data.page_size
             # 使用 NULLS LAST 确保空值排在最后，然后按订单编号降序
             productions = query.order_by(
-                order_column.desc().nulls_last(),
+                primary_order,
                 Production.order_number.desc()
             ).offset(offset).limit(query_data.page_size).all()
 

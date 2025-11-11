@@ -42,6 +42,7 @@ export interface SplitListParams {
   quoteStatus?: string[];
   orderType?: string;
   orderCategory?: string[];
+  completionStatus?: string; // 完成状态：completed（完成）或 incomplete（未完成）
   startDate?: string;
   endDate?: string;
   orderDateStart?: string;
@@ -87,6 +88,7 @@ export const getSplitOrders = async (
   if (params?.quoteStatus) requestData.quote_status = params.quoteStatus;
   if (params?.orderType) requestData.order_type = params.orderType;
   if (params?.orderCategory) requestData.category_names = params.orderCategory;
+  if (params?.completionStatus) requestData.completion_status = params.completionStatus;
   if (params?.orderDateStart)
     requestData.order_date_start = params.orderDateStart;
   if (params?.orderDateEnd) requestData.order_date_end = params.orderDateEnd;

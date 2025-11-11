@@ -170,8 +170,9 @@ const DesignPage: React.FC = () => {
     // 这里可以调用API更新数据
     setIsEditModalVisible(false);
     setSelectedOrder(null);
-    // 重新加载数据
-    handleSearch();
+    // 重新加载数据，保持当前查询条件和分页状态
+    const searchParams = buildSearchParams();
+    handleSearch(searchParams, currentPage, pageSize);
   };
 
   // 显示拆单模态框
@@ -189,8 +190,9 @@ const DesignPage: React.FC = () => {
   // 处理拆单模态框确认
   const handleSplitModalOk = async (values: SplitFormValues) => {
     console.log("拆单表单数据:", values);
-    // 重新加载数据
-    await handleSearch();
+    // 重新加载数据，保持当前查询条件和分页状态
+    const searchParams = buildSearchParams();
+    await handleSearch(searchParams, currentPage, pageSize);
     setIsSplitModalVisible(false);
     setSelectedOrder(null);
   };
@@ -219,6 +221,7 @@ const DesignPage: React.FC = () => {
         formValues.orderCategory && formValues.orderCategory.length > 0
           ? formValues.orderCategory
           : undefined,
+      completionStatus: formValues.completionStatus || undefined,
       startDate: formValues.splitDateRange?.[0]?.format("YYYY-MM-DD"),
       endDate: formValues.splitDateRange?.[1]?.format("YYYY-MM-DD"),
       orderDateStart: formValues.orderDateRange?.[0]?.format("YYYY-MM-DD"),
@@ -259,23 +262,22 @@ const DesignPage: React.FC = () => {
         )
       );
 
+      // 如果是用户主动查询（没有传入customParams和page），重置到第一页
+      const targetPage = page !== undefined ? page : (!customParams ? 1 : currentPage);
+      const targetPageSize = size || pageSize;
+
       const params = {
         ...filteredParams,
-        page: page || currentPage,
-        pageSize: size || pageSize,
+        page: targetPage,
+        pageSize: targetPageSize,
       };
 
       console.log("searchParams", filteredParams);
       const response = await getSplitOrders(params);
       setSplitData(response.items || []);
       setTotal(response.total || 0);
-      setCurrentPage(response.page || 1);
-      setPageSize(response.page_size || 10);
-
-      // 如果不是自定义参数调用，搜索时重置到第一页
-      if (!customParams && !page) {
-        setCurrentPage(1);
-      }
+      setCurrentPage(response.page || targetPage);
+      setPageSize(response.page_size || targetPageSize);
     } catch (error) {
       message.error("获取数据失败，请稍后重试");
       console.error("获取拆单数据失败:", error);
@@ -293,7 +295,7 @@ const DesignPage: React.FC = () => {
     setCurrentPage(1);
     // 设置订单状态默认选择"拆单中"和"已审核"
     searchForm.setFieldsValue({
-      orderStatus: ["未开始", "拆单中", "撤销中"], // -1: 拆单中, 1: 已审核
+      orderStatus: ["未开始", "拆单中", "撤销中", "未审核", "已审核"], // -1: 拆单中, 1: 已审核
     });
     // 重新加载所有数据
     await handleSearch();
@@ -356,7 +358,9 @@ const DesignPage: React.FC = () => {
 
       if (response.code === 200) {
         message.success(`订单状态修改成功`);
-        await handleSearch(); // 重新加载数据
+        // 重新加载数据，保持当前查询条件和分页状态
+        const searchParams = buildSearchParams();
+        await handleSearch(searchParams, currentPage, pageSize);
         handleOrderStatusModalCancel();
       } else {
         message.error(response.message || "订单状态修改失败");
@@ -884,7 +888,9 @@ const DesignPage: React.FC = () => {
             ? `，实际打款日期：${actualPaymentDate.format("YYYY-MM-DD")}`
             : "";
         message.success(`报价状态修改成功${dateInfo}`);
-        await handleSearch(); // 重新加载数据
+        // 重新加载数据，保持当前查询条件和分页状态
+        const searchParams = buildSearchParams();
+        await handleSearch(searchParams, currentPage, pageSize);
         handlePriceStatusModalCancel();
       } else {
         message.error(response.message || "报价状态修改失败");
@@ -1001,7 +1007,9 @@ const DesignPage: React.FC = () => {
           // 调用拆单下单API
           await placeSplitOrder(record.id);
           message.success("拆单下单成功");
-          await handleSearch(); // 重新加载数据
+          // 重新加载数据，保持当前查询条件和分页状态
+          const searchParams = buildSearchParams();
+          await handleSearch(searchParams, currentPage, pageSize);
         } catch (error) {
           message.error("下单失败，请稍后重试");
           console.error("下单失败:", error);
@@ -1045,8 +1053,9 @@ const DesignPage: React.FC = () => {
         orderInfoForm.resetFields();
         setOrderInfoEditingRecord(null);
 
-        // 重新加载数据
-        await handleSearch();
+        // 重新加载数据，保持当前查询条件和分页状态
+        const searchParams = buildSearchParams();
+        await handleSearch(searchParams, currentPage, pageSize);
 
         // 继续下单流程
         handlePlaceOrder({
@@ -1694,6 +1703,19 @@ const DesignPage: React.FC = () => {
                       {category.name}
                     </Option>
                   ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6} className="py-2">
+              <Form.Item name="completionStatus" label="类目是否完成" className="mb-0">
+                <Select
+                  placeholder="全部"
+                  className="rounded-md"
+                  size="middle"
+                  allowClear
+                >
+                  <Option value="completed">已完成</Option>
+                  <Option value="incomplete">未完成</Option>
                 </Select>
               </Form.Item>
             </Col>

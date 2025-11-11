@@ -72,6 +72,7 @@ class SplitListQuery(BaseModel):
     order_type: Optional[str] = Field(None, description="订单类型")
     quote_status: Optional[List[str]] = Field(None, description="报价状态（多选）")
     category_names: Optional[List[str]] = Field(None, description="下单类目（多选）")
+    completion_status: Optional[str] = Field(None, description="完成状态：completed（完成）或 incomplete（未完成），与下单类目组合查询")
     order_date_start: Optional[str] = Field(None, description="下单日期开始")
     order_date_end: Optional[str] = Field(None, description="下单日期结束")
     completion_date_start: Optional[str] = Field(None, description="完成日期开始")

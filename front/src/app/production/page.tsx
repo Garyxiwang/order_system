@@ -109,8 +109,9 @@ const ProductionPage: React.FC = () => {
         message.success("更新成功");
         setIsEditModalVisible(false);
         setSelectedOrder(null);
-        // 重新加载数据
-        await handleSearch();
+        // 重新加载数据，保持当前查询条件和分页状态
+        const searchParams = getSearchParams();
+        await handleSearch(searchParams, currentPage, pageSize);
       } else {
         message.error(response.message || "更新失败");
       }
@@ -175,8 +176,9 @@ const ProductionPage: React.FC = () => {
   const handlePurchaseModalOk = async (values: Partial<ProductionOrder>) => {
     setIsPurchaseModalVisible(false);
     setSelectedOrder(null);
-    // 重新加载数据
-    await handleSearch();
+    // 重新加载数据，保持当前查询条件和分页状态
+    const searchParams = getSearchParams();
+    await handleSearch(searchParams, currentPage, pageSize);
   };
 
   // 处理生产进度模态框取消
@@ -191,8 +193,9 @@ const ProductionPage: React.FC = () => {
   ) => {
     setIsProductionProgressModalVisible(false);
     setSelectedOrder(null);
-    // 重新加载数据
-    await handleSearch();
+    // 重新加载数据，保持当前查询条件和分页状态
+    const searchParams = getSearchParams();
+    await handleSearch(searchParams, currentPage, pageSize);
   };
 
   // 通用的获取查询条件方法
@@ -211,7 +214,9 @@ const ProductionPage: React.FC = () => {
       customer_name: values.orderName,
       order_status: values.splitStatus,
       sort: values.sort, // 添加排序字段
+      sort_order: values.sortOrder, // 添加排序规则（asc/desc）
       order_category: values.orderCategory, // 添加下单类目
+      completion_status: values.completionStatus || undefined, // 添加完成状态
       // 时间筛选参数
       expected_delivery_start: values.expectedDeliveryDate?.[0]?.format
         ? values.expectedDeliveryDate[0].format("YYYY-MM-DD")
@@ -267,10 +272,14 @@ const ProductionPage: React.FC = () => {
       // 如果传入了customParams，直接使用；否则调用getSearchParams获取
       const filteredParams = customParams || getSearchParams();
 
+      // 如果是用户主动查询（没有传入customParams和page），重置到第一页
+      const targetPage = page !== undefined ? page : (!customParams ? 1 : currentPage);
+      const targetPageSize = size || pageSize;
+
       const params = {
         ...filteredParams,
-        page: page || currentPage,
-        page_size: size || pageSize,
+        page: targetPage,
+        page_size: targetPageSize,
       };
 
       console.log("searchParams", filteredParams);
@@ -279,13 +288,8 @@ const ProductionPage: React.FC = () => {
         // 后端返回的数据结构：{code, message, data: ProductionOrder[], total, page, page_size, total_pages}
         setProductionData(response.data || []);
         setTotal(response.total || 0);
-        setCurrentPage(response.page || page || 1);
-        setPageSize(response.page_size || size || pageSize);
-
-        // 如果不是自定义参数调用，搜索时重置到第一页
-        if (!customParams && !page) {
-          setCurrentPage(1);
-        }
+        setCurrentPage(response.page || targetPage);
+        setPageSize(response.page_size || targetPageSize);
       } else {
         message.error(response.message || "搜索失败");
       }
@@ -726,7 +730,9 @@ const ProductionPage: React.FC = () => {
                 <div key={itemIndex}>
                   <span>
                     {isCompleted ? (
-                      <CheckOutlined style={{ color: "green", marginRight: 4 }} />
+                      <CheckOutlined
+                        style={{ color: "green", marginRight: 4 }}
+                      />
                     ) : (
                       <CloseOutlined style={{ color: "red", marginRight: 4 }} />
                     )}
@@ -964,6 +970,7 @@ const ProductionPage: React.FC = () => {
           initialValues={{
             sort: "expected_shipping_date",
             splitStatus: ["未齐料", "已齐料", "已下料", "已入库", "已发货"],
+            sortOrder: "desc",
           }}
         >
           <Row gutter={24}>
@@ -1001,6 +1008,19 @@ const ProductionPage: React.FC = () => {
                       {category.name}
                     </Option>
                   ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6} className="py-2">
+              <Form.Item name="completionStatus" label="类目是否完成" className="mb-0">
+                <Select
+                  placeholder="全部"
+                  className="rounded-md"
+                  size="middle"
+                  allowClear
+                >
+                  <Option value="completed">已完成</Option>
+                  <Option value="incomplete">未完成</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -1139,6 +1159,18 @@ const ProductionPage: React.FC = () => {
                   <Option value="expected_shipping_date">预计出货日期</Option>
                   <Option value="expected_delivery_date">预计交货日期</Option>
                   <Option value="split_order_date">拆单下单日期</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6} className="py-2">
+              <Form.Item name="sortOrder" label="排序规则" className="mb-0">
+                <Select
+                  placeholder="选择排序规则"
+                  className="rounded-md"
+                  size="middle"
+                >
+                  <Option value="desc">降序(从近到远)</Option>
+                  <Option value="asc">升序(从远倒近)</Option>
                 </Select>
               </Form.Item>
             </Col>

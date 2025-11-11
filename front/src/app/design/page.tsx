@@ -117,7 +117,12 @@ const DesignPage: React.FC = () => {
 
           if (response.code === 200) {
             message.success("下单成功");
-            await handleSearch();
+            // 重新加载数据，保持当前查询条件和分页状态
+            const formValues = searchForm.getFieldsValue();
+            const filteredParams = buildSearchParams(formValues, {
+              pagination: true,
+            });
+            await loadDesignData(filteredParams, currentPage, pageSize);
           } else {
             message.error(response.message || "下单失败");
           }
@@ -153,7 +158,12 @@ const DesignPage: React.FC = () => {
           );
           if (response.code === 200) {
             message.success("撤销成功");
-            await handleSearch(); // 重新加载数据
+            // 重新加载数据，保持当前查询条件和分页状态
+            const formValues = searchForm.getFieldsValue();
+            const filteredParams = buildSearchParams(formValues, {
+              pagination: true,
+            });
+            await loadDesignData(filteredParams, currentPage, pageSize);
           } else {
             message.error(response.message || "撤销失败");
           }
@@ -226,7 +236,10 @@ const DesignPage: React.FC = () => {
   const handleProgressModalCancel = () => {
     setIsProgressModalVisible(false);
     setSelectedOrderNumber("");
-    handleSearch();
+    // 重新加载数据，保持当前查询条件和分页状态
+    const formValues = searchForm.getFieldsValue();
+    const filteredParams = buildSearchParams(formValues, { pagination: true });
+    loadDesignData(filteredParams, currentPage, pageSize);
   };
 
   // 显示进度详情弹窗
@@ -347,8 +360,12 @@ const DesignPage: React.FC = () => {
         }
       }
 
-      // 重新加载数据
-      await handleSearch();
+      // 重新加载数据，保持当前查询条件和分页状态
+      const formValues = searchForm.getFieldsValue();
+      const filteredParams = buildSearchParams(formValues, {
+        pagination: true,
+      });
+      await loadDesignData(filteredParams, currentPage, pageSize);
       setIsModalVisible(false);
       setEditingRecord(null);
       return true;

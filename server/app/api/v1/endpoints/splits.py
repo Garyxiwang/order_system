@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from typing import List, Optional
 import math
 import json
@@ -81,9 +81,121 @@ async def get_splits(
             query = query.filter(
                 Split.quote_status.in_(query_data.quote_status))
 
-        # 类目过滤（从split_progress表中查询）
-        if query_data.category_names:
-            # 查询包含指定类目的拆单ID
+        # 类目和完成状态组合过滤（从split_progress表中查询）
+        if query_data.completion_status:
+            # 根据完成状态筛选
+            if query_data.completion_status == "completed":
+                # 查询完成的：所有类目都有下单日期
+                if query_data.category_names:
+                    # 如果指定了类目，查询这些类目都完成的订单
+                    # 对于厂内生产项（INTERNAL），检查 split_date 不为空
+                    # 对于外购项（EXTERNAL），检查 purchase_date 不为空
+                    completed_internal = db.query(SplitProgress.split_id).filter(
+                        SplitProgress.category_name.in_(query_data.category_names),
+                        SplitProgress.item_type == ItemType.INTERNAL,
+                        SplitProgress.split_date.isnot(None),
+                        SplitProgress.split_date != ""
+                    ).distinct()
+                    
+                    completed_external = db.query(SplitProgress.split_id).filter(
+                        SplitProgress.category_name.in_(query_data.category_names),
+                        SplitProgress.item_type == ItemType.EXTERNAL,
+                        SplitProgress.purchase_date.isnot(None),
+                        SplitProgress.purchase_date != ""
+                    ).distinct()
+                    
+                    # 合并两个查询结果
+                    completed_split_ids = completed_internal.union(completed_external).subquery()
+                    query = query.filter(Split.id.in_(completed_split_ids))
+                else:
+                    # 如果没有指定类目，查询所有类目都完成的订单
+                    # 需要确保订单的所有类目都有下单日期
+                    # 获取所有拆单ID
+                    all_split_ids = db.query(Split.id).subquery()
+                    
+                    # 对于每个拆单，检查是否所有类目都有下单日期
+                    # 查询有下单日期的类目数量
+                    completed_counts = db.query(
+                        SplitProgress.split_id,
+                        func.count(SplitProgress.id).label('completed_count')
+                    ).filter(
+                        or_(
+                            and_(
+                                SplitProgress.item_type == ItemType.INTERNAL,
+                                SplitProgress.split_date.isnot(None),
+                                SplitProgress.split_date != ""
+                            ),
+                            and_(
+                                SplitProgress.item_type == ItemType.EXTERNAL,
+                                SplitProgress.purchase_date.isnot(None),
+                                SplitProgress.purchase_date != ""
+                            )
+                        )
+                    ).group_by(SplitProgress.split_id).subquery()
+                    
+                    # 查询总类目数量
+                    total_counts = db.query(
+                        SplitProgress.split_id,
+                        func.count(SplitProgress.id).label('total_count')
+                    ).group_by(SplitProgress.split_id).subquery()
+                    
+                    # 查询完成数量等于总数量的拆单ID
+                    fully_completed = db.query(total_counts.c.split_id).join(
+                        completed_counts,
+                        total_counts.c.split_id == completed_counts.c.split_id
+                    ).filter(
+                        total_counts.c.total_count == completed_counts.c.completed_count
+                    ).subquery()
+                    
+                    query = query.filter(Split.id.in_(fully_completed))
+            elif query_data.completion_status == "incomplete":
+                # 查询未完成的：至少有一个类目没有下单日期
+                if query_data.category_names:
+                    # 如果指定了类目，查询这些类目未完成的订单
+                    incomplete_internal = db.query(SplitProgress.split_id).filter(
+                        SplitProgress.category_name.in_(query_data.category_names),
+                        SplitProgress.item_type == ItemType.INTERNAL,
+                        or_(
+                            SplitProgress.split_date.is_(None),
+                            SplitProgress.split_date == ""
+                        )
+                    ).distinct()
+                    
+                    incomplete_external = db.query(SplitProgress.split_id).filter(
+                        SplitProgress.category_name.in_(query_data.category_names),
+                        SplitProgress.item_type == ItemType.EXTERNAL,
+                        or_(
+                            SplitProgress.purchase_date.is_(None),
+                            SplitProgress.purchase_date == ""
+                        )
+                    ).distinct()
+                    
+                    # 合并两个查询结果
+                    incomplete_split_ids = incomplete_internal.union(incomplete_external).subquery()
+                    query = query.filter(Split.id.in_(incomplete_split_ids))
+                else:
+                    # 如果没有指定类目，查询至少有一个类目未完成的订单
+                    incomplete_internal = db.query(SplitProgress.split_id).filter(
+                        SplitProgress.item_type == ItemType.INTERNAL,
+                        or_(
+                            SplitProgress.split_date.is_(None),
+                            SplitProgress.split_date == ""
+                        )
+                    ).distinct()
+                    
+                    incomplete_external = db.query(SplitProgress.split_id).filter(
+                        SplitProgress.item_type == ItemType.EXTERNAL,
+                        or_(
+                            SplitProgress.purchase_date.is_(None),
+                            SplitProgress.purchase_date == ""
+                        )
+                    ).distinct()
+                    
+                    # 合并两个查询结果
+                    incomplete_split_ids = incomplete_internal.union(incomplete_external).subquery()
+                    query = query.filter(Split.id.in_(incomplete_split_ids))
+        elif query_data.category_names:
+            # 如果只选择了类目，没有选择完成状态，查询包含指定类目的拆单ID
             split_ids_with_categories = db.query(SplitProgress.split_id).filter(
                 SplitProgress.category_name.in_(query_data.category_names)
             ).distinct().subquery()
