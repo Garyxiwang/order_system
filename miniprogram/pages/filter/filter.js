@@ -16,6 +16,7 @@ Page({
     designer: '',
     salesperson: '',
     orderStatus: '',
+    orderStatusDetail: [], // 订单状态详情（二级选择，多选）
     orderType: '',
     orderCategory: [],
     splitter: '',
@@ -32,10 +33,16 @@ Page({
     showSplitterPicker: false,
     showOrderTypePicker: false,
     showOrderStatusPicker: false,
+    showOrderStatusDetailPicker: false, // 订单状态详情选择器
     showQuoteStatusPicker: false,
     showOrderCategoryPicker: false,
     quoteStatusDisplay: '',
     orderCategoryDisplay: '',
+    orderStatusDetailDisplay: '', // 订单状态详情显示文本
+    // 全选状态
+    isAllOrderStatusDetailSelected: false,
+    isAllQuoteStatusSelected: false,
+    isAllOrderCategorySelected: false,
     // 状态选项
     orderStatusOptions: [
       { label: '设计', value: '设计' },
@@ -51,7 +58,80 @@ Page({
       { label: '未报价', value: '未报价' },
       { label: '已报价', value: '已报价' },
       { label: '报价已发未打款', value: '报价已发未打款' }
-    ]
+    ],
+    // 订单状态详情选项（根据订单进度动态显示）
+    orderStatusDetailOptions: [],
+    // 设计管理状态列表
+    designStatusOptions: [
+      '量尺',
+      '初稿',
+      '公司对方案',
+      '线上对方案',
+      '改图',
+      '客户确认图',
+      '客户硬装阶段',
+      '出内部结构图',
+      '出下单图',
+      '复尺',
+      '报价',
+      '打款',
+      '下单',
+      '暂停',
+      '已下单',
+      '已撤销',
+      '其他'
+    ],
+    // 拆单管理状态列表
+    splitStatusOptions: [
+      '未开始',
+      '拆单中',
+      '撤销中',
+      '未审核',
+      '已审核',
+      '已下单'
+    ],
+    // 生产管理状态列表
+    productionStatusOptions: [
+      '未齐料',
+      '已齐料',
+      '已下料',
+      '已入库',
+      '已发货',
+      '已完成'
+    ],
+    // 默认状态配置（根据订单进度）
+    defaultStatusByProgress: {
+      '设计': [
+        '量尺',
+        '初稿',
+        '公司对方案',
+        '线上对方案',
+        '改图',
+        '客户确认图',
+        '客户硬装阶段',
+        '出内部结构图',
+        '出下单图',
+        '复尺',
+        '报价',
+        '打款',
+        '下单',
+        '其他'
+      ],
+      '拆单': [
+        '未开始',
+        '拆单中',
+        '撤销中',
+        '未审核',
+        '已审核'
+      ],
+      '生产': [
+        '未齐料',
+        '已齐料',
+        '已下料',
+        '已入库',
+        '已发货'
+      ]
+    }
   },
 
   /**
@@ -131,9 +211,38 @@ Page({
         salespersonList: ['清空', ...salespersonList],
         splitterList: ['清空', ...splitterList]
       });
+      
+      // 加载用户列表后，检查是否需要设置默认销售员
+      this.setDefaultSalesperson();
     } catch (error) {
       console.error('加载用户列表失败:', error);
       // 如果加载失败，使用空数组，不影响其他功能
+    }
+  },
+
+  /**
+   * 根据当前用户角色设置默认销售员
+   */
+  setDefaultSalesperson() {
+    // 如果已经有销售员选择，不覆盖（可能是从列表页返回时保留的筛选条件）
+    if (this.data.salesperson) {
+      return;
+    }
+    
+    // 获取当前用户信息
+    const currentUser = authService.getCurrentUser();
+    if (currentUser && currentUser.role === 'salesperson' && currentUser.username) {
+      // 检查销售员列表中是否包含当前用户（排除"清空"选项）
+      const salespersonList = this.data.salespersonList;
+      // 过滤掉"清空"选项，检查是否包含当前用户
+      const validSalespersonList = salespersonList.filter(name => name !== '清空');
+      
+      if (validSalespersonList.length > 0 && validSalespersonList.includes(currentUser.username)) {
+        // 如果列表已加载且包含当前用户，则自动选中
+        this.setData({
+          salesperson: currentUser.username
+        });
+      }
     }
   },
 
@@ -167,6 +276,16 @@ Page({
   },
 
   /**
+   * 格式化状态显示文本（将"下单"显示为"待下单"）
+   */
+  formatStatusDisplay(statusArray) {
+    if (!statusArray || statusArray.length === 0) {
+      return '';
+    }
+    return statusArray.map(status => status === '下单' ? '待下单' : status).join(', ');
+  },
+
+  /**
    * 恢复筛选条件
    */
   restoreFilters(params) {
@@ -187,12 +306,14 @@ Page({
       designer: params.designer || '',
       salesperson: params.salesperson || '',
       orderStatus: orderStatus,
+      orderStatusDetail: params.orderStatusDetail || [],
       orderType: params.orderType || '',
       orderCategory: orderCategory,
       splitter: params.splitter || '',
       quoteStatus: quoteStatus,
       quoteStatusDisplay: quoteStatus.length > 0 ? quoteStatus.join(', ') : '',
-      orderCategoryDisplay: orderCategory.length > 0 ? orderCategory.join(', ') : ''
+      orderCategoryDisplay: orderCategory.length > 0 ? orderCategory.join(', ') : '',
+      orderStatusDetailDisplay: (params.orderStatusDetail && params.orderStatusDetail.length > 0) ? this.formatStatusDisplay(params.orderStatusDetail) : ''
     });
   },
 
@@ -320,8 +441,174 @@ Page({
     const name = e.currentTarget.dataset.name;
     if (!name) return;
     
+    const oldStatus = this.data.orderStatus;
+    const newStatus = name === oldStatus ? '' : name;
     this.setData({
-      orderStatus: name === this.data.orderStatus ? '' : name
+      orderStatus: newStatus
+    });
+    
+    // 如果清空了订单进度，也清空二级状态
+    if (!newStatus) {
+      this.setData({
+        orderStatusDetail: [],
+        orderStatusDetailDisplay: ''
+      });
+    } else if (newStatus !== oldStatus) {
+      // 如果切换了订单进度，更新默认状态
+      this.updateOrderStatusDetailOptions(newStatus);
+      const defaultStatus = this.data.defaultStatusByProgress[newStatus] || [];
+      const displayText = this.formatStatusDisplay(defaultStatus);
+      this.setData({
+        orderStatusDetail: defaultStatus,
+        orderStatusDetailDisplay: displayText
+      });
+    }
+  },
+  
+  /**
+   * 根据订单进度更新状态详情选项
+   */
+  updateOrderStatusDetailOptions(orderStatus) {
+    let options = [];
+    if (orderStatus === '设计') {
+      options = this.data.designStatusOptions;
+    } else if (orderStatus === '拆单') {
+      options = this.data.splitStatusOptions;
+    } else if (orderStatus === '生产') {
+      options = this.data.productionStatusOptions;
+    }
+    
+    // 为了显示，将"下单"转换为"待下单"，但实际值保持"下单"
+    // 注意：这里我们保持原值，只在显示时转换
+    this.setData({
+      orderStatusDetailOptions: options
+    });
+  },
+  
+  /**
+   * 获取状态显示文本（用于选择器显示）
+   */
+  getStatusDisplayText(status) {
+    return status === '下单' ? '待下单' : status;
+  },
+  
+  /**
+   * 显示订单状态详情选择器
+   */
+  showOrderStatusDetailPicker() {
+    const orderStatus = this.data.orderStatus;
+    if (!orderStatus) {
+      wx.showToast({
+        title: '请先选择订单进度',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    this.updateOrderStatusDetailOptions(orderStatus);
+    
+    // 如果还没有选择状态，设置默认状态
+    if (this.data.orderStatusDetail.length === 0) {
+      const defaultStatus = this.data.defaultStatusByProgress[orderStatus] || [];
+      const displayText = this.formatStatusDisplay(defaultStatus);
+      this.setData({
+        orderStatusDetail: defaultStatus,
+        orderStatusDetailDisplay: displayText
+      });
+    }
+    
+    // 更新全选状态
+    this.updateOrderStatusDetailSelectAllState();
+    
+    this.setData({
+      showOrderStatusDetailPicker: true
+    });
+  },
+  
+  /**
+   * 更新订单状态详情全选状态
+   */
+  updateOrderStatusDetailSelectAllState() {
+    const options = this.data.orderStatusDetailOptions || [];
+    const selected = this.data.orderStatusDetail || [];
+    const isAllSelected = options.length > 0 && options.every(option => selected.includes(option));
+    this.setData({
+      isAllOrderStatusDetailSelected: isAllSelected
+    });
+  },
+  
+  /**
+   * 切换订单状态详情全选
+   */
+  toggleSelectAllOrderStatusDetail() {
+    const options = this.data.orderStatusDetailOptions || [];
+    const isAllSelected = this.data.isAllOrderStatusDetailSelected;
+    
+    if (isAllSelected) {
+      // 取消全选
+      this.setData({
+        orderStatusDetail: []
+      });
+    } else {
+      // 全选
+      this.setData({
+        orderStatusDetail: [...options]
+      });
+    }
+    
+    this.updateOrderStatusDetailSelectAllState();
+  },
+  
+  /**
+   * 订单状态详情选择变化
+   */
+  onOrderStatusDetailChange(e) {
+    this.setData({
+      orderStatusDetail: e.detail || e.detail.value || []
+    });
+    // 更新全选状态
+    this.updateOrderStatusDetailSelectAllState();
+  },
+  
+  /**
+   * 切换订单状态详情
+   */
+  toggleOrderStatusDetail(e) {
+    const name = e.currentTarget.dataset.name;
+    const orderStatusDetail = [...this.data.orderStatusDetail];
+    const index = orderStatusDetail.indexOf(name);
+    
+    if (index > -1) {
+      orderStatusDetail.splice(index, 1);
+    } else {
+      orderStatusDetail.push(name);
+    }
+    
+    this.setData({
+      orderStatusDetail: orderStatusDetail
+    });
+    
+    // 更新全选状态
+    this.updateOrderStatusDetailSelectAllState();
+  },
+  
+  /**
+   * 确认订单状态详情选择
+   */
+  onOrderStatusDetailConfirm() {
+    const displayText = this.formatStatusDisplay(this.data.orderStatusDetail);
+    this.setData({
+      orderStatusDetailDisplay: displayText,
+      showOrderStatusDetailPicker: false
+    });
+  },
+  
+  /**
+   * 关闭订单状态详情选择器
+   */
+  onOrderStatusDetailCancel() {
+    this.setData({
+      showOrderStatusDetailPicker: false
     });
   },
 
@@ -395,9 +682,29 @@ Page({
    */
   onOrderStatusConfirm() {
     // 单选逻辑已经在 toggleOrderStatus 中处理
+    const orderStatus = this.data.orderStatus;
     this.setData({
       showOrderStatusPicker: false
     });
+    
+    // 如果选择了订单进度，自动设置默认状态（不弹出选择器）
+    if (orderStatus) {
+      this.updateOrderStatusDetailOptions(orderStatus);
+      // 获取默认状态
+      const defaultStatus = this.data.defaultStatusByProgress[orderStatus] || [];
+      // 设置默认状态和显示文本
+      const displayText = this.formatStatusDisplay(defaultStatus);
+      this.setData({
+        orderStatusDetail: defaultStatus,
+        orderStatusDetailDisplay: displayText
+      });
+    } else {
+      // 如果清空了订单进度，也清空二级状态
+      this.setData({
+        orderStatusDetail: [],
+        orderStatusDetailDisplay: ''
+      });
+    }
   },
 
   /**
@@ -413,9 +720,45 @@ Page({
    * 显示报价状态选择器
    */
   showQuoteStatusPicker() {
+    // 更新全选状态
+    this.updateQuoteStatusSelectAllState();
     this.setData({
       showQuoteStatusPicker: true
     });
+  },
+  
+  /**
+   * 更新报价状态全选状态
+   */
+  updateQuoteStatusSelectAllState() {
+    const options = this.data.quoteStatusOptions || [];
+    const selected = this.data.quoteStatus || [];
+    const isAllSelected = options.length > 0 && options.every(option => selected.includes(option.value));
+    this.setData({
+      isAllQuoteStatusSelected: isAllSelected
+    });
+  },
+  
+  /**
+   * 切换报价状态全选
+   */
+  toggleSelectAllQuoteStatus() {
+    const options = this.data.quoteStatusOptions || [];
+    const isAllSelected = this.data.isAllQuoteStatusSelected;
+    
+    if (isAllSelected) {
+      // 取消全选
+      this.setData({
+        quoteStatus: []
+      });
+    } else {
+      // 全选
+      this.setData({
+        quoteStatus: options.map(option => option.value)
+      });
+    }
+    
+    this.updateQuoteStatusSelectAllState();
   },
 
   /**
@@ -443,9 +786,45 @@ Page({
    * 显示下单类目选择器
    */
   showOrderCategoryPicker() {
+    // 更新全选状态
+    this.updateOrderCategorySelectAllState();
     this.setData({
       showOrderCategoryPicker: true
     });
+  },
+  
+  /**
+   * 更新下单类目全选状态
+   */
+  updateOrderCategorySelectAllState() {
+    const options = this.data.categoryList || [];
+    const selected = this.data.orderCategory || [];
+    const isAllSelected = options.length > 0 && options.every(option => selected.includes(option));
+    this.setData({
+      isAllOrderCategorySelected: isAllSelected
+    });
+  },
+  
+  /**
+   * 切换下单类目全选
+   */
+  toggleSelectAllOrderCategory() {
+    const options = this.data.categoryList || [];
+    const isAllSelected = this.data.isAllOrderCategorySelected;
+    
+    if (isAllSelected) {
+      // 取消全选
+      this.setData({
+        orderCategory: []
+      });
+    } else {
+      // 全选
+      this.setData({
+        orderCategory: [...options]
+      });
+    }
+    
+    this.updateOrderCategorySelectAllState();
   },
 
   /**
@@ -455,6 +834,8 @@ Page({
     this.setData({
       orderCategory: e.detail || e.detail.value || []
     });
+    // 更新全选状态
+    this.updateOrderCategorySelectAllState();
   },
 
   /**
@@ -474,6 +855,9 @@ Page({
     this.setData({
       orderCategory: orderCategory
     });
+    
+    // 更新全选状态
+    this.updateOrderCategorySelectAllState();
   },
 
   /**
@@ -504,6 +888,8 @@ Page({
     this.setData({
       quoteStatus: e.detail || e.detail.value || []
     });
+    // 更新全选状态
+    this.updateQuoteStatusSelectAllState();
   },
 
   /**
@@ -523,6 +909,9 @@ Page({
     this.setData({
       quoteStatus: quoteStatus
     });
+    
+    // 更新全选状态
+    this.updateQuoteStatusSelectAllState();
   },
 
   /**
@@ -535,13 +924,20 @@ Page({
       designer: '',
       salesperson: '',
       orderStatus: '',
+      orderStatusDetail: [],
       orderType: '',
       orderCategory: [],
       splitter: '',
       quoteStatus: [],
       quoteStatusDisplay: '',
-      orderCategoryDisplay: ''
+      orderCategoryDisplay: '',
+      orderStatusDetailDisplay: '',
+      // 重置全选状态
+      isAllOrderStatusDetailSelected: false,
+      isAllQuoteStatusSelected: false,
+      isAllOrderCategorySelected: false
     });
+    this.setDefaultSalesperson();
   },
 
   /**
@@ -555,6 +951,7 @@ Page({
       salesperson: this.data.salesperson,
       orderStatus: this.data.orderStatus ? [this.data.orderStatus] : [],
       orderProgress: this.data.orderStatus ? [this.data.orderStatus] : [], // 订单进度（设计、拆单、生产）
+      orderStatusDetail: this.data.orderStatusDetail, // 订单状态详情（二级选择）
       orderType: this.data.orderType,
       orderCategory: this.data.orderCategory,
       splitter: this.data.splitter,
@@ -562,7 +959,7 @@ Page({
     };
     console.log('handleConfirm :>> ', filters);
     // 跳转到列表页，传递筛选条件
-    wx.redirectTo({
+    wx.navigateTo({
       url: `/pages/order-list/order-list?filters=${encodeURIComponent(JSON.stringify(filters))}`
     });
   },

@@ -6,91 +6,44 @@
   <view class="list-header" style="padding-top: {{headerPaddingTop}}rpx">
     <view class="header-content">
       <view class="header-left">
-        <view class="list-title">
-          <van-icon name="orders-o" color="#fff" size="20px" style="margin-right: 8rpx;" />
+        <view class="list-title" catch:tap="goBack">
+          <van-icon name="arrow-left" color="#fff" size="20px" style="margin-right: 8rpx;" />
           <text>订单列表</text>
         </view>
-        <text class="list-subtitle">查看所有订单信息</text>
+        <view class="header-actions">
+          <van-button type="primary" size="small" icon="filter-o" bind:click="goToFilter" custom-class="filter-btn">
+            筛选订单
+          </van-button>
+          <view class="total-count">共 {{ total }} 条</view>
+        </view>
       </view>
     </view>
-  </view>
-  <!-- 筛选按钮 -->
-  <view class="filter-bar">
-    <van-button type="primary" size="normal" icon="filter-o" bind:click="goToFilter" custom-class="filter-btn">
-      筛选订单
-    </van-button>
-    <view class="total-count">共 {{ total }} 条</view>
   </view>
   <!-- 订单列表 -->
   <view class="order-list">
     <view wx:for="{{ orderList }}" wx:key="id" class="order-card" bindtap="goToDetail" data-id="{{ item.id }}" data-number="{{ item.order_number }}">
-      <!-- 卡片头部 -->
+      <!-- 订单编号和状态 -->
       <view class="card-header">
-        <view class="order-number">
-          <text class="number-label">订单编号</text>
-          <text class="number-value">{{ item.order_number }}</text>
-        </view>
-        <view class="status-tag" style="background-color: {{ item.statusColor }}; box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);">
+        <text class="order-number">{{ item.order_number }}</text>
+        <view class="status-tag" style="background-color: {{ item.statusColor }};">
           {{ item.order_status }}
         </view>
       </view>
-      <!-- 客户信息 -->
-      <view class="customer-info">
-        <view class="customer-name">
-          <van-icon name="user-circle-o" class="name-icon" color="#1989fa" />
-          <text class="name-text">{{ item.customer_name }}</text>
+      <!-- 客户名称和分单日期 -->
+      <view class="card-body">
+        <view class="info-row">
+          <van-icon name="user-circle-o" class="info-icon" color="#1989fa" size="14px" />
+          <text class="info-text">{{ item.customer_name }}</text>
         </view>
-      </view>
-      <!-- 订单信息 -->
-      <view class="order-details">
-        <view class="detail-row">
-          <van-icon name="edit" class="detail-icon" color="#ff6b9d" custom-style="line-height: 1.5; vertical-align: top;" />
-          <text class="detail-label">设计师：</text>
-          <text class="detail-value">{{ item.designer|| '-' }}</text>
-        </view>
-        <view class="detail-row">
-          <van-icon name="manager-o" class="detail-icon" color="#07c160" custom-style="line-height: 1.5; vertical-align: top;" />
-          <text class="detail-label">销售员：</text>
-          <text class="detail-value">{{ item.salesperson|| '-' }}</text>
-        </view>
-        <view class="detail-row">
-          <van-icon name="setting-o" class="detail-icon" color="#ff9500" custom-style="line-height: 1.5; vertical-align: top;" />
-          <text class="detail-label">拆单员：</text>
-          <text class="detail-value">{{ item.splitter || '-' }}</text>
-        </view>
-        <view class="detail-row">
-          <van-icon name="orders-o" class="detail-icon" color="#1989fa" custom-style="line-height: 1.5; vertical-align: top;" />
-          <text class="detail-label">订单类型：</text>
-          <text class="detail-value">{{ item.order_type }}</text>
-        </view>
-        <view class="detail-row">
-          <van-icon name="gold-coin-o" class="detail-icon" color="#ffc107" custom-style="line-height: 1.5; vertical-align: top;" />
-          <text class="detail-label">报价状态：</text>
-          <text class="detail-value">{{ item.quote_status || '-' }}</text>
-        </view>
-        <view class="detail-row" wx:if="{{ item.category_names || item.category_name }}">
-          <van-icon name="orders-o" class="detail-icon" color="#00bcd4" custom-style="line-height: 1.5; vertical-align: top;" />
-          <text class="detail-label">下单类目：</text>
-          <text class="detail-value">{{ item.category_names || item.category_name }}</text>
-        </view>
-        <view class="detail-row">
-          <van-icon name="calendar-o" class="detail-icon" custom-style="line-height: 1.5; vertical-align: top;" />
-          <text class="detail-label">分单日期：</text>
-          <text class="detail-value">{{ item.assignment_date }}</text>
-        </view>
-        <!-- <view class="detail-row" wx:if="{{ item.order_amount }}">
-          <van-icon name="balance-o" class="detail-icon" color="#ee0a24" />
-          <text class="detail-label">订单金额：</text>
-          <text class="detail-value amount-value">¥{{ item.formatted_amount || item.order_amount }}</text>
-        </view> -->
-        <!-- 查看详情按钮 -->
-      </view>
-      <!-- 订单金额 -->
-      <view class="order-footer">
-        <view class="detail-action">
-          <van-button type="info" size="mini" plain icon="arrow" catch:click="goToDetail" data-id="{{ item.id }}" data-number="{{ item.order_number }}" custom-class="detail-btn">
-            订单详情
-          </van-button>
+        <view class="info-row info-row-with-action">
+          <view class="info-left">
+            <van-icon name="calendar-o" class="info-icon" color="#969799" size="14px" />
+            <text class="info-text">分单日期：{{ item.assignment_date }}</text>
+          </view>
+          <view class="detail-link" catch:tap="goToDetail" data-id="{{ item.id }}" data-number="{{ item.order_number }}">
+            <text class="detail-link-text">查看详情</text>
+            <van-icon name="arrow" class="detail-link-icon" color="#1989fa" size="12px" />
+          </view>
         </view>
       </view>
     </view>

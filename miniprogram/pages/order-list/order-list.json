@@ -1,6 +1,7 @@
 {
   "navigationStyle": "custom",
   "navigationBarTextStyle": "white",
+  "disableSwipeBack": false,
   "usingComponents": {
     "van-button": "@vant/weapp/button/index",
     "van-empty": "@vant/weapp/empty/index",

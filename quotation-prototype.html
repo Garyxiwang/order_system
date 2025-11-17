@@ -1,0 +1,2717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>报价系统原型 - 订单管理系统</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        background: #f5f5f5;
+        color: #333;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      /* 导航栏 */
+      .nav {
+        background: white;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      .nav-btn {
+        padding: 8px 16px;
+        background: #1890ff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+      }
+
+      .nav-btn:hover {
+        background: #40a9ff;
+      }
+
+      .nav-btn.active {
+        background: #096dd9;
+      }
+
+      /* 页面容器 */
+      .page {
+        display: none;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+      }
+
+      .page.active {
+        display: block;
+      }
+
+      /* 页面标题 */
+      .page-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      /* 工具栏 */
+      .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .toolbar-left {
+        display: flex;
+        gap: 10px;
+      }
+
+      .toolbar-right {
+        display: flex;
+        gap: 10px;
+      }
+
+      /* 按钮样式 */
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn-primary {
+        background: #1890ff;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #40a9ff;
+      }
+
+      .btn-success {
+        background: #52c41a;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #73d13d;
+      }
+
+      .btn-danger {
+        background: #ff4d4f;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #ff7875;
+      }
+
+      .btn-default {
+        background: white;
+        color: #333;
+        border: 1px solid #d9d9d9;
+      }
+
+      .btn-default:hover {
+        border-color: #40a9ff;
+        color: #40a9ff;
+      }
+
+      /* 搜索框 */
+      .search-box {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .input {
+        padding: 8px 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .input:focus {
+        outline: none;
+        border-color: #40a9ff;
+      }
+
+      .select {
+        padding: 8px 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        font-size: 14px;
+        background: white;
+        cursor: pointer;
+      }
+
+      /* 表格样式 */
+      .table-container {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      thead {
+        background: #fafafa;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      th {
+        font-weight: 600;
+        color: #333;
+      }
+
+      tbody tr:hover {
+        background: #fafafa;
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+
+      .tag-success {
+        background: #f6ffed;
+        color: #52c41a;
+        border: 1px solid #b7eb8f;
+      }
+
+      .tag-warning {
+        background: #fffbe6;
+        color: #faad14;
+        border: 1px solid #ffe58f;
+      }
+
+      .tag-default {
+        background: #f5f5f5;
+        color: #666;
+        border: 1px solid #d9d9d9;
+      }
+
+      /* 操作按钮 */
+      .action-btn {
+        padding: 4px 8px;
+        margin: 0 4px;
+        background: none;
+        border: none;
+        color: #1890ff;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .action-btn:hover {
+        color: #40a9ff;
+      }
+
+      .action-btn.danger {
+        color: #ff4d4f;
+      }
+
+      .action-btn.danger:hover {
+        color: #ff7875;
+      }
+
+      /* 表单样式 */
+      .form {
+        max-width: 800px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+      }
+
+      .form-label.required::before {
+        content: "*";
+        color: #ff4d4f;
+        margin-right: 4px;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: #40a9ff;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      /* 卡片样式 */
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      /* 报价单表格特殊样式 */
+      .quotation-table {
+        font-size: 13px;
+      }
+
+      .quotation-table th {
+        background: #f0f2f5;
+        text-align: center;
+        font-weight: 600;
+      }
+
+      .quotation-table td {
+        text-align: center;
+      }
+
+      .quotation-table .project-category {
+        background: #e6f7ff;
+        font-weight: 600;
+        text-align: left;
+        padding-left: 16px;
+      }
+
+      /* 统计信息 */
+      .summary {
+        margin-top: 20px;
+        padding: 20px;
+        background: #fafafa;
+        border-radius: 4px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 30px;
+      }
+
+      .summary-item {
+        text-align: right;
+      }
+
+      .summary-label {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 4px;
+      }
+
+      .summary-value {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+      }
+
+        .summary-value.total {
+            font-size: 24px;
+            color: #1890ff;
+        }
+
+        .summary-input {
+            width: 150px;
+            padding: 4px 8px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .summary-input:focus {
+            outline: none;
+            border-color: #40a9ff;
+        }
+
+        /* 优惠金额设置区域 */
+        .discount-setting {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .discount-setting.hidden {
+            display: none;
+        }
+
+        .discount-setting-label {
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .discount-setting-input {
+            flex: 1;
+            max-width: 200px;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .discount-setting-input:focus {
+            outline: none;
+            border-color: #40a9ff;
+        }
+
+        .discount-toggle-btn {
+            padding: 6px 12px;
+            background: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .discount-toggle-btn:hover {
+            background: #40a9ff;
+        }
+
+        .discount-remove-btn {
+            padding: 6px 12px;
+            background: #ff4d4f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .discount-remove-btn:hover {
+            background: #ff7875;
+        }
+
+      /* 配置树形结构 */
+      .config-tree {
+        border: 1px solid #f0f0f0;
+        border-radius: 4px;
+        padding: 12px;
+      }
+
+      .config-category {
+        margin-bottom: 16px;
+      }
+
+      .config-category-title {
+        font-weight: 600;
+        color: #1890ff;
+        margin-bottom: 8px;
+        padding: 8px;
+        background: #e6f7ff;
+        border-radius: 4px;
+      }
+
+      .config-item {
+        padding: 8px 16px;
+        margin: 4px 0;
+        background: #fafafa;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .config-item:hover {
+        background: #e6f7ff;
+      }
+
+      /* 模态框 */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal.active {
+        display: flex;
+      }
+
+      .modal-content {
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 800px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+      }
+
+      .modal-close:hover {
+        color: #333;
+      }
+
+      .modal-footer {
+        margin-top: 24px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      /* Tab样式 */
+      .tabs {
+        border-bottom: 2px solid #f0f0f0;
+        margin-bottom: 20px;
+      }
+
+      .tab-list {
+        display: flex;
+        gap: 0;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .tab-item {
+        padding: 12px 24px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.3s;
+        font-weight: 500;
+        color: #666;
+      }
+
+      .tab-item:hover {
+        color: #1890ff;
+      }
+
+      .tab-item.active {
+        color: #1890ff;
+        border-bottom-color: #1890ff;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      /* 树形结构 */
+      .category-tree {
+        border: 1px solid #f0f0f0;
+        border-radius: 4px;
+        padding: 16px;
+      }
+
+      .category-level1 {
+        margin-bottom: 16px;
+        border: 1px solid #e6f7ff;
+        border-radius: 4px;
+        padding: 12px;
+        background: #f0f9ff;
+      }
+
+      .category-level1-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .category-level1-title {
+        font-weight: 600;
+        color: #1890ff;
+        font-size: 16px;
+      }
+
+      .category-level2-list {
+        margin-left: 20px;
+        margin-top: 8px;
+      }
+
+      .category-level2 {
+        padding: 8px 12px;
+        margin: 4px 0;
+        background: white;
+        border-radius: 4px;
+        border: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .category-level2-name {
+        flex: 1;
+      }
+
+      /* 项目添加表单 */
+      .project-item {
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 16px;
+        margin-bottom: 16px;
+        background: #fafafa;
+      }
+
+      .project-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #e0e0e0;
+      }
+
+      .project-item-title {
+        font-weight: 600;
+        color: #1890ff;
+        font-size: 16px;
+      }
+
+      .project-item-name-input {
+        display: inline-block;
+        width: 200px;
+        padding: 6px 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .category-item {
+        border: 1px solid #e8e8e8;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 12px;
+        background: white;
+      }
+
+      .category-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .category-item-title {
+        font-weight: 500;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .category-item-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+      }
+
+      /* 响应式 */
+      @media (max-width: 768px) {
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .tab-list {
+          flex-wrap: wrap;
+        }
+
+        .project-item-fields {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 导航栏 -->
+      <div class="nav">
+        <button class="nav-btn active" onclick="showPage('config-list')">
+          报价配置管理
+        </button>
+        <button class="nav-btn" onclick="showPage('quotation-list')">
+          报价单列表
+        </button>
+        <button class="nav-btn" onclick="showPage('quotation-create')">
+          创建报价单
+        </button>
+        <button class="nav-btn" onclick="showPage('quotation-detail')">
+          报价单详情
+        </button>
+      </div>
+
+      <!-- 页面1: 报价配置管理 -->
+      <div id="config-list" class="page active">
+        <h2 class="page-title">报价配置管理</h2>
+
+        <!-- Tab导航 -->
+        <div class="tabs">
+          <ul class="tab-list">
+            <li class="tab-item active" onclick="switchTab('category-tab')">
+              报价类目
+            </li>
+            <li class="tab-item" onclick="switchTab('material-tab')">
+              基材管理
+            </li>
+            <li class="tab-item" onclick="switchTab('color-tab')">颜色管理</li>
+          </ul>
+        </div>
+
+        <!-- Tab1: 报价类目 -->
+        <div id="category-tab" class="tab-content active">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <button
+                class="btn btn-primary"
+                onclick="openModal('add-level1-modal')"
+              >
+                + 添加一级类目
+              </button>
+              <button
+                class="btn btn-default"
+                onclick="openModal('add-level2-modal')"
+              >
+                + 添加二级类目
+              </button>
+            </div>
+          </div>
+
+          <div class="category-tree">
+            <!-- 柜体 -->
+            <div class="category-level1">
+              <div class="category-level1-header">
+                <span class="category-level1-title">柜体</span>
+                <div>
+                  <button
+                    class="action-btn"
+                    onclick="openModal('edit-level1-modal')"
+                  >
+                    编辑
+                  </button>
+                  <button class="action-btn danger">删除</button>
+                </div>
+              </div>
+              <div class="category-level2-list">
+                <div class="category-level2">
+                  <span class="category-level2-name">高柜</span>
+                  <div>
+                    <button
+                      class="action-btn"
+                      onclick="openModal('edit-level2-modal')"
+                    >
+                      编辑
+                    </button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+                <div class="category-level2">
+                  <span class="category-level2-name">吊柜</span>
+                  <div>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+                <div class="category-level2">
+                  <span class="category-level2-name">地柜</span>
+                  <div>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 墙板 -->
+            <div class="category-level1">
+              <div class="category-level1-header">
+                <span class="category-level1-title">墙板</span>
+                <div>
+                  <button class="action-btn">编辑</button>
+                  <button class="action-btn danger">删除</button>
+                </div>
+              </div>
+              <div class="category-level2-list">
+                <div class="category-level2">
+                  <span class="category-level2-name">背景墙</span>
+                  <div>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 灯带 -->
+            <div class="category-level1">
+              <div class="category-level1-header">
+                <span class="category-level1-title">灯带</span>
+                <div>
+                  <button class="action-btn">编辑</button>
+                  <button class="action-btn danger">删除</button>
+                </div>
+              </div>
+              <div class="category-level2-list">
+                <div class="category-level2">
+                  <span class="category-level2-name">中性光</span>
+                  <div>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+                <div class="category-level2">
+                  <span class="category-level2-name">白光</span>
+                  <div>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+                <div class="category-level2">
+                  <span class="category-level2-name">暖光</span>
+                  <div>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 拉手 -->
+            <div class="category-level1">
+              <div class="category-level1-header">
+                <span class="category-level1-title">拉手</span>
+                <div>
+                  <button class="action-btn">编辑</button>
+                  <button class="action-btn danger">删除</button>
+                </div>
+              </div>
+              <div class="category-level2-list">
+                <div class="category-level2">
+                  <span class="category-level2-name">烤漆牛角拉手</span>
+                  <div>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+                <div class="category-level2">
+                  <span class="category-level2-name">型材通体拉手</span>
+                  <div>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab2: 基材管理 -->
+        <div id="material-tab" class="tab-content">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <div class="search-box">
+                <input
+                  type="text"
+                  class="input"
+                  placeholder="搜索基材名称..."
+                  style="width: 200px"
+                />
+                <button class="btn btn-default">搜索</button>
+              </div>
+            </div>
+            <div class="toolbar-right">
+              <button
+                class="btn btn-primary"
+                onclick="openModal('add-material-modal')"
+              >
+                + 添加基材
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>基材名称</th>
+                  <th>备注</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>特级橡木</td>
+                  <td>-</td>
+                  <td><span class="tag tag-success">启用</span></td>
+                  <td>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>PET欧松板</td>
+                  <td>-</td>
+                  <td><span class="tag tag-success">启用</span></td>
+                  <td>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>09颗粒</td>
+                  <td>背板材质</td>
+                  <td><span class="tag tag-success">启用</span></td>
+                  <td>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>石英石</td>
+                  <td>台面材质</td>
+                  <td><span class="tag tag-success">启用</span></td>
+                  <td>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab3: 颜色管理 -->
+        <div id="color-tab" class="tab-content">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <div class="search-box">
+                <input
+                  type="text"
+                  class="input"
+                  placeholder="搜索颜色名称..."
+                  style="width: 200px"
+                />
+                <button class="btn btn-default">搜索</button>
+              </div>
+            </div>
+            <div class="toolbar-right">
+              <button
+                class="btn btn-primary"
+                onclick="openModal('add-color-modal')"
+              >
+                + 添加颜色
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>颜色名称</th>
+                  <th>颜色代码</th>
+                  <th>备注</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>TB-9009</td>
+                  <td>#F5F5DC</td>
+                  <td>-</td>
+                  <td><span class="tag tag-success">启用</span></td>
+                  <td>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>婷兰灰肤感</td>
+                  <td>#E8E8E8</td>
+                  <td>-</td>
+                  <td><span class="tag tag-success">启用</span></td>
+                  <td>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>白色</td>
+                  <td>#FFFFFF</td>
+                  <td>-</td>
+                  <td><span class="tag tag-success">启用</span></td>
+                  <td>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>香奈儿白</td>
+                  <td>#FFF8F0</td>
+                  <td>-</td>
+                  <td><span class="tag tag-success">启用</span></td>
+                  <td>
+                    <button class="action-btn">编辑</button>
+                    <button class="action-btn danger">删除</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 页面2: 报价单列表 -->
+      <div id="quotation-list" class="page">
+        <h2 class="page-title">报价单列表</h2>
+
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box">
+              <input
+                type="text"
+                class="input"
+                placeholder="客户名称/订单编号..."
+                style="width: 200px"
+              />
+              <select class="select">
+                <option>全部状态</option>
+                <option>草稿</option>
+                <option>已发送</option>
+                <option>已确认</option>
+              </select>
+              <input type="date" class="input" style="width: 150px" />
+              <button class="btn btn-default">搜索</button>
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <button
+              class="btn btn-primary"
+              onclick="showPage('quotation-create')"
+            >
+              + 新建报价单
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>报价单编号</th>
+                <th>客户名称</th>
+                <th>设计师</th>
+                <th>报价日期</th>
+                <th>总金额</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>QT20250101001</td>
+                <td>西安钻石店</td>
+                <td>景兵霖</td>
+                <td>2025-01-10</td>
+                <td>¥103,000.00</td>
+                <td><span class="tag tag-success">已确认</span></td>
+                <td>
+                  <button
+                    class="action-btn"
+                    onclick="showPage('quotation-detail')"
+                  >
+                    查看
+                  </button>
+                  <button class="action-btn">编辑</button>
+                  <button class="action-btn">导出</button>
+                  <button class="action-btn danger">删除</button>
+                </td>
+              </tr>
+              <tr>
+                <td>QT20250101002</td>
+                <td>北京朝阳店</td>
+                <td>张设计师</td>
+                <td>2025-01-09</td>
+                <td>¥85,600.00</td>
+                <td><span class="tag tag-warning">已发送</span></td>
+                <td>
+                  <button
+                    class="action-btn"
+                    onclick="showPage('quotation-detail')"
+                  >
+                    查看
+                  </button>
+                  <button class="action-btn">编辑</button>
+                  <button class="action-btn">导出</button>
+                  <button class="action-btn danger">删除</button>
+                </td>
+              </tr>
+              <tr>
+                <td>QT20250101003</td>
+                <td>上海浦东店</td>
+                <td>李设计师</td>
+                <td>2025-01-08</td>
+                <td>¥92,300.00</td>
+                <td><span class="tag tag-default">草稿</span></td>
+                <td>
+                  <button
+                    class="action-btn"
+                    onclick="showPage('quotation-detail')"
+                  >
+                    查看
+                  </button>
+                  <button class="action-btn">编辑</button>
+                  <button class="action-btn">导出</button>
+                  <button class="action-btn danger">删除</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 页面3: 创建报价单 -->
+      <div id="quotation-create" class="page">
+        <h2 class="page-title">创建报价单</h2>
+
+        <div class="form">
+          <!-- 基本信息 -->
+          <div class="card">
+            <div class="card-title">基本信息</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label required">客户名称</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="请输入客户名称"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">客户电话</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="请输入客户电话"
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">客户地址</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="请输入客户地址"
+              />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">设计师</label>
+                <select class="form-control">
+                  <option>景兵霖</option>
+                  <option>张设计师</option>
+                  <option>李设计师</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">销售员</label>
+                <select class="form-control">
+                  <option>请选择</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">报价日期</label>
+                <input type="date" class="form-control" value="2025-01-10" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">订单编号</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="可选，从订单导入时自动填充"
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">备注</label>
+              <textarea
+                class="form-control"
+                rows="3"
+                placeholder="请输入备注信息"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- 报价项目 -->
+          <div class="card">
+            <div class="card-title">
+              报价项目
+              <div style="float: right">
+                <button class="btn btn-primary" onclick="addProjectItem()">
+                  + 添加项目
+                </button>
+              </div>
+            </div>
+
+            <!-- 项目列表 -->
+            <div id="project-items-list">
+              <!-- 项目1: 主卧 -->
+              <div class="project-item">
+                <div class="project-item-header">
+                  <div>
+                    <span class="project-item-title">项目名称：</span>
+                    <input
+                      type="text"
+                      class="project-item-name-input"
+                      value="主卧"
+                      placeholder="请输入项目名称"
+                    />
+                  </div>
+                  <div>
+                    <button
+                      class="btn btn-default"
+                      style="margin-right: 8px"
+                      onclick="addCategoryItem(this)"
+                    >
+                      + 添加类目
+                    </button>
+                    <button
+                      class="action-btn danger"
+                      onclick="removeProjectItem(this)"
+                    >
+                      删除项目
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 类目列表 -->
+                <div class="category-list">
+                  <!-- 类目1 -->
+                  <div class="category-item">
+                    <div class="category-item-header">
+                      <span class="category-item-title">类目 1</span>
+                      <button
+                        class="action-btn danger"
+                        onclick="removeCategoryItem(this)"
+                      >
+                        删除
+                      </button>
+                    </div>
+                    <div class="category-item-fields">
+                      <div class="form-group">
+                        <label class="form-label required">一级类目</label>
+                        <select class="form-control">
+                          <option>柜体</option>
+                          <option>墙板</option>
+                          <option>灯带</option>
+                          <option>拉手</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">二级类目</label>
+                        <select class="form-control">
+                          <option>高柜</option>
+                          <option>吊柜</option>
+                          <option>地柜</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">高(mm)</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          value="2400"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">宽(mm)</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          value="1800"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">数量</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="4.32"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">单位</label>
+                        <select class="form-control">
+                          <option>平方</option>
+                          <option>米</option>
+                          <option>个</option>
+                          <option>套</option>
+                          <option>项</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">单价</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="280.00"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">合计</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="1209.60"
+                          readonly
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">基材</label>
+                        <select class="form-control">
+                          <option>特级橡木</option>
+                          <option>PET欧松板</option>
+                          <option>09颗粒</option>
+                          <option>石英石</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">颜色</label>
+                        <select class="form-control">
+                          <option>TB-9009</option>
+                          <option>婷兰灰肤感</option>
+                          <option>白色</option>
+                          <option>香奈儿白</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="grid-column: 1 / -1">
+                        <label class="form-label">备注</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          placeholder="备注信息"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 类目2 -->
+                  <div class="category-item">
+                    <div class="category-item-header">
+                      <span class="category-item-title">类目 2</span>
+                      <button
+                        class="action-btn danger"
+                        onclick="removeCategoryItem(this)"
+                      >
+                        删除
+                      </button>
+                    </div>
+                    <div class="category-item-fields">
+                      <div class="form-group">
+                        <label class="form-label required">一级类目</label>
+                        <select class="form-control">
+                          <option>柜体</option>
+                          <option>墙板</option>
+                          <option>灯带</option>
+                          <option>拉手</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">二级类目</label>
+                        <select class="form-control">
+                          <option>吊柜</option>
+                          <option>高柜</option>
+                          <option>地柜</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">高(mm)</label>
+                        <input type="number" class="form-control" value="700" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">宽(mm)</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          value="1200"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">数量</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="0.84"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">单位</label>
+                        <select class="form-control">
+                          <option>平方</option>
+                          <option>米</option>
+                          <option>个</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">单价</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="280.00"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">合计</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="235.20"
+                          readonly
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">基材</label>
+                        <select class="form-control">
+                          <option>特级橡木</option>
+                          <option>PET欧松板</option>
+                          <option>09颗粒</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">颜色</label>
+                        <select class="form-control">
+                          <option>TB-9009</option>
+                          <option>婷兰灰肤感</option>
+                          <option>白色</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="grid-column: 1 / -1">
+                        <label class="form-label">备注</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          placeholder="备注信息"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 项目2: 厨房 -->
+              <div class="project-item">
+                <div class="project-item-header">
+                  <div>
+                    <span class="project-item-title">项目名称：</span>
+                    <input
+                      type="text"
+                      class="project-item-name-input"
+                      value="厨房"
+                      placeholder="请输入项目名称"
+                    />
+                  </div>
+                  <div>
+                    <button
+                      class="btn btn-default"
+                      style="margin-right: 8px"
+                      onclick="addCategoryItem(this)"
+                    >
+                      + 添加类目
+                    </button>
+                    <button
+                      class="action-btn danger"
+                      onclick="removeProjectItem(this)"
+                    >
+                      删除项目
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 类目列表 -->
+                <div class="category-list">
+                  <!-- 类目1 -->
+                  <div class="category-item">
+                    <div class="category-item-header">
+                      <span class="category-item-title">类目 1</span>
+                      <button
+                        class="action-btn danger"
+                        onclick="removeCategoryItem(this)"
+                      >
+                        删除
+                      </button>
+                    </div>
+                    <div class="category-item-fields">
+                      <div class="form-group">
+                        <label class="form-label required">一级类目</label>
+                        <select class="form-control">
+                          <option>柜体</option>
+                          <option>墙板</option>
+                          <option>灯带</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">二级类目</label>
+                        <select class="form-control">
+                          <option>地柜</option>
+                          <option>吊柜</option>
+                          <option>高柜</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">高(mm)</label>
+                        <input type="number" class="form-control" value="800" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">宽(mm)</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          value="3000"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">数量</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="2.42"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">单位</label>
+                          <option>平方</option>
+                          <option>米</option>
+                          <option>个</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label required">单价</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="280.00"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">合计</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          step="0.01"
+                          value="672.00"
+                          readonly
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">基材</label>
+                        <select class="form-control">
+                          <option>特级橡木</option>
+                          <option>PET欧松板</option>
+                          <option>09颗粒</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">颜色</label>
+                        <select class="form-control">
+                          <option>TB-9009</option>
+                          <option>婷兰灰肤感</option>
+                          <option>白色</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="grid-column: 1 / -1">
+                        <label class="form-label">备注</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          placeholder="备注信息"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 优惠金额设置 -->
+            <div class="discount-setting hidden" id="discount-setting">
+              <span class="discount-setting-label">优惠金额：</span>
+              <input 
+                type="number" 
+                class="discount-setting-input" 
+                id="discount-amount" 
+                value="0" 
+                step="0.01" 
+                min="0"
+                onchange="calculateFinalAmount()"
+                placeholder="请输入优惠金额"
+              />
+              <button class="discount-remove-btn" onclick="removeDiscount()">移除优惠</button>
+            </div>
+
+            <!-- 添加优惠按钮 -->
+            <div id="add-discount-btn-container" style="margin-bottom: 20px;">
+              <button class="btn btn-default" onclick="showDiscountSetting()">+ 添加优惠金额</button>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="summary">
+              <div class="summary-item">
+                <div class="summary-label">合计金额</div>
+                <div class="summary-value" id="total-amount">¥0.00</div>
+              </div>
+              <div class="summary-item" id="discount-summary-item" style="display: none;">
+                <div class="summary-label">优惠金额</div>
+                <div class="summary-value" id="discount-display">¥0.00</div>
+              </div>
+              <div class="summary-item" id="final-summary-item" style="display: none;">
+                <div class="summary-label">优惠后总金额</div>
+                <div class="summary-value total" id="final-amount">¥0.00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div style="margin-top: 20px; text-align: right">
+            <button class="btn btn-primary">预览报价单</button>
+            <button class="btn btn-success">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 页面4: 报价单详情 -->
+      <div id="quotation-detail" class="page">
+        <h2 class="page-title">报价单详情</h2>
+
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <span style="color: #666">报价单编号：QT20250101001</span>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn btn-primary">编辑</button>
+            <button class="btn btn-default">导出Excel</button>
+          </div>
+        </div>
+
+        <!-- 报价单信息 -->
+        <div class="card">
+          <div class="card-title">报价单信息</div>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 20px;
+            "
+          >
+            <div>
+              <div style="color: #666; font-size: 14px; margin-bottom: 4px">
+                客户名称
+              </div>
+              <div style="font-size: 16px; font-weight: 500">西安钻石店</div>
+            </div>
+            <div>
+              <div style="color: #666; font-size: 14px; margin-bottom: 4px">
+                客户电话
+              </div>
+              <div style="font-size: 16px; font-weight: 500">138****8888</div>
+            </div>
+            <div>
+              <div style="color: #666; font-size: 14px; margin-bottom: 4px">
+                客户地址
+              </div>
+              <div style="font-size: 16px; font-weight: 500">
+                龙湖云琛2-1-1606
+              </div>
+            </div>
+            <div>
+              <div style="color: #666; font-size: 14px; margin-bottom: 4px">
+                设计师
+              </div>
+              <div style="font-size: 16px; font-weight: 500">景兵霖</div>
+            </div>
+            <div>
+              <div style="color: #666; font-size: 14px; margin-bottom: 4px">
+                销售员
+              </div>
+              <div style="font-size: 16px; font-weight: 500">张销售</div>
+            </div>
+            <div>
+              <div style="color: #666; font-size: 14px; margin-bottom: 4px">
+                报价日期
+              </div>
+              <div style="font-size: 16px; font-weight: 500">2025-01-10</div>
+            </div>
+            <div>
+              <div style="color: #666; font-size: 14px; margin-bottom: 4px">
+                订单编号
+              </div>
+              <div style="font-size: 16px; font-weight: 500">
+                ORD20250101001
+              </div>
+            </div>
+            <div>
+              <div style="color: #666; font-size: 14px; margin-bottom: 4px">
+                拆单员
+              </div>
+              <div style="font-size: 16px; font-weight: 500">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 报价项目 -->
+        <div class="card">
+          <div class="card-title">报价项目</div>
+          <div class="table-container">
+            <table class="quotation-table">
+              <thead>
+                <tr>
+                  <th>项目</th>
+                  <th>柜名/规格</th>
+                  <th>高(mm)</th>
+                  <th>宽(mm)</th>
+                  <th>数量</th>
+                  <th>单位</th>
+                  <th>单价</th>
+                  <th>合计</th>
+                  <th>柜体颜色材质</th>
+                  <th>门板颜色材质</th>
+                  <th>背板材质</th>
+                  <th>备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="project-category" rowspan="5">主卧</td>
+                  <td>高柜</td>
+                  <td>2400</td>
+                  <td>1800</td>
+                  <td>4.32</td>
+                  <td>平方</td>
+                  <td>280.00</td>
+                  <td>1,209.60</td>
+                  <td>特级橡木-TB-9009</td>
+                  <td>PET欧松板-婷兰灰肤感</td>
+                  <td>09颗粒</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>浴室地柜</td>
+                  <td>800</td>
+                  <td>1200</td>
+                  <td>0.96</td>
+                  <td>平方</td>
+                  <td>280.00</td>
+                  <td>268.80</td>
+                  <td>特级橡木-TB-9009</td>
+                  <td>PET欧松板-婷兰灰肤感</td>
+                  <td>09颗粒</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>石材台面</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>1.2</td>
+                  <td>米</td>
+                  <td>450.00</td>
+                  <td>540.00</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>吊柜</td>
+                  <td>700</td>
+                  <td>1200</td>
+                  <td>0.84</td>
+                  <td>平方</td>
+                  <td>280.00</td>
+                  <td>235.20</td>
+                  <td>特级橡木-TB-9009</td>
+                  <td>PET欧松板-婷兰灰肤感</td>
+                  <td>09颗粒</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>智能镜</td>
+                  <td>800</td>
+                  <td>1200</td>
+                  <td>1</td>
+                  <td>个</td>
+                  <td>380.00</td>
+                  <td>380.00</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td class="project-category" rowspan="3">厨房</td>
+                  <td>地柜</td>
+                  <td>800</td>
+                  <td>3000</td>
+                  <td>2.4</td>
+                  <td>平方</td>
+                  <td>280.00</td>
+                  <td>672.00</td>
+                  <td>特级橡木-TB-9009</td>
+                  <td>PET欧松板-婷兰灰肤感</td>
+                  <td>09颗粒</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>吊柜</td>
+                  <td>700</td>
+                  <td>3000</td>
+                  <td>2.1</td>
+                  <td>平方</td>
+                  <td>280.00</td>
+                  <td>588.00</td>
+                  <td>特级橡木-TB-9009</td>
+                  <td>PET欧松板-婷兰灰肤感</td>
+                  <td>09颗粒</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>石材台面</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>3.0</td>
+                  <td>米</td>
+                  <td>450.00</td>
+                  <td>1,350.00</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 统计信息 -->
+          <div class="summary">
+            <div class="summary-item">
+              <div class="summary-label">合计金额</div>
+              <div class="summary-value">¥105,087.00</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">优惠金额</div>
+              <div class="summary-value">¥2,087.00</div>
+            </div>
+            <div class="summary-item">
+              <div class="summary-label">优惠后总金额</div>
+              <div class="summary-value total">¥103,000.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 备注 -->
+        <div class="card">
+          <div class="card-title">备注</div>
+          <div style="color: #666; line-height: 1.8">
+            本报价单有效期30天，最终价格以实际测量为准。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态框: 添加一级类目 -->
+    <div id="add-level1-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">添加一级类目</div>
+          <button class="modal-close" onclick="closeModal('add-level1-modal')">
+            &times;
+          </button>
+        </div>
+        <div class="form">
+          <div class="form-group">
+            <label class="form-label required">类目名称</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="请输入一级类目名称，如：柜体、墙板"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="请输入备注信息"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-default"
+            onclick="closeModal('add-level1-modal')"
+          >
+            取消
+          </button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态框: 添加二级类目 -->
+    <div id="add-level2-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">添加二级类目</div>
+          <button class="modal-close" onclick="closeModal('add-level2-modal')">
+            &times;
+          </button>
+        </div>
+        <div class="form">
+          <div class="form-group">
+            <label class="form-label required">所属一级类目</label>
+            <select class="form-control">
+              <option>请选择</option>
+              <option>柜体</option>
+              <option>墙板</option>
+              <option>灯带</option>
+              <option>拉手</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label required">类目名称</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="请输入二级类目名称，如：高柜、吊柜"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="请输入备注信息"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-default"
+            onclick="closeModal('add-level2-modal')"
+          >
+            取消
+          </button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态框: 添加基材 -->
+    <div id="add-material-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">添加基材</div>
+          <button
+            class="modal-close"
+            onclick="closeModal('add-material-modal')"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="form">
+          <div class="form-group">
+            <label class="form-label required">基材名称</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="请输入基材名称"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="请输入备注信息"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">状态</label>
+            <select class="form-control">
+              <option>启用</option>
+              <option>禁用</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-default"
+            onclick="closeModal('add-material-modal')"
+          >
+            取消
+          </button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态框: 添加颜色 -->
+    <div id="add-color-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">添加颜色</div>
+          <button class="modal-close" onclick="closeModal('add-color-modal')">
+            &times;
+          </button>
+        </div>
+        <div class="form">
+          <div class="form-group">
+            <label class="form-label required">颜色名称</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="请输入颜色名称"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">颜色代码</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="如：#FFFFFF 或 RGB值"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="请输入备注信息"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">状态</label>
+            <select class="form-control">
+              <option>启用</option>
+              <option>禁用</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-default"
+            onclick="closeModal('add-color-modal')"
+          >
+            取消
+          </button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态框: 配置选择器 -->
+    <div id="config-selector-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">选择配置项</div>
+          <button
+            class="modal-close"
+            onclick="closeModal('config-selector-modal')"
+          >
+            &times;
+          </button>
+        </div>
+        <div style="margin-bottom: 20px">
+          <div class="search-box">
+            <input
+              type="text"
+              class="input"
+              placeholder="搜索配置名称..."
+              style="width: 200px"
+            />
+            <select class="select">
+              <option>全部分类</option>
+              <option>柜体部分</option>
+              <option>见光板</option>
+              <option>墙板</option>
+              <option>拉手</option>
+              <option>抽屉</option>
+            </select>
+            <button class="btn btn-default">搜索</button>
+          </div>
+        </div>
+        <div class="config-tree">
+          <div class="config-category">
+            <div class="config-category-title">柜体部分 - 柜体</div>
+            <div class="config-item" onclick="selectConfig('特级橡木-TB-9009')">
+              特级橡木-TB-9009 (¥280.00/平方)
+            </div>
+            <div class="config-item">09颗粒 (¥180.00/平方)</div>
+          </div>
+          <div class="config-category">
+            <div class="config-category-title">柜体部分 - 柜门</div>
+            <div class="config-item">PET欧松板-婷兰灰肤感 (¥320.00/平方)</div>
+            <div class="config-item">香奈儿白2.0厚 (¥350.00/平方)</div>
+          </div>
+          <div class="config-category">
+            <div class="config-category-title">拉手</div>
+            <div class="config-item">烤漆牛角拉手 (¥25.00/个)</div>
+            <div class="config-item">型材通体拉手 (¥35.00/米)</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-default"
+            onclick="closeModal('config-selector-modal')"
+          >
+            取消
+          </button>
+          <button class="btn btn-primary" onclick="addSelectedConfig()">
+            添加到报价单
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态框: 新建配置 -->
+    <div id="config-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">新建配置</div>
+          <button class="modal-close" onclick="closeModal('config-modal')">
+            &times;
+          </button>
+        </div>
+        <div class="form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">配置分类</label>
+              <select class="form-control">
+                <option>请选择</option>
+                <option>柜体部分</option>
+                <option>见光板</option>
+                <option>墙板</option>
+                <option>拉手</option>
+                <option>抽屉</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">子分类</label>
+              <select class="form-control">
+                <option>请选择</option>
+                <option>柜体</option>
+                <option>柜门</option>
+                <option>背板</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label required">配置名称</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="请输入配置名称"
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">基材</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="请输入基材"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">颜色</label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="请输入颜色"
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">厚度(mm)</label>
+              <input
+                type="number"
+                class="form-control"
+                placeholder="请输入厚度"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">单位</label>
+              <select class="form-control">
+                <option>平方</option>
+                <option>米</option>
+                <option>个</option>
+                <option>套</option>
+                <option>项</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">单价</label>
+              <input
+                type="number"
+                class="form-control"
+                placeholder="请输入单价"
+                step="0.01"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">状态</label>
+              <select class="form-control">
+                <option>启用</option>
+                <option>禁用</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="请输入备注信息"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-default" onclick="closeModal('config-modal')">
+            取消
+          </button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模态框: 编辑配置 -->
+    <div id="config-edit-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">编辑配置</div>
+          <button class="modal-close" onclick="closeModal('config-edit-modal')">
+            &times;
+          </button>
+        </div>
+        <div class="form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">配置分类</label>
+              <select class="form-control">
+                <option>柜体部分</option>
+                <option>见光板</option>
+                <option>墙板</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">子分类</label>
+              <select class="form-control">
+                <option>柜体</option>
+                <option>柜门</option>
+                <option>背板</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label required">配置名称</label>
+            <input type="text" class="form-control" value="特级橡木-TB-9009" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">基材</label>
+              <input type="text" class="form-control" value="特级橡木" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">颜色</label>
+              <input type="text" class="form-control" value="TB-9009" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">厚度(mm)</label>
+              <input
+                type="number"
+                class="form-control"
+                placeholder="请输入厚度"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">单位</label>
+              <select class="form-control">
+                <option>平方</option>
+                <option>米</option>
+                <option>个</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">单价</label>
+              <input
+                type="number"
+                class="form-control"
+                value="280.00"
+                step="0.01"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">状态</label>
+              <select class="form-control">
+                <option>启用</option>
+                <option>禁用</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">备注</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="请输入备注信息"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-default"
+            onclick="closeModal('config-edit-modal')"
+          >
+            取消
+          </button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 页面切换
+      function showPage(pageId) {
+        // 隐藏所有页面
+        document.querySelectorAll(".page").forEach((page) => {
+          page.classList.remove("active");
+        });
+
+        // 显示目标页面
+        document.getElementById(pageId).classList.add("active");
+
+        // 更新导航按钮状态
+        document.querySelectorAll(".nav-btn").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        event.target.classList.add("active");
+      }
+
+      // 打开模态框
+      function openModal(modalId) {
+        document.getElementById(modalId).classList.add("active");
+      }
+
+      // 关闭模态框
+      function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove("active");
+      }
+
+      // 选择配置
+      function selectConfig(configName) {
+        console.log("选择配置:", configName);
+        // 这里可以添加选中状态的视觉反馈
+      }
+
+      // 添加选中的配置到报价单
+      function addSelectedConfig() {
+        alert("配置已添加到报价单！");
+        closeModal("config-selector-modal");
+      }
+
+      // Tab切换
+      function switchTab(tabId) {
+        // 隐藏所有Tab内容
+        document.querySelectorAll(".tab-content").forEach((tab) => {
+          tab.classList.remove("active");
+        });
+
+        // 显示目标Tab
+        document.getElementById(tabId).classList.add("active");
+
+        // 更新Tab按钮状态
+        document.querySelectorAll(".tab-item").forEach((item) => {
+          item.classList.remove("active");
+        });
+        event.target.classList.add("active");
+      }
+
+      // 添加项目
+      function addProjectItem() {
+        const projectList = document.getElementById("project-items-list");
+        const itemCount = projectList.children.length + 1;
+
+        const newItem = document.createElement("div");
+        newItem.className = "project-item";
+        newItem.innerHTML = `
+                <div class="project-item-header">
+                    <div>
+                        <span class="project-item-title">项目名称：</span>
+                        <input type="text" class="project-item-name-input" value="项目${itemCount}" placeholder="请输入项目名称">
+                    </div>
+                    <div>
+                        <button class="btn btn-default" style="margin-right: 8px;" onclick="addCategoryItem(this)">+ 添加类目</button>
+                        <button class="action-btn danger" onclick="removeProjectItem(this)">删除项目</button>
+                    </div>
+                </div>
+                <div class="category-list"></div>
+            `;
+
+        projectList.appendChild(newItem);
+        // 自动添加第一个类目
+        const addBtn = newItem.querySelector(".btn-default");
+        addCategoryItem(addBtn);
+      }
+
+      // 添加类目
+      function addCategoryItem(btn) {
+        const projectItem = btn.closest(".project-item");
+        const categoryList = projectItem.querySelector(".category-list");
+        const categoryCount = categoryList.children.length + 1;
+
+        const newCategory = document.createElement("div");
+        newCategory.className = "category-item";
+        newCategory.innerHTML = `
+                <div class="category-item-header">
+                    <span class="category-item-title">类目 ${categoryCount}</span>
+                    <button class="action-btn danger" onclick="removeCategoryItem(this)">删除</button>
+                </div>
+                <div class="category-item-fields">
+                    <div class="form-group">
+                        <label class="form-label required">一级类目</label>
+                        <select class="form-control">
+                            <option>请选择</option>
+                            <option>柜体</option>
+                            <option>墙板</option>
+                            <option>灯带</option>
+                            <option>拉手</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">二级类目</label>
+                        <select class="form-control">
+                            <option>请先选择一级类目</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">高(mm)</label>
+                        <input type="number" class="form-control" placeholder="高度">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">宽(mm)</label>
+                        <input type="number" class="form-control" placeholder="宽度">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">数量</label>
+                        <input type="number" class="form-control" placeholder="数量" step="0.01" value="1" onchange="calculateTotal(this)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">单位</label>
+                        <select class="form-control">
+                            <option>平方</option>
+                            <option>米</option>
+                            <option>个</option>
+                            <option>套</option>
+                            <option>项</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">单价</label>
+                        <input type="number" class="form-control" placeholder="单价" step="0.01" value="0" onchange="calculateTotal(this)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">合计</label>
+                        <input type="number" class="form-control total-input" placeholder="自动计算" step="0.01" value="0" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">基材</label>
+                        <select class="form-control">
+                            <option>请选择</option>
+                            <option>特级橡木</option>
+                            <option>PET欧松板</option>
+                            <option>09颗粒</option>
+                            <option>石英石</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">颜色</label>
+                        <select class="form-control">
+                            <option>请选择</option>
+                            <option>TB-9009</option>
+                            <option>婷兰灰肤感</option>
+                            <option>白色</option>
+                            <option>香奈儿白</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">备注</label>
+                        <input type="text" class="form-control" placeholder="备注信息">
+                    </div>
+                </div>
+            `;
+
+        categoryList.appendChild(newCategory);
+        updateCategoryNumbers(projectItem);
+      }
+
+      // 删除类目
+      function removeCategoryItem(btn) {
+        if (confirm("确定要删除这个类目吗？")) {
+          const categoryItem = btn.closest(".category-item");
+          const projectItem = categoryItem.closest(".project-item");
+          categoryItem.remove();
+          updateCategoryNumbers(projectItem);
+        }
+      }
+
+      // 删除项目
+      function removeProjectItem(btn) {
+        if (
+          confirm("确定要删除这个项目吗？删除后项目下的所有类目也会被删除。")
+        ) {
+          btn.closest(".project-item").remove();
+        }
+      }
+
+      // 更新类目编号
+      function updateCategoryNumbers(projectItem) {
+        const categories = projectItem.querySelectorAll(".category-item");
+        categories.forEach((category, index) => {
+          category.querySelector(".category-item-title").textContent = `类目 ${
+            index + 1
+          }`;
+        });
+      }
+
+      // 计算合计
+      function calculateTotal(input) {
+        const categoryItem = input.closest(".category-item");
+        const quantity =
+          parseFloat(
+            categoryItem.querySelector('input[placeholder="数量"]').value
+          ) || 0;
+        const unitPrice =
+          parseFloat(
+            categoryItem.querySelector('input[placeholder="单价"]').value
+          ) || 0;
+        const total = quantity * unitPrice;
+        categoryItem.querySelector(".total-input").value = total.toFixed(2);
+
+        // 更新总金额
+        updateTotalAmount();
+      }
+
+      // 更新总金额
+      function updateTotalAmount() {
+        const allTotals = document.querySelectorAll(".total-input");
+        let sum = 0;
+        allTotals.forEach((input) => {
+          sum += parseFloat(input.value) || 0;
+        });
+        
+        // 更新合计金额显示
+        const totalAmountEl = document.getElementById("total-amount");
+        if (totalAmountEl) {
+          totalAmountEl.textContent = "¥" + sum.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        // 重新计算优惠后总金额
+        calculateFinalAmount();
+      }
+
+      // 显示优惠金额设置
+      function showDiscountSetting() {
+        const discountSetting = document.getElementById("discount-setting");
+        const addBtnContainer = document.getElementById("add-discount-btn-container");
+        
+        if (discountSetting && addBtnContainer) {
+          discountSetting.classList.remove("hidden");
+          addBtnContainer.style.display = "none";
+          
+          // 显示统计信息中的优惠相关项
+          const discountSummaryItem = document.getElementById("discount-summary-item");
+          const finalSummaryItem = document.getElementById("final-summary-item");
+          if (discountSummaryItem) discountSummaryItem.style.display = "block";
+          if (finalSummaryItem) finalSummaryItem.style.display = "block";
+          
+          // 初始化计算
+          calculateFinalAmount();
+        }
+      }
+
+      // 移除优惠金额
+      function removeDiscount() {
+        const discountSetting = document.getElementById("discount-setting");
+        const addBtnContainer = document.getElementById("add-discount-btn-container");
+        const discountAmountEl = document.getElementById("discount-amount");
+        
+        if (discountSetting && addBtnContainer) {
+          discountSetting.classList.add("hidden");
+          addBtnContainer.style.display = "block";
+          
+          // 重置优惠金额
+          if (discountAmountEl) {
+            discountAmountEl.value = "0";
+          }
+          
+          // 隐藏统计信息中的优惠相关项
+          const discountSummaryItem = document.getElementById("discount-summary-item");
+          const finalSummaryItem = document.getElementById("final-summary-item");
+          if (discountSummaryItem) discountSummaryItem.style.display = "none";
+          if (finalSummaryItem) finalSummaryItem.style.display = "none";
+        }
+      }
+
+      // 计算优惠后总金额
+      function calculateFinalAmount() {
+        const totalAmountEl = document.getElementById("total-amount");
+        const discountAmountEl = document.getElementById("discount-amount");
+        const discountDisplayEl = document.getElementById("discount-display");
+        const finalAmountEl = document.getElementById("final-amount");
+        
+        if (!totalAmountEl || !discountAmountEl) {
+          return;
+        }
+        
+        // 获取合计金额（从文本中提取数字）
+        const totalText = totalAmountEl.textContent.replace(/[¥,]/g, "");
+        const totalAmount = parseFloat(totalText) || 0;
+        
+        // 获取优惠金额
+        const discountAmount = parseFloat(discountAmountEl.value) || 0;
+        
+        // 更新优惠金额显示
+        if (discountDisplayEl) {
+          discountDisplayEl.textContent = "¥" + discountAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        // 计算优惠后总金额
+        const finalAmount = Math.max(0, totalAmount - discountAmount);
+        
+        // 更新显示
+        if (finalAmountEl) {
+          finalAmountEl.textContent = "¥" + finalAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+      }
+
+      // 页面加载时初始化金额计算
+      window.addEventListener('DOMContentLoaded', function() {
+        // 初始化合计金额和优惠后总金额
+        updateTotalAmount();
+      });
+
+      // 点击模态框外部关闭
+      window.onclick = function (event) {
+        if (event.target.classList.contains("modal")) {
+          event.target.classList.remove("active");
+        }
+      };
+    </script>
+  </body>
+</html>

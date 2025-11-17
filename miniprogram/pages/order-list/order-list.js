@@ -1,7 +1,7 @@
 // pages/order-list/order-list.js
-const orderService = require('../../services/orderService.js');
-const authService = require('../../services/authService.js');
-const config = require('../../utils/config.js');
+const orderService = require("../../services/orderService.js");
+const authService = require("../../services/authService.js");
+const config = require("../../utils/config.js");
 
 Page({
   /**
@@ -21,7 +21,7 @@ Page({
     loading: false,
     hasMore: true,
     // 筛选条件
-    filters: {}
+    filters: {},
   },
 
   /**
@@ -35,13 +35,13 @@ Page({
     const headerPaddingTop = statusBarHeight * 2 + 30; // 1px = 2rpx (在375px宽度下)
     this.setData({
       statusBarHeight: statusBarHeight,
-      headerPaddingTop: headerPaddingTop
+      headerPaddingTop: headerPaddingTop,
     });
 
     // 检查登录状态
     if (!authService.isLoggedIn()) {
       wx.redirectTo({
-        url: '/pages/login/login'
+        url: "/pages/login/login",
       });
       return;
     }
@@ -51,10 +51,10 @@ Page({
       try {
         const filters = JSON.parse(decodeURIComponent(options.filters));
         this.setData({
-          filters: filters
+          filters: filters,
         });
       } catch (e) {
-        console.error('解析筛选条件失败:', e);
+        console.error("解析筛选条件失败:", e);
       }
     }
 
@@ -98,8 +98,8 @@ Page({
 
     if (!orderService) {
       wx.showToast({
-        title: '服务未加载，请重试',
-        icon: 'none'
+        title: "服务未加载，请重试",
+        icon: "none",
       });
       if (callback) callback();
       return;
@@ -111,7 +111,7 @@ Page({
     // 构建查询参数
     const params = {
       page: page,
-      page_size: this.data.pageSize
+      page_size: this.data.pageSize,
     };
 
     // 添加筛选条件
@@ -146,50 +146,55 @@ Page({
     if (filters.orderProgress && filters.orderProgress.length > 0) {
       params.order_progress = filters.orderProgress;
     }
+    // 订单状态详情（二级选择）
+    if (filters.orderStatusDetail && filters.orderStatusDetail.length > 0) {
+      params.order_status_detail = filters.orderStatusDetail;
+    }
 
     this.setData({
-      loading: true
+      loading: true,
     });
 
-    orderService.getOrderList(params)
+    orderService
+      .getOrderList(params)
       .then((res) => {
         // 处理订单列表，添加状态颜色和格式化字段
-        const items = res.items.map(item => {
+        const items = res.items.map((item) => {
           // 处理类目名称（可能是单个字符串或数组）
-          let categoryNames = '';
+          let categoryNames = "";
           if (item.category_names) {
-            categoryNames = Array.isArray(item.category_names) 
-              ? item.category_names.join(', ') 
+            categoryNames = Array.isArray(item.category_names)
+              ? item.category_names.join(", ")
               : item.category_names;
           } else if (item.category_name) {
             categoryNames = item.category_name;
           }
-          
+
           // 格式化金额
-          let formattedAmount = '';
+          let formattedAmount = "";
           if (item.order_amount) {
             formattedAmount = this.formatAmount(item.order_amount);
           }
-          
+
           return {
             ...item,
             statusColor: this.getStatusColor(item.order_status),
             category_names: categoryNames,
             // 确保拆单员和报价状态字段存在
-            splitter: item.splitter || '',
-            quote_status: item.quote_status || '',
-            formatted_amount: formattedAmount
+            splitter: item.splitter || "",
+            quote_status: item.quote_status || "",
+            formatted_amount: formattedAmount,
           };
         });
         const newList = refresh ? items : [...this.data.orderList, ...items];
-        
+
         this.setData({
           orderList: newList,
           page: res.page,
           total: res.total,
           totalPages: res.total_pages,
           hasMore: res.page < res.total_pages,
-          loading: false
+          loading: false,
         });
 
         if (callback) {
@@ -197,9 +202,9 @@ Page({
         }
       })
       .catch((err) => {
-        console.error('加载订单列表失败:', err);
+        console.error("加载订单列表失败:", err);
         this.setData({
-          loading: false
+          loading: false,
         });
         if (callback) {
           callback();
@@ -213,7 +218,7 @@ Page({
   loadMore() {
     if (this.data.hasMore) {
       this.setData({
-        page: this.data.page + 1
+        page: this.data.page + 1,
       });
       this.loadOrderList(false);
     }
@@ -225,7 +230,9 @@ Page({
   goToFilter() {
     const filters = this.data.filters;
     wx.redirectTo({
-      url: `/pages/filter/filter?params=${encodeURIComponent(JSON.stringify(filters))}`
+      url: `/pages/filter/filter?params=${encodeURIComponent(
+        JSON.stringify(filters)
+      )}`,
     });
   },
 
@@ -238,12 +245,12 @@ Page({
     // 使用订单编号跳转，因为新接口使用订单编号查询
     if (orderNumber) {
       wx.navigateTo({
-        url: `/pages/order-detail/order-detail?order_number=${orderNumber}`
+        url: `/pages/order-detail/order-detail?order_number=${orderNumber}`,
       });
     } else {
       // 兼容旧方式
       wx.navigateTo({
-        url: `/pages/order-detail/order-detail?id=${orderId}`
+        url: `/pages/order-detail/order-detail?id=${orderId}`,
       });
     }
   },
@@ -253,47 +260,47 @@ Page({
    * 根据订单进度前缀和具体状态返回不同颜色
    */
   getStatusColor(status) {
-    if (!status) return '#8c8c8c';
-    
+    if (!status) return "#8c8c8c";
+
     // 提取前缀和具体状态
-    let prefix = '';
+    let prefix = "";
     let statusText = status;
-    
-    if (status.includes('-')) {
-      const parts = status.split('-');
+
+    if (status.includes("-")) {
+      const parts = status.split("-");
       prefix = parts[0];
-      statusText = parts.slice(1).join('-'); // 处理可能包含多个-的情况
+      statusText = parts.slice(1).join("-"); // 处理可能包含多个-的情况
     }
-    
+
     // 根据前缀和具体状态返回颜色
-    if (prefix === '设计') {
-      if (statusText === '已下单') {
-        return '#59bf4d';
-      } else if (statusText === '暂停' || statusText === '撤销') {
-        return '#ea4f5b';
+    if (prefix === "设计") {
+      if (statusText === "已下单") {
+        return "#59bf4d";
+      } else if (statusText === "暂停" || statusText === "撤销") {
+        return "#ea4f5b";
       } else {
-        return '#3677e2';
+        return "#3677e2";
       }
-    } else if (prefix === '拆单') {
-      if (statusText === '已下单') {
-        return '#59bf4d';
-      } else if (statusText === '未开始') {
-        return '#8c8c8c';
-      } else if (statusText === '撤销中') {
-        return '#ea4f5b';
+    } else if (prefix === "拆单") {
+      if (statusText === "已下单") {
+        return "#59bf4d";
+      } else if (statusText === "未开始") {
+        return "#8c8c8c";
+      } else if (statusText === "撤销中") {
+        return "#ea4f5b";
       } else {
-        return '#0958d9';
+        return "#0958d9";
       }
-    } else if (prefix === '生产') {
-      if (statusText === '已完成') {
-        return '#389e0d';
+    } else if (prefix === "生产") {
+      if (statusText === "已完成") {
+        return "#389e0d";
       } else {
-        return '#0958d9';
+        return "#0958d9";
       }
     }
-    
+
     // 默认颜色（兼容旧状态格式）
-    return '#8c8c8c';
+    return "#8c8c8c";
   },
 
   /**
@@ -301,18 +308,25 @@ Page({
    * 添加千位分隔符，保留两位小数
    */
   formatAmount(amount) {
-    if (!amount && amount !== 0) return '';
-    
+    if (!amount && amount !== 0) return "";
+
     // 转换为数字
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
+    const num = typeof amount === "string" ? parseFloat(amount) : amount;
+
     // 检查是否为有效数字
-    if (isNaN(num)) return '';
-    
+    if (isNaN(num)) return "";
+
     // 格式化为带千位分隔符的字符串，保留两位小数
-    return num.toLocaleString('zh-CN', {
+    return num.toLocaleString("zh-CN", {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     });
-  }
+  },
+
+  /**
+   * 返回上一页
+   */
+  goBack() {
+    wx.navigateBack();
+  },
 });

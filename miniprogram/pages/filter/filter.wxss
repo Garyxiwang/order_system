@@ -187,17 +187,36 @@
 
 .picker-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24rpx 32rpx;
+  flex-direction: column;
+  padding: 20rpx 24rpx;
   border-bottom: 1rpx solid #e8ebf0;
   background: #fff;
+  gap: 16rpx;
 }
 
 .picker-title {
   font-size: 32rpx;
   font-weight: 600;
   color: #5b7fff;
+  width: 100%;
+}
+
+.picker-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12rpx;
+  width: 100%;
+}
+
+.select-all-btn {
+  font-size: 20rpx !important;
+  height: 40rpx !important;
+  line-height: 40rpx !important;
+  padding: 0 8rpx !important;
+  min-width: auto !important;
+  max-width: 100rpx !important;
+  white-space: nowrap !important;
 }
 
 .picker-content {

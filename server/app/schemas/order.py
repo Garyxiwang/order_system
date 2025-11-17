@@ -154,6 +154,8 @@ class OrderListQuery(BaseModel):
     planned_date_end: Optional[str] = Field(None, description="计划日期结束（设计过程中的计划日期）")
     # 新增：订单进度筛选（小程序使用）
     order_progress: Optional[List[str]] = Field(None, description="订单进度筛选（多选）：设计、拆单、生产，为空或包含全部时查询所有表并去重")
+    # 新增：订单状态详情筛选（小程序使用，根据订单进度筛选对应的状态）
+    order_status_detail: Optional[List[str]] = Field(None, description="订单状态详情筛选（多选）：根据订单进度筛选对应的状态列表")
 
 
 class OrderListResponse(BaseModel):

@@ -7,8 +7,8 @@
     <view class="header-content">
       <view class="header-left">
         <view class="header-title-wrapper">
-          <view class="list-title">
-            <van-icon name="arrow-left" bindtap="goBack" color="#fff" size="20px" style="margin-right: 8rpx;" />
+          <view class="list-title" bindtap="goBack">
+            <van-icon name="arrow-left" color="#fff" size="20px" style="margin-right: 8rpx;" />
             <text>订单详情</text>
           </view>
         </view>
@@ -159,23 +159,23 @@
           <view class="subsection-content {{ expandedSections.production_purchase ? 'expanded' : 'collapsed' }}">
             <view class="design-process-section">
               <view class="process-list">
-                  <view class="process-item" wx:for="{{ orderDetail.production_progress.progress_items }}" wx:key="index">
-                    <view class="process-task-name">{{ item.category_name || '-' }}</view>
-                    <view class="process-dates">
-                      <view class="date-item">
-                        <text class="date-label">计划：</text>
-                        <view class="date-badge planned">
-                          {{ item.item_type === 'internal' ? (item.expected_material_date || '-') : (item.expected_arrival_date || '-') }}
-                        </view>
+                <view class="process-item" wx:for="{{ orderDetail.production_progress.progress_items }}" wx:key="index">
+                  <view class="process-task-name">{{ item.category_name || '-' }}</view>
+                  <view class="process-dates">
+                    <view class="date-item">
+                      <text class="date-label">计划：</text>
+                      <view class="date-badge planned">
+                        {{ item.item_type === 'internal' ? (item.expected_material_date || '-') : (item.expected_arrival_date || '-') }}
                       </view>
-                      <view class="date-item">
-                        <text class="date-label">实际：</text>
-                        <view class="date-badge {{ (item.item_type === 'internal' ? (!item.actual_storage_date || item.actual_storage_date === '-') : (!item.actual_arrival_date || item.actual_arrival_date === '-')) ? 'actual-empty' : 'actual' }}">
-                          {{ item.item_type === 'internal' ? (item.actual_storage_date || '-') : (item.actual_arrival_date || '-') }}
-                        </view>
+                    </view>
+                    <view class="date-item">
+                      <text class="date-label">实际：</text>
+                      <view class="date-badge {{ (item.item_type === 'internal' ? (!item.actual_storage_date || item.actual_storage_date === '-') : (!item.actual_arrival_date || item.actual_arrival_date === '-')) ? 'actual-empty' : 'actual' }}">
+                        {{ item.item_type === 'internal' ? (item.actual_storage_date || '-') : (item.actual_arrival_date || '-') }}
                       </view>
                     </view>
                   </view>
+                </view>
               </view>
             </view>
           </view>

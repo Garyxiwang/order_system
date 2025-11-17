@@ -124,6 +124,37 @@ async def _get_orders_from_design(query_data: OrderListQuery, db: Session):
                     Order.category_name.like(f"%{category}%"))
             query = query.filter(or_(*category_conditions))
         
+        # 订单状态详情筛选（设计管理）
+        order_status_detail = getattr(query_data, 'order_status_detail', None)
+        if order_status_detail and len(order_status_detail) > 0:
+            # 定义设计管理的所有已知状态
+            design_statuses = [
+                "量尺", "初稿", "公司对方案", "线上对方案", "改图", "客户确认图",
+                "客户硬装阶段", "出内部结构图", "出下单图", "复尺", "报价", "打款", 
+                "下单", "暂停", "已下单", "已撤销", "其他"
+            ]
+            
+            # 检查是否包含"其他"状态
+            if "其他" in order_status_detail:
+                # 如果只选择了"其他"，则筛选出不在已定义状态中的订单
+                if len(order_status_detail) == 1:
+                    query = query.filter(
+                        ~Order.order_status.in_(design_statuses))
+                else:
+                    # 如果同时选择了"其他"和其他状态，则包含其他状态和不在已定义状态中的订单
+                    other_selected_statuses = [
+                        s for s in order_status_detail if s != "其他"]
+                    query = query.filter(
+                        or_(
+                            Order.order_status.in_(other_selected_statuses),
+                            ~Order.order_status.in_(design_statuses)
+                        )
+                    )
+            else:
+                # 如果没有选择"其他"，则按原逻辑筛选
+                query = query.filter(
+                    Order.order_status.in_(order_status_detail))
+        
         # 如果关联了拆单表，需要去重（因为一个订单可能对应多个拆单记录，虽然理论上应该只有一个）
         if need_join_split:
             query = query.distinct()
@@ -271,6 +302,35 @@ async def _get_orders_from_split(query_data: OrderListQuery, db: Session):
             ).distinct().subquery()
             query = query.filter(Split.id.in_(split_ids_with_categories))
         
+        # 订单状态详情筛选（拆单管理）
+        order_status_detail = getattr(query_data, 'order_status_detail', None)
+        if order_status_detail and len(order_status_detail) > 0:
+            # 定义拆单管理的所有已知状态
+            split_statuses = [
+                "未开始", "拆单中", "撤销中", "未审核", "已审核", "已下单"
+            ]
+            
+            # 检查是否包含"其他"状态
+            if "其他" in order_status_detail:
+                # 如果只选择了"其他"，则筛选出不在已定义状态中的订单
+                if len(order_status_detail) == 1:
+                    query = query.filter(
+                        ~Split.order_status.in_(split_statuses))
+                else:
+                    # 如果同时选择了"其他"和其他状态，则包含其他状态和不在已定义状态中的订单
+                    other_selected_statuses = [
+                        s for s in order_status_detail if s != "其他"]
+                    query = query.filter(
+                        or_(
+                            Split.order_status.in_(other_selected_statuses),
+                            ~Split.order_status.in_(split_statuses)
+                        )
+                    )
+            else:
+                # 如果没有选择"其他"，则按原逻辑筛选
+                query = query.filter(
+                    Split.order_status.in_(order_status_detail))
+        
         # 排序
         query = query.order_by(Split.order_date.desc(), Split.order_number.desc())
         
@@ -403,6 +463,35 @@ async def _get_orders_from_production(query_data: OrderListQuery, db: Session):
         elif need_join_split:
             # 如果关联了拆单表但没有关联ProductionProgress，也需要去重
             query = query.distinct()
+        
+        # 订单状态详情筛选（生产管理）
+        order_status_detail = getattr(query_data, 'order_status_detail', None)
+        if order_status_detail and len(order_status_detail) > 0:
+            # 定义生产管理的所有已知状态
+            production_statuses = [
+                "未齐料", "已齐料", "已下料", "已入库", "已发货", "已完成"
+            ]
+            
+            # 检查是否包含"其他"状态
+            if "其他" in order_status_detail:
+                # 如果只选择了"其他"，则筛选出不在已定义状态中的订单
+                if len(order_status_detail) == 1:
+                    query = query.filter(
+                        ~Production.order_status.in_(production_statuses))
+                else:
+                    # 如果同时选择了"其他"和其他状态，则包含其他状态和不在已定义状态中的订单
+                    other_selected_statuses = [
+                        s for s in order_status_detail if s != "其他"]
+                    query = query.filter(
+                        or_(
+                            Production.order_status.in_(other_selected_statuses),
+                            ~Production.order_status.in_(production_statuses)
+                        )
+                    )
+            else:
+                # 如果没有选择"其他"，则按原逻辑筛选
+                query = query.filter(
+                    Production.order_status.in_(order_status_detail))
         
         # 排序
         query = query.order_by(Production.expected_shipping_date.desc().nulls_last(), Production.order_number.desc())
