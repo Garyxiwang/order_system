@@ -40,6 +40,7 @@ interface CategoryLevel1FormValues {
 interface CategoryLevel2FormValues {
   parent_id: number;
   name: string;
+  pricing_unit?: string; // 计价单位：平方、米、个、套、项
   remark?: string;
 }
 
@@ -167,6 +168,7 @@ const QuotationConfigPage: React.FC = () => {
     level2Form.setFieldsValue({
       parent_id: category.parent_id,
       name: category.name,
+      pricing_unit: category.pricing_unit || "",
       remark: category.remark || "",
     });
     setLevel2ModalVisible(true);
@@ -591,6 +593,11 @@ const QuotationConfigPage: React.FC = () => {
                                   >
                                     <span className="flex-1">
                                       {level2.name}
+                                      {level2.pricing_unit && (
+                                        <span className="ml-2 text-gray-500 text-sm">
+                                          ({level2.pricing_unit})
+                                        </span>
+                                      )}
                                     </span>
                                     <Space>
                                       <Button
@@ -763,6 +770,24 @@ const QuotationConfigPage: React.FC = () => {
           >
             <Input placeholder="请输入二级类目名称，如：高柜、吊柜" />
           </Form.Item>
+          <Form.Item
+            name="pricing_unit"
+            label="计价单位"
+            rules={[{ required: true, message: "请选择计价单位" }]}
+          >
+            <Select placeholder="请选择计价单位">
+              <Option value="平方">平方</Option>
+              <Option value="平米">平米</Option>
+              <Option value="米">米</Option>
+              <Option value="个">个</Option>
+              <Option value="套">套</Option>
+              <Option value="根">根</Option>
+              <Option value="付">付</Option>
+              <Option value="扇">扇</Option>
+              <Option value="樘">樘</Option>
+              <Option value="块">块</Option>
+            </Select>
+          </Form.Item>
           <Form.Item name="remark" label="备注">
             <TextArea rows={3} placeholder="请输入备注信息" />
           </Form.Item>
@@ -816,20 +841,14 @@ const QuotationConfigPage: React.FC = () => {
             label="经销商单价"
             rules={[{ required: true, message: "请输入基材名称" }]}
           >
-            <Input
-              style={{ width: "100%" }}
-              placeholder="请输入经销商价格"
-            />
+            <Input style={{ width: "100%" }} placeholder="请输入经销商价格" />
           </Form.Item>
           <Form.Item
             name="owner_price"
             label="业主单价"
             rules={[{ required: true, message: "请输入基材名称" }]}
           >
-            <Input
-              style={{ width: "100%" }}
-              placeholder="请输入业主价格"
-            />
+            <Input style={{ width: "100%" }} placeholder="请输入业主价格" />
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <TextArea rows={3} placeholder="请输入备注信息" />

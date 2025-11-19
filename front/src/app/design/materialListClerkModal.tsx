@@ -1,0 +1,901 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import {
+  Modal,
+  Input,
+  Select,
+  Button,
+  Space,
+  message,
+  Row,
+  Col,
+  Divider,
+  InputNumber,
+  Spin,
+  Table,
+  DatePicker,
+  Card,
+} from "antd";
+import dayjs from "dayjs";
+import type { ColumnsType } from "antd/es/table";
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  CheckOutlined,
+  CloseOutlined,
+} from "@ant-design/icons";
+import type { DesignOrder } from "../../services/designApi";
+import MaterialListService, {
+  MaterialListItem,
+  QuotationCategory,
+} from "../../services/materialListService";
+import {
+  QuotationConfigService,
+  QuotationCategoryTree,
+  MaterialData,
+  ColorData,
+} from "../../services/quotationConfigService";
+
+const { Option } = Select;
+
+interface MaterialListClerkModalProps {
+  visible: boolean;
+  onCancel: () => void;
+  order: DesignOrder | null;
+  onSuccess?: () => void;
+}
+
+interface TableRowData extends QuotationCategory {
+  key: React.Key;
+  project_name: string;
+  editing?: boolean;
+}
+
+const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
+  visible,
+  onCancel,
+  order,
+  onSuccess,
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [materialList, setMaterialList] = useState<MaterialListItem | null>(
+    null
+  );
+  const [tableData, setTableData] = useState<TableRowData[]>([]);
+  const [categoryTree, setCategoryTree] = useState<QuotationCategoryTree[]>([]);
+  const [materials, setMaterials] = useState<MaterialData[]>([]);
+  const [colors, setColors] = useState<ColorData[]>([]);
+  const [quotationType, setQuotationType] = useState<"dealer" | "owner">(
+    "dealer"
+  );
+  const [editingKey, setEditingKey] = useState<React.Key | null>(null);
+  const [customerPhone, setCustomerPhone] = useState<string>("");
+  const [quotationDate, setQuotationDate] = useState<string>("");
+
+  // 加载物料清单数据
+  useEffect(() => {
+    if (visible && order) {
+      const loadData = async () => {
+        await loadMaterialListData();
+        await loadConfigData();
+      };
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, order]);
+
+  const loadMaterialListData = async () => {
+    if (!order) return;
+    try {
+      setLoading(true);
+      const materialListData = await MaterialListService.getMaterialListByOrder(
+        order.order_number
+      );
+      if (materialListData) {
+        setMaterialList(materialListData);
+        setQuotationType(materialListData.quotation_type || "dealer");
+
+        const detail = await MaterialListService.getMaterialListDetail(
+          materialListData.id
+        );
+
+        // 转换为表格数据格式
+        const data: TableRowData[] = [];
+        detail.projects.forEach((project) => {
+          detail.categories
+            .filter((c) => c.project_id === project.id)
+            .forEach((category) => {
+              data.push({
+                ...category,
+                key: category.id,
+                project_name: project.name,
+                editing: false,
+              });
+            });
+        });
+        setTableData(data);
+      } else {
+        setMaterialList(null);
+        setTableData([]);
+      }
+    } catch (error) {
+      console.error("加载物料清单失败:", error);
+      message.error("加载物料清单失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadConfigData = async () => {
+    try {
+      const [treeData, materialData, colorData] = await Promise.all([
+        QuotationConfigService.getCategoryTree(),
+        QuotationConfigService.getMaterialList(),
+        QuotationConfigService.getColorList(),
+      ]);
+      setCategoryTree(treeData);
+      setMaterials(materialData);
+      setColors(colorData);
+    } catch (error) {
+      console.error("加载配置数据失败:", error);
+    }
+  };
+
+  // 选择报价类型后自动填充单价
+  const handleQuotationTypeChange = async (type: "dealer" | "owner") => {
+    if (!materialList) return;
+    setQuotationType(type);
+
+    try {
+      setLoading(true);
+      // 使用服务方法计算报价
+      const calculatedCategories = await MaterialListService.calculateQuotation(
+        materialList.id,
+        type
+      );
+
+      // 更新表格数据
+      setTableData((prev) =>
+        prev.map((row) => {
+          const calculated = calculatedCategories.find((c) => c.id === row.id);
+          if (calculated) {
+            return {
+              ...row,
+              unit_price: calculated.unit_price,
+              total_price: calculated.total_price,
+            };
+          }
+          return row;
+        })
+      );
+
+      // 保存到服务器
+      await saveTableData(type);
+
+      message.success("单价已自动填充并保存");
+    } catch (error) {
+      console.error("计算报价失败:", error);
+      message.error("计算报价失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 保存表格数据到服务器
+  const saveTableData = async (type?: "dealer" | "owner") => {
+    if (!materialList) return;
+
+    // 按项目分组
+    const projectMap = new Map<string, TableRowData[]>();
+    tableData.forEach((row) => {
+      if (!projectMap.has(row.project_name)) {
+        projectMap.set(row.project_name, []);
+      }
+      projectMap.get(row.project_name)!.push(row);
+    });
+
+    const categoryData = tableData.map((row) => {
+      const projectIndex = Array.from(projectMap.keys()).indexOf(
+        row.project_name
+      );
+      return {
+        name: row.project_name,
+        sort_order: projectIndex,
+        level1_category_id: row.level1_category_id,
+        level1_category_name: row.level1_category_name,
+        level2_category_id: row.level2_category_id,
+        level2_category_name: row.level2_category_name,
+        height: row.height,
+        width: row.width,
+        quantity: row.quantity,
+        unit: row.unit,
+        material_id: row.material_id,
+        material_name: row.material_name,
+        color_id: row.color_id,
+        color_name: row.color_name,
+        remark: row.remark,
+        unit_price: row.unit_price,
+        total_price: row.total_price,
+      };
+    });
+
+    await MaterialListService.updateMaterialList(materialList.id, {
+      quotation_type: type || quotationType,
+      categories: categoryData,
+    });
+  };
+
+  // 开始编辑
+  const handleStartEdit = (key: React.Key) => {
+    setEditingKey(key);
+  };
+
+  // 取消编辑
+  const handleCancelEdit = async () => {
+    if (!materialList) return;
+    try {
+      // 重新加载数据以恢复原始值
+      await loadMaterialListData();
+      setEditingKey(null);
+    } catch (error) {
+      console.error("取消编辑失败:", error);
+      message.error("取消编辑失败");
+    }
+  };
+
+  // 保存编辑
+  const handleSaveEdit = async () => {
+    if (!materialList || !editingKey) return;
+    try {
+      setLoading(true);
+      await saveTableData();
+      setEditingKey(null);
+      message.success("保存成功");
+    } catch (error) {
+      console.error("保存失败:", error);
+      message.error("保存失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 删除行
+  const handleDelete = async (key: React.Key) => {
+    if (!materialList) return;
+    try {
+      setLoading(true);
+      const newData = tableData.filter((row) => row.key !== key);
+      setTableData(newData);
+      await saveTableData();
+      message.success("删除成功");
+    } catch (error) {
+      console.error("删除失败:", error);
+      message.error("删除失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 根据基材和报价类型自动填充单价（用于新增类目时）
+  const autoFillUnitPrice = (materialId: number | undefined) => {
+    if (!materialId || !materialList) return undefined;
+    const material = materials.find((m) => m.id === materialId);
+    if (material) {
+      const price =
+        quotationType === "dealer"
+          ? material.dealer_price
+          : material.owner_price;
+      return price;
+    }
+    return undefined;
+  };
+
+  // 添加新行
+  const handleAdd = () => {
+    const newRow: TableRowData = {
+      id: Date.now(), // 临时ID
+      key: Date.now(),
+      project_id: 0,
+      project_name: "",
+      level1_category_id: 0,
+      level1_category_name: "",
+      level2_category_id: 0,
+      level2_category_name: "",
+      quantity: 0,
+      unit: "",
+      editing: true,
+    };
+    setTableData([...tableData, newRow]);
+    setEditingKey(newRow.key);
+  };
+
+  // 更新行数据
+  const updateRowData = (
+    key: React.Key,
+    field: string,
+    value: string | number | undefined
+  ) => {
+    setTableData((prev) =>
+      prev.map((row) => {
+        if (row.key === key) {
+          const updated = { ...row, [field]: value };
+          // 自动计算合计
+          if (field === "quantity" || field === "unit_price") {
+            const quantity =
+              field === "quantity"
+                ? typeof value === "number"
+                  ? value
+                  : 0
+                : updated.quantity || 0;
+            const unitPrice =
+              field === "unit_price"
+                ? typeof value === "number"
+                  ? value
+                  : 0
+                : updated.unit_price || 0;
+            updated.total_price = quantity * unitPrice;
+          }
+          // 选择二级类目时自动带出计价单位和单价
+          if (field === "level2_category_id") {
+            const level1 = categoryTree.find(
+              (t) => t.level1.id === updated.level1_category_id
+            );
+            const level2 = level1?.level2.find((l2) => l2.id === value);
+            if (level2) {
+              updated.level2_category_name = level2.name;
+              updated.unit = level2.pricing_unit || "";
+              
+              // 自动填充单价（根据报价类型和基材）
+              if (updated.material_id && materialList) {
+                const unitPrice = autoFillUnitPrice(updated.material_id);
+                if (unitPrice !== undefined) {
+                  updated.unit_price = unitPrice;
+                  // 计算合计
+                  const quantity = updated.quantity || 0;
+                  updated.total_price = quantity * unitPrice;
+                }
+              }
+            }
+          }
+          // 选择基材时，如果已有二级类目，自动填充单价
+          if (field === "material_id") {
+            const material = materials.find((m) => m.id === value);
+            if (material) {
+              updated.material_name = material.name;
+              // 如果已有二级类目，自动填充单价
+              if (updated.level2_category_id && materialList) {
+                const unitPrice = autoFillUnitPrice(value as number);
+                if (unitPrice !== undefined) {
+                  updated.unit_price = unitPrice;
+                  // 计算合计
+                  const quantity = updated.quantity || 0;
+                  updated.total_price = quantity * unitPrice;
+                }
+              }
+            }
+          }
+          // 选择一级类目时清空二级类目
+          if (field === "level1_category_id") {
+            const level1 = categoryTree.find((t) => t.level1.id === value);
+            if (level1) {
+              updated.level1_category_name = level1.level1.name;
+              updated.level2_category_id = 0;
+              updated.level2_category_name = "";
+              updated.unit = "";
+            }
+          }
+          // 选择颜色时更新名称
+          if (field === "color_id") {
+            const color = colors.find((c) => c.id === value);
+            if (color) {
+              updated.color_name = color.name;
+            }
+          }
+          return updated;
+        }
+        return row;
+      })
+    );
+  };
+
+  // 保存（不提交修订）
+  const handleSave = async () => {
+    if (!materialList) return;
+    try {
+      setLoading(true);
+      await saveTableData();
+      message.success("保存成功");
+      onSuccess?.();
+    } catch (error) {
+      console.error("保存失败:", error);
+      message.error("保存失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 修订
+  const handleRevise = async () => {
+    if (!materialList) return;
+    try {
+      setLoading(true);
+      await saveTableData();
+      await MaterialListService.reviseMaterialList(materialList.id);
+      message.success("已提交修订");
+      onSuccess?.();
+      onCancel();
+    } catch (error) {
+      console.error("修订失败:", error);
+      message.error("修订失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 报价完成
+  const handleComplete = async () => {
+    if (!materialList) return;
+    try {
+      setLoading(true);
+      await saveTableData();
+      await MaterialListService.completeQuotation(materialList.id);
+      message.success("报价完成");
+      onSuccess?.();
+      onCancel();
+    } catch (error) {
+      console.error("报价完成失败:", error);
+      message.error("报价完成失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 表格列定义
+  const columns: ColumnsType<TableRowData> = [
+    {
+      title: "项目名称",
+      dataIndex: "project_name",
+      key: "project_name",
+      width: 120,
+      render: (text: string, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <Input
+              value={text}
+              onChange={(e) =>
+                updateRowData(record.key, "project_name", e.target.value)
+              }
+              placeholder="项目名称"
+            />
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "一级类目",
+      dataIndex: "level1_category_name",
+      key: "level1_category_name",
+      width: 120,
+      render: (text: string, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <Select
+              value={record.level1_category_id || undefined}
+              onChange={(value) =>
+                updateRowData(record.key, "level1_category_id", value)
+              }
+              placeholder="一级类目"
+              style={{ width: "100%" }}
+            >
+              {categoryTree.map((tree) => (
+                <Option key={tree.level1.id} value={tree.level1.id}>
+                  {tree.level1.name}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "二级类目",
+      dataIndex: "level2_category_name",
+      key: "level2_category_name",
+      width: 120,
+      render: (text: string, record: TableRowData) => {
+        if (editingKey === record.key) {
+          const level1 = categoryTree.find(
+            (t) => t.level1.id === record.level1_category_id
+          );
+          return (
+            <Select
+              value={record.level2_category_id || undefined}
+              onChange={(value) =>
+                updateRowData(record.key, "level2_category_id", value)
+              }
+              placeholder="二级类目"
+              style={{ width: "100%" }}
+            >
+              {level1?.level2.map((l2) => (
+                <Option key={l2.id} value={l2.id}>
+                  {l2.name}
+                </Option>
+              )) || []}
+            </Select>
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "高(mm)",
+      dataIndex: "height",
+      key: "height",
+      width: 100,
+      render: (text: number | undefined, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <InputNumber
+              value={text}
+              onChange={(value) =>
+                updateRowData(record.key, "height", value ?? undefined)
+              }
+              placeholder="高"
+              style={{ width: "100%" }}
+            />
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "宽(mm)",
+      dataIndex: "width",
+      key: "width",
+      width: 100,
+      render: (text: number | undefined, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <InputNumber
+              value={text}
+              onChange={(value) =>
+                updateRowData(record.key, "width", value ?? undefined)
+              }
+              placeholder="宽"
+              style={{ width: "100%" }}
+            />
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "数量",
+      dataIndex: "quantity",
+      key: "quantity",
+      width: 100,
+      render: (text: number, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <InputNumber
+              value={text}
+              onChange={(value) =>
+                updateRowData(record.key, "quantity", value ?? 0)
+              }
+              placeholder="数量"
+              style={{ width: "100%" }}
+              min={0}
+            />
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "单位",
+      dataIndex: "unit",
+      key: "unit",
+      width: 80,
+      render: (text: string, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <Input
+              value={text}
+              disabled
+              style={{ backgroundColor: "#f5f5f5" }}
+            />
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "基材",
+      dataIndex: "material_name",
+      key: "material_name",
+      width: 120,
+      render: (text: string, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <Select
+              value={record.material_id || undefined}
+              onChange={(value) =>
+                updateRowData(record.key, "material_id", value)
+              }
+              placeholder="基材"
+              style={{ width: "100%" }}
+              allowClear
+            >
+              {materials.map((material) => (
+                <Option key={material.id} value={material.id}>
+                  {material.name}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "颜色",
+      dataIndex: "color_name",
+      key: "color_name",
+      width: 120,
+      render: (text: string, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <Select
+              value={record.color_id || undefined}
+              onChange={(value) => updateRowData(record.key, "color_id", value)}
+              placeholder="颜色"
+              style={{ width: "100%" }}
+              allowClear
+            >
+              {colors.map((color) => (
+                <Option key={color.id} value={color.id}>
+                  {color.name}
+                </Option>
+              ))}
+            </Select>
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "单价",
+      dataIndex: "unit_price",
+      key: "unit_price",
+      width: 120,
+      render: (text: number | undefined, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <InputNumber
+              value={text}
+              onChange={(value) =>
+                updateRowData(record.key, "unit_price", value ?? undefined)
+              }
+              placeholder="单价"
+              style={{ width: "100%" }}
+              precision={2}
+              min={0}
+            />
+          );
+        }
+        return text ? `¥${text.toFixed(2)}` : "-";
+      },
+    },
+    {
+      title: "合计",
+      dataIndex: "total_price",
+      key: "total_price",
+      width: 120,
+      render: (text: number | undefined) => {
+        return text ? `¥${text.toFixed(2)}` : "-";
+      },
+    },
+    {
+      title: "备注",
+      dataIndex: "remark",
+      key: "remark",
+      width: 120,
+      render: (text: string, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <Input
+              value={text}
+              onChange={(e) =>
+                updateRowData(record.key, "remark", e.target.value)
+              }
+              placeholder="备注"
+            />
+          );
+        }
+        return text || "-";
+      },
+    },
+    {
+      title: "操作",
+      key: "action",
+      width: 150,
+      fixed: "right",
+      render: (_: unknown, record: TableRowData) => {
+        if (editingKey === record.key) {
+          return (
+            <Space>
+              <Button
+                type="link"
+                size="small"
+                icon={<CheckOutlined />}
+                onClick={handleSaveEdit}
+                loading={loading}
+              >
+                保存
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={handleCancelEdit}
+              >
+                取消
+              </Button>
+            </Space>
+          );
+        }
+        return (
+          <Space>
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleStartEdit(record.key)}
+            >
+              编辑
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.key)}
+            >
+              删除
+            </Button>
+          </Space>
+        );
+      },
+    },
+  ];
+
+  return (
+    <Modal
+      title={`物料清单报价 - ${order?.order_number || ""}`}
+      open={visible}
+      onCancel={onCancel}
+      width={1800}
+      footer={null}
+      destroyOnClose
+    >
+      <Spin spinning={loading}>
+        {/* 基本信息展示区域 */}
+        <Card title="基本信息" style={{ marginBottom: 16 }}>
+          <Row gutter={24}>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>客户名称：</span>
+                <span>{order?.customer_name || "-"}</span>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>客户电话：</span>
+                <Input
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="请输入客户电话"
+                  style={{ width: 200 }}
+                />
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>客户地址：</span>
+                <span>{order?.address || "-"}</span>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>销售员：</span>
+                <span>{order?.salesperson || "-"}</span>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>设计师：</span>
+                <span>{order?.designer || "-"}</span>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>报价日期：</span>
+                <DatePicker
+                  value={quotationDate ? dayjs(quotationDate) : null}
+                  onChange={(date) =>
+                    setQuotationDate(date ? date.format("YYYY-MM-DD") : "")
+                  }
+                  placeholder="请选择报价日期"
+                  style={{ width: 200 }}
+                  format="YYYY-MM-DD"
+                />
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>订单编号：</span>
+                <span>{order?.order_number || "-"}</span>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>报价类型：</span>
+                <Select
+                  value={quotationType}
+                  onChange={handleQuotationTypeChange}
+                  style={{ width: 200 }}
+                >
+                  <Option value="dealer">经销商</Option>
+                  <Option value="owner">业主</Option>
+                </Select>
+              </div>
+            </Col>
+          </Row>
+        </Card>
+
+        <div style={{ marginBottom: 16, textAlign: "left" }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleAdd}
+          >
+            添加类目
+          </Button>
+        </div>
+
+        <Divider />
+
+        <Table
+          columns={columns}
+          dataSource={tableData}
+          pagination={false}
+          scroll={{ x: "max-content" }}
+          rowKey="key"
+        />
+
+        <Divider />
+
+        <div style={{ textAlign: "right" }}>
+          <Space>
+            <Button onClick={onCancel}>取消</Button>
+            <Button type="primary" onClick={handleSave} loading={loading}>
+              保存
+            </Button>
+            <Button danger onClick={handleRevise} loading={loading}>
+              修订
+            </Button>
+            <Button type="primary" onClick={handleComplete} loading={loading}>
+              报价完成
+            </Button>
+          </Space>
+        </div>
+      </Spin>
+    </Modal>
+  );
+};
+
+export default MaterialListClerkModal;

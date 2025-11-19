@@ -9,7 +9,6 @@ import {
   Button,
   Space,
   message,
-  InputNumber,
   Card,
   Row,
   Col,
@@ -46,9 +45,9 @@ interface CategoryFormData {
   level1_category_name: string;
   level2_category_id: number;
   level2_category_name: string;
-  height?: number;
-  width?: number;
-  quantity: number;
+  height?: number | string; // 可能是字符串（Input）或数字（InputNumber）
+  width?: number | string; // 可能是字符串（Input）或数字（InputNumber）
+  quantity: number | string; // 可能是字符串（Input）或数字（InputNumber）
   unit: string;
   material_id?: number;
   material_name?: string;
@@ -159,6 +158,8 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
         }));
 
       const categoryData: Array<{
+        name?: string; // 项目名称，用于匹配项目
+        sort_order?: number; // 项目索引，用于匹配项目
         level1_category_id: number;
         level1_category_name: string;
         level2_category_id: number;
@@ -173,18 +174,31 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
         color_name?: string;
         remark?: string;
       }> = [];
-      values.projects.forEach((project) => {
+      values.projects.forEach((project, projectIndex) => {
         if (!project.name) return;
         project.categories?.forEach((category) => {
           if (category.level1_category_id && category.level2_category_id) {
+            // 转换数据类型：height, width, quantity 从字符串转为数字
+            const height = category.height 
+              ? (typeof category.height === 'string' ? parseFloat(category.height) || undefined : category.height)
+              : undefined;
+            const width = category.width 
+              ? (typeof category.width === 'string' ? parseFloat(category.width) || undefined : category.width)
+              : undefined;
+            const quantity = category.quantity 
+              ? (typeof category.quantity === 'string' ? parseFloat(category.quantity) || 0 : category.quantity)
+              : 0;
+            
             categoryData.push({
+              name: project.name, // 添加项目名称用于匹配
+              sort_order: projectIndex, // 添加项目索引用于匹配
               level1_category_id: category.level1_category_id,
               level1_category_name: category.level1_category_name,
               level2_category_id: category.level2_category_id,
               level2_category_name: category.level2_category_name,
-              height: category.height,
-              width: category.width,
-              quantity: category.quantity || 0,
+              height: height,
+              width: width,
+              quantity: quantity,
               unit: category.unit || "平方",
               material_id: category.material_id,
               material_name: category.material_name,
@@ -414,6 +428,7 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                                                     undefined,
                                                                   level2_category_name:
                                                                     undefined,
+                                                                  unit: undefined, // 清空单位
                                                                 };
                                                               }
                                                               return c;
@@ -471,6 +486,7 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                             (l2) => l2.id === value
                                           );
                                           if (level2) {
+                                            // 自动设置计价单位
                                             form.setFieldsValue({
                                               projects: form
                                                 .getFieldValue("projects")
@@ -495,6 +511,9 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                                                     value,
                                                                   level2_category_name:
                                                                     level2.name,
+                                                                  unit:
+                                                                    level2.pricing_unit ||
+                                                                    "",
                                                                 };
                                                               }
                                                               return c;
@@ -536,7 +555,7 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                       name={[categoryField.name, "height"]}
                                       style={{ marginBottom: 0 }}
                                     >
-                                      <InputNumber
+                                      <Input
                                         style={{ width: "100%" }}
                                         placeholder="高(mm)"
                                         disabled={isReadOnly}
@@ -548,7 +567,7 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                       name={[categoryField.name, "width"]}
                                       style={{ marginBottom: 0 }}
                                     >
-                                      <InputNumber
+                                      <Input
                                         style={{ width: "100%" }}
                                         placeholder="宽(mm)"
                                         disabled={isReadOnly}
@@ -566,10 +585,8 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                       ]}
                                       style={{ marginBottom: 0 }}
                                     >
-                                      <InputNumber
+                                      <Input
                                         style={{ width: "100%" }}
-                                        step={0.01}
-                                        min={0}
                                         placeholder="数量"
                                         disabled={isReadOnly}
                                       />
@@ -586,16 +603,11 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                       ]}
                                       style={{ marginBottom: 0 }}
                                     >
-                                      <Select
+                                      <Input
                                         placeholder="单位"
-                                        disabled={isReadOnly}
-                                      >
-                                        <Option value="平方">平方</Option>
-                                        <Option value="米">米</Option>
-                                        <Option value="个">个</Option>
-                                        <Option value="套">套</Option>
-                                        <Option value="项">项</Option>
-                                      </Select>
+                                        disabled={true}
+                                        style={{ backgroundColor: "#f5f5f5" }}
+                                      ></Input>
                                     </Form.Item>
                                   </Col>
                                   <Col span={3}>

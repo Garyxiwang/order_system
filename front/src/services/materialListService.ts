@@ -44,7 +44,10 @@ export interface QuotationCategory {
 export interface CreateMaterialListData {
   order_number: string;
   projects: Omit<QuotationProject, 'id' | 'material_list_id'>[];
-  categories: Omit<QuotationCategory, 'id' | 'project_id'>[];
+  categories: Array<Omit<QuotationCategory, 'id' | 'project_id'> & {
+    name?: string; // 项目名称，用于匹配项目
+    sort_order?: number; // 项目索引，用于匹配项目
+  }>;
 }
 
 // 更新物料清单请求数据
@@ -52,7 +55,10 @@ export interface UpdateMaterialListData {
   status?: 'not_started' | 'in_progress' | 'revision' | 'submitted';
   quotation_type?: 'dealer' | 'owner';
   projects?: Omit<QuotationProject, 'id' | 'material_list_id'>[];
-  categories?: Omit<QuotationCategory, 'id' | 'project_id'>[];
+  categories?: Array<Omit<QuotationCategory, 'id' | 'project_id'> & {
+    name?: string; // 项目名称，用于匹配项目
+    sort_order?: number; // 项目索引，用于匹配项目
+  }>;
 }
 
 // ========== Mock 数据存储 ==========
@@ -182,37 +188,72 @@ export class MaterialListService {
     }
 
     if (data.categories) {
-      // 删除旧类目
-      const oldProjects = mockProjects.filter(p => p.material_list_id === id);
-      const oldProjectIds = oldProjects.map(p => p.id);
-      mockCategories = mockCategories.filter(c => !oldProjectIds.includes(c.project_id));
-      
-      // 添加新类目
+      // 获取当前项目的类目
       const currentProjects = mockProjects.filter(p => p.material_list_id === id);
-      const newCategories = data.categories.map(category => {
+      const oldProjectIds = currentProjects.map(p => p.id);
+      const existingCategories = mockCategories.filter(c => oldProjectIds.includes(c.project_id));
+      
+      // 更新现有类目或创建新类目
+      data.categories.forEach(category => {
         const project = currentProjects.find(p => p.name === category.name || p.sort_order === category.sort_order);
         if (!project) {
           throw new Error('项目不存在');
         }
-        return {
-          id: nextCategoryId++,
-          project_id: project.id,
-          level1_category_id: category.level1_category_id,
-          level1_category_name: category.level1_category_name,
-          level2_category_id: category.level2_category_id,
-          level2_category_name: category.level2_category_name,
-          height: category.height,
-          width: category.width,
-          quantity: category.quantity,
-          unit: category.unit,
-          material_id: category.material_id,
-          material_name: category.material_name,
-          color_id: category.color_id,
-          color_name: category.color_name,
-          remark: category.remark,
-        };
+        
+        // 查找是否已存在相同的类目（通过项目ID、一级类目ID、二级类目ID匹配）
+        const existingCategory = existingCategories.find(
+          c => c.project_id === project.id &&
+               c.level1_category_id === category.level1_category_id &&
+               c.level2_category_id === category.level2_category_id
+        );
+        
+        if (existingCategory) {
+          // 更新现有类目
+          const index = mockCategories.findIndex(c => c.id === existingCategory.id);
+          if (index !== -1) {
+            mockCategories[index] = {
+              ...mockCategories[index],
+              level1_category_name: category.level1_category_name,
+              level2_category_name: category.level2_category_name,
+              height: category.height,
+              width: category.width,
+              quantity: category.quantity,
+              unit: category.unit,
+              material_id: category.material_id,
+              material_name: category.material_name,
+              color_id: category.color_id,
+              color_name: category.color_name,
+              remark: category.remark,
+              unit_price: category.unit_price,
+              total_price: category.total_price,
+            };
+          }
+        } else {
+          // 创建新类目
+          mockCategories.push({
+            id: nextCategoryId++,
+            project_id: project.id,
+            level1_category_id: category.level1_category_id,
+            level1_category_name: category.level1_category_name,
+            level2_category_id: category.level2_category_id,
+            level2_category_name: category.level2_category_name,
+            height: category.height,
+            width: category.width,
+            quantity: category.quantity,
+            unit: category.unit,
+            material_id: category.material_id,
+            material_name: category.material_name,
+            color_id: category.color_id,
+            color_name: category.color_name,
+            remark: category.remark,
+            unit_price: category.unit_price,
+            total_price: category.total_price,
+          });
+        }
       });
-      mockCategories.push(...newCategories);
+      
+      // 删除不在更新列表中的类目（如果更新列表包含所有类目，则不会删除）
+      // 这里我们保留所有现有类目，只更新匹配的类目
     }
 
     return updated;

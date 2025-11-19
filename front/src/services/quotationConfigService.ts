@@ -11,6 +11,7 @@ export interface QuotationCategoryLevel2 {
   id: number;
   name: string;
   parent_id: number;
+  pricing_unit?: string; // 计价单位：平方、米、个、套、项
   remark?: string;
   created_at?: string;
   updated_at?: string;
@@ -31,6 +32,7 @@ export interface CreateCategoryLevel1Data {
 export interface CreateCategoryLevel2Data {
   name: string;
   parent_id: number;
+  pricing_unit?: string; // 计价单位：平方、米、个、套、项
   remark?: string;
 }
 
@@ -87,7 +89,7 @@ export interface UpdateColorData {
 
 // ========== Mock 数据存储 ==========
 // 使用内存存储模拟数据库，刷新页面会重置
-let mockCategoryLevel1: QuotationCategoryLevel1[] = [
+const mockCategoryLevel1: QuotationCategoryLevel1[] = [
   { id: 1, name: '柜体', remark: '', created_at: new Date().toISOString() },
   { id: 2, name: '墙板', remark: '', created_at: new Date().toISOString() },
   { id: 3, name: '灯带', remark: '', created_at: new Date().toISOString() },
@@ -95,25 +97,25 @@ let mockCategoryLevel1: QuotationCategoryLevel1[] = [
 ];
 
 let mockCategoryLevel2: QuotationCategoryLevel2[] = [
-  { id: 1, name: '高柜', parent_id: 1, remark: '', created_at: new Date().toISOString() },
-  { id: 2, name: '吊柜', parent_id: 1, remark: '', created_at: new Date().toISOString() },
-  { id: 3, name: '地柜', parent_id: 1, remark: '', created_at: new Date().toISOString() },
-  { id: 4, name: '背景墙', parent_id: 2, remark: '', created_at: new Date().toISOString() },
-  { id: 5, name: '中性光', parent_id: 3, remark: '', created_at: new Date().toISOString() },
-  { id: 6, name: '白光', parent_id: 3, remark: '', created_at: new Date().toISOString() },
-  { id: 7, name: '暖光', parent_id: 3, remark: '', created_at: new Date().toISOString() },
-  { id: 8, name: '烤漆牛角拉手', parent_id: 4, remark: '', created_at: new Date().toISOString() },
-  { id: 9, name: '型材通体拉手', parent_id: 4, remark: '', created_at: new Date().toISOString() },
+  { id: 1, name: '高柜', parent_id: 1, pricing_unit: '平方', remark: '', created_at: new Date().toISOString() },
+  { id: 2, name: '吊柜', parent_id: 1, pricing_unit: '平方', remark: '', created_at: new Date().toISOString() },
+  { id: 3, name: '地柜', parent_id: 1, pricing_unit: '平方', remark: '', created_at: new Date().toISOString() },
+  { id: 4, name: '背景墙', parent_id: 2, pricing_unit: '米', remark: '', created_at: new Date().toISOString() },
+  { id: 5, name: '中性光', parent_id: 3, pricing_unit: '米', remark: '', created_at: new Date().toISOString() },
+  { id: 6, name: '白光', parent_id: 3, pricing_unit: '米', remark: '', created_at: new Date().toISOString() },
+  { id: 7, name: '暖光', parent_id: 3, pricing_unit: '米', remark: '', created_at: new Date().toISOString() },
+  { id: 8, name: '烤漆牛角拉手', parent_id: 4, pricing_unit: '个', remark: '', created_at: new Date().toISOString() },
+  { id: 9, name: '型材通体拉手', parent_id: 4, pricing_unit: '个', remark: '', created_at: new Date().toISOString() },
 ];
 
-let mockMaterials: MaterialData[] = [
+const mockMaterials: MaterialData[] = [
   { id: 1, name: '特级橡木', remark: '', dealer_price: 280, owner_price: 320, created_at: new Date().toISOString() },
   { id: 2, name: 'PET欧松板', remark: '', dealer_price: 300, owner_price: 350, created_at: new Date().toISOString() },
   { id: 3, name: '09颗粒', remark: '背板材质', dealer_price: 180, owner_price: 220, created_at: new Date().toISOString() },
   { id: 4, name: '石英石', remark: '台面材质', dealer_price: 450, owner_price: 550, created_at: new Date().toISOString() },
 ];
 
-let mockColors: ColorData[] = [
+const mockColors: ColorData[] = [
   { id: 1, name: 'TB-9009', color_code: '#F5F5DC', remark: '', created_at: new Date().toISOString() },
   { id: 2, name: '婷兰灰肤感', color_code: '#E8E8E8', remark: '', created_at: new Date().toISOString() },
   { id: 3, name: '白色', color_code: '#FFFFFF', remark: '', created_at: new Date().toISOString() },
@@ -164,6 +166,7 @@ export class QuotationConfigService {
       id: nextCategoryLevel2Id++,
       name: data.name,
       parent_id: data.parent_id,
+      pricing_unit: data.pricing_unit,
       remark: data.remark,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

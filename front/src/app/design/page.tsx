@@ -32,6 +32,7 @@ import UpdateProgressModal from "./updateProgressModal";
 import ProgressDetailModal from "./progressDetailModal";
 import PreviewModal from "./previewModal";
 import MaterialListModal from "./materialListModal";
+import MaterialListClerkModal from "./materialListClerkModal";
 import {
   getDesignOrders,
   createDesignOrder,
@@ -81,6 +82,8 @@ const DesignPage: React.FC = () => {
     Record<string, MaterialListItem | null>
   >({});
   const [isMaterialListModalVisible, setIsMaterialListModalVisible] =
+    useState(false);
+  const [isMaterialListClerkModalVisible, setIsMaterialListClerkModalVisible] =
     useState(false);
   const [selectedOrderForMaterial, setSelectedOrderForMaterial] =
     useState<DesignOrder | null>(null);
@@ -860,7 +863,19 @@ const DesignPage: React.FC = () => {
   // 创建物料清单
   const handleCreateMaterialList = (record: DesignOrder) => {
     setSelectedOrderForMaterial(record);
-    setIsMaterialListModalVisible(true);
+    const materialList = materialListStatusMap[record.order_number];
+    const currentRole = PermissionService.getCurrentUserRole();
+    const isSuperAdmin = PermissionService.isSuperAdmin();
+    const isClerk = currentRole === UserRole.CLERK;
+    
+    // 判断使用哪个组件
+    if (materialList && materialList.status === "submitted" && (isSuperAdmin || isClerk)) {
+      // 已提报状态，录入员或超管使用录入员组件
+      setIsMaterialListClerkModalVisible(true);
+    } else {
+      // 其他情况使用设计师组件
+      setIsMaterialListModalVisible(true);
+    }
   };
 
 
@@ -1714,11 +1729,27 @@ const DesignPage: React.FC = () => {
         loading={previewLoading}
       />
 
-      {/* 物料清单Modal */}
+      {/* 物料清单Modal - 设计师 */}
       <MaterialListModal
         visible={isMaterialListModalVisible}
         onCancel={() => {
           setIsMaterialListModalVisible(false);
+          setSelectedOrderForMaterial(null);
+        }}
+        order={selectedOrderForMaterial}
+        onSuccess={() => {
+          if (selectedOrderForMaterial) {
+            loadMaterialListStatus([selectedOrderForMaterial.order_number]);
+          }
+          handleSearch();
+        }}
+      />
+
+      {/* 物料清单Modal - 录入员 */}
+      <MaterialListClerkModal
+        visible={isMaterialListClerkModalVisible}
+        onCancel={() => {
+          setIsMaterialListClerkModalVisible(false);
           setSelectedOrderForMaterial(null);
         }}
         order={selectedOrderForMaterial}
