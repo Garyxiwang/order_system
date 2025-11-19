@@ -7,6 +7,7 @@ import {
   LaptopOutlined,
   SettingOutlined,
   ShopOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -52,10 +53,10 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
       setAccessibleModules(modules);
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('userInfoUpdated', handleUserInfoUpdate);
+    if (typeof window !== "undefined") {
+      window.addEventListener("userInfoUpdated", handleUserInfoUpdate);
       return () => {
-        window.removeEventListener('userInfoUpdated', handleUserInfoUpdate);
+        window.removeEventListener("userInfoUpdated", handleUserInfoUpdate);
       };
     }
   }, []);
@@ -66,6 +67,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
     if (pathname.startsWith("/split")) return ["split"];
     if (pathname.startsWith("/production")) return ["production"];
     if (pathname.startsWith("/config")) return ["config"];
+    if (pathname.startsWith("/quotation-config")) return ["quotation-config"];
     return [];
   };
 
@@ -85,105 +87,152 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
 
   const menuItems = [
     // 设计管理
-    ...(hasPermission(PageModule.DESIGN) ? [{
-      key: "design",
-      icon: collapsed ? (
-        <Tooltip title="设计管理" placement="right">
-          <Link
-            href="/design"
-            onClick={() => handleMenuClick("/design", "设计管理")}
-          >
-            <LaptopOutlined className="text-blue-600" />
-          </Link>
-        </Tooltip>
-      ) : (
-        <LaptopOutlined className="text-blue-600" />
-      ),
-      label: !collapsed ? (
-        <Link
-          href="/design"
-          className="text-gray-700 hover:text-blue-600 font-medium"
-          onClick={() => handleMenuClick("/design", "设计管理")}
-        >
-          设计管理
-        </Link>
-      ) : null,
-    }] : []),
+    ...(hasPermission(PageModule.DESIGN)
+      ? [
+          {
+            key: "design",
+            icon: collapsed ? (
+              <Tooltip title="设计管理" placement="right">
+                <Link
+                  href="/design"
+                  onClick={() => handleMenuClick("/design", "设计管理")}
+                >
+                  <LaptopOutlined className="text-blue-600" />
+                </Link>
+              </Tooltip>
+            ) : (
+              <LaptopOutlined className="text-blue-600" />
+            ),
+            label: !collapsed ? (
+              <Link
+                href="/design"
+                className="text-gray-700 hover:text-blue-600 font-medium"
+                onClick={() => handleMenuClick("/design", "设计管理")}
+              >
+                设计管理
+              </Link>
+            ) : null,
+          },
+        ]
+      : []),
     // 拆单管理
-    ...(hasPermission(PageModule.SPLIT) ? [{
-      key: "split",
-      icon: collapsed ? (
-        <Tooltip title="拆单管理" placement="right">
-          <Link
-            href="/split"
-            onClick={() => handleMenuClick("/split", "拆单管理")}
-          >
-            <CreditCardOutlined className="text-blue-600" />
-          </Link>
-        </Tooltip>
-      ) : (
-        <CreditCardOutlined className="text-blue-600" />
-      ),
-      label: !collapsed ? (
-        <Link
-          href="/split"
-          className="text-gray-700 hover:text-blue-600 font-medium"
-          onClick={() => handleMenuClick("/split", "拆单管理")}
-        >
-          拆单管理
-        </Link>
-      ) : null,
-    }] : []),
+    ...(hasPermission(PageModule.SPLIT)
+      ? [
+          {
+            key: "split",
+            icon: collapsed ? (
+              <Tooltip title="拆单管理" placement="right">
+                <Link
+                  href="/split"
+                  onClick={() => handleMenuClick("/split", "拆单管理")}
+                >
+                  <CreditCardOutlined className="text-blue-600" />
+                </Link>
+              </Tooltip>
+            ) : (
+              <CreditCardOutlined className="text-blue-600" />
+            ),
+            label: !collapsed ? (
+              <Link
+                href="/split"
+                className="text-gray-700 hover:text-blue-600 font-medium"
+                onClick={() => handleMenuClick("/split", "拆单管理")}
+              >
+                拆单管理
+              </Link>
+            ) : null,
+          },
+        ]
+      : []),
     // 生产管理
-    ...(hasPermission(PageModule.PRODUCTION) ? [{
-      key: "production",
-      icon: collapsed ? (
-        <Tooltip title="生产管理" placement="right">
-          <Link
-            href="/production"
-            onClick={() => handleMenuClick("/production", "生产管理")}
-          >
-            <ShopOutlined className="text-blue-600" />
-          </Link>
-        </Tooltip>
-      ) : (
-        <ShopOutlined className="text-blue-600" />
-      ),
-      label: !collapsed ? (
-        <Link
-          href="/production"
-          className="text-gray-700 hover:text-blue-600 font-medium"
-          onClick={() => handleMenuClick("/production", "生产管理")}
-        >
-          生产管理
-        </Link>
-      ) : null,
-    }] : []),
+    ...(hasPermission(PageModule.PRODUCTION)
+      ? [
+          {
+            key: "production",
+            icon: collapsed ? (
+              <Tooltip title="生产管理" placement="right">
+                <Link
+                  href="/production"
+                  onClick={() => handleMenuClick("/production", "生产管理")}
+                >
+                  <ShopOutlined className="text-blue-600" />
+                </Link>
+              </Tooltip>
+            ) : (
+              <ShopOutlined className="text-blue-600" />
+            ),
+            label: !collapsed ? (
+              <Link
+                href="/production"
+                className="text-gray-700 hover:text-blue-600 font-medium"
+                onClick={() => handleMenuClick("/production", "生产管理")}
+              >
+                生产管理
+              </Link>
+            ) : null,
+          },
+        ]
+      : []),
     // 系统配置
-    ...(hasPermission(PageModule.CONFIG) ? [{
-      key: "config",
-      icon: collapsed ? (
-        <Tooltip title="系统配置" placement="right">
-          <Link
-            href="/config"
-            onClick={() => handleMenuClick("/config", "系统配置")}
-          >
-            <SettingOutlined className="text-blue-600" />
-          </Link>
-        </Tooltip>
-      ) : (
-        <SettingOutlined className="text-blue-600" />
-      ),
-      label: !collapsed ? (
-        <Link
-          href="/config"
-          className="text-gray-700 hover:text-blue-600 font-medium"
-          onClick={() => handleMenuClick("/config", "系统配置")}
-        >
-          系统配置
-        </Link>
-      ) : null,
-    }] : []),
+    ...(hasPermission(PageModule.CONFIG)
+      ? [
+          {
+            key: "config",
+            icon: collapsed ? (
+              <Tooltip title="系统配置" placement="right">
+                <Link
+                  href="/config"
+                  onClick={() => handleMenuClick("/config", "系统配置")}
+                >
+                  <SettingOutlined className="text-blue-600" />
+                </Link>
+              </Tooltip>
+            ) : (
+              <SettingOutlined className="text-blue-600" />
+            ),
+            label: !collapsed ? (
+              <Link
+                href="/config"
+                className="text-gray-700 hover:text-blue-600 font-medium"
+                onClick={() => handleMenuClick("/config", "系统配置")}
+              >
+                系统配置
+              </Link>
+            ) : null,
+          },
+        ]
+      : []),
+    // 报价管理
+    ...(hasPermission(PageModule.QUOTATION)
+      ? [
+          {
+            key: "quotation-config",
+            icon: collapsed ? (
+              <Tooltip title="报价配置" placement="right">
+                <Link
+                  href="/quotation-config"
+                  onClick={() =>
+                    handleMenuClick("/quotation-config", "报价配置")
+                  }
+                >
+                  <ShoppingCartOutlined className="text-blue-600" />
+                </Link>
+              </Tooltip>
+            ) : (
+              <ShoppingCartOutlined className="text-blue-600" />
+            ),
+            label: !collapsed ? (
+              <Link
+                href="/quotation-config"
+                className="text-gray-700 hover:text-blue-600 font-medium"
+                onClick={() => handleMenuClick("/quotation-config", "报价配置")}
+              >
+                报价配置
+              </Link>
+            ) : null,
+          },
+        ]
+      : []),
   ];
 
   return (

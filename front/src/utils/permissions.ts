@@ -20,7 +20,8 @@ export enum PageModule {
   DESIGN = 'design',
   SPLIT = 'split',
   PRODUCTION = 'production',
-  CONFIG = 'config'
+  CONFIG = 'config',
+  QUOTATION = 'quotation'
 }
 
 // 模块权限配置
@@ -54,6 +55,9 @@ export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
     UserRole.SUPER_ADMIN
   ],
   [PageModule.CONFIG]: [
+    UserRole.SUPER_ADMIN
+  ],
+  [PageModule.QUOTATION]: [
     UserRole.SUPER_ADMIN
   ]
 };

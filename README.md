@@ -57,6 +57,11 @@ npm run build
 npm start
 ```
 
+## 分支管理
+
+1. main 主分支，发布分支
+2. dev-quotation 开发报价系统分支
+
 ## 功能
 
 - 订单管理：查看、创建、编辑和删除订单

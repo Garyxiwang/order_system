@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Layout, Menu, Avatar, Dropdown, Space, Button, Modal, Form, Input, message } from "antd";
+import {
+  Layout,
+  Menu,
+  Avatar,
+  Dropdown,
+  Space,
+  Button,
+  Modal,
+  Form,
+  Input,
+  message,
+} from "antd";
 import type { MenuProps } from "antd";
 import Image from "next/image";
 import {
@@ -94,7 +105,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   };
 
   // 提交修改密码
-  const handlePasswordSubmit = async (values: { oldPassword: string; newPassword: string }) => {
+  const handlePasswordSubmit = async (values: {
+    oldPassword: string;
+    newPassword: string;
+  }) => {
     try {
       // 这里调用修改密码的API
       await AuthService.changePassword(values.oldPassword, values.newPassword);
@@ -104,12 +118,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     } catch (error: unknown) {
       // 显示后端返回的具体错误信息
       let errorMessage = "密码修改失败";
-      
-      if (error && typeof error === 'object') {
-        const errorObj = error as { response?: { data?: { message?: string } }; message?: string };
-        errorMessage = errorObj.response?.data?.message || errorObj.message || errorMessage;
+
+      if (error && typeof error === "object") {
+        const errorObj = error as {
+          response?: { data?: { message?: string } };
+          message?: string;
+        };
+        errorMessage =
+          errorObj.response?.data?.message || errorObj.message || errorMessage;
       }
-      
+
       message.error(errorMessage);
     }
   };
@@ -297,6 +315,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             },
                           ]
                         : []),
+                      // 报价管理
+                      ...(hasPermission(PageModule.QUOTATION)
+                        ? [
+                            {
+                              key: "quotation-config",
+                              label: (
+                                <Link
+                                  href="/quotation-config"
+                                  className="text-gray-700 hover:text-blue-600"
+                                >
+                                  报价配置管理
+                                </Link>
+                              ),
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                 </div>
@@ -355,13 +389,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           <Form.Item
             label="原密码"
             name="oldPassword"
-            rules={[
-              { required: true, message: "请输入原密码" },
-            ]}
+            rules={[{ required: true, message: "请输入原密码" }]}
           >
             <Input.Password placeholder="请输入原密码" />
           </Form.Item>
-          
+
           <Form.Item
             label="新密码"
             name="newPassword"
@@ -372,19 +404,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           >
             <Input.Password placeholder="请输入新密码" />
           </Form.Item>
-          
+
           <Form.Item
             label="确认新密码"
             name="confirmPassword"
-            dependencies={['newPassword']}
+            dependencies={["newPassword"]}
             rules={[
               { required: true, message: "请确认新密码" },
               ({ getFieldValue }) => ({
                 validator(_, value) {
-                  if (!value || getFieldValue('newPassword') === value) {
+                  if (!value || getFieldValue("newPassword") === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('两次输入的密码不一致'));
+                  return Promise.reject(new Error("两次输入的密码不一致"));
                 },
               }),
             ]}

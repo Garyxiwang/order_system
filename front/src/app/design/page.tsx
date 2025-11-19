@@ -31,6 +31,7 @@ import CreateOrderModal from "./createOrderModal";
 import UpdateProgressModal from "./updateProgressModal";
 import ProgressDetailModal from "./progressDetailModal";
 import PreviewModal from "./previewModal";
+import MaterialListModal from "./materialListModal";
 import {
   getDesignOrders,
   createDesignOrder,
@@ -41,8 +42,12 @@ import {
   type OrderListParams,
 } from "../../services/designApi";
 import { formatDateTime } from "../../utils/dateUtils";
-import { UserService, UserData, UserRole } from "../../services/userService";
+import { UserService, UserData } from "../../services/userService";
+import { UserRole } from "../../utils/permissions";
 import { CategoryService, CategoryData } from "../../services/categoryService";
+import MaterialListService, {
+  MaterialListItem,
+} from "../../services/materialListService";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -72,6 +77,13 @@ const DesignPage: React.FC = () => {
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [isSearchCollapsed, setIsSearchCollapsed] = useState(false);
   const [searchSummaryKey, setSearchSummaryKey] = useState(0); // 用于强制刷新搜索摘要
+  const [materialListStatusMap, setMaterialListStatusMap] = useState<
+    Record<string, MaterialListItem | null>
+  >({});
+  const [isMaterialListModalVisible, setIsMaterialListModalVisible] =
+    useState(false);
+  const [selectedOrderForMaterial, setSelectedOrderForMaterial] =
+    useState<DesignOrder | null>(null);
 
   const showModal = () => {
     setEditingRecord(null);
@@ -828,12 +840,44 @@ const DesignPage: React.FC = () => {
       message.error("加载类目数据失败");
     }
   };
+
+  // 加载物料清单状态
+  const loadMaterialListStatus = async (orderNumbers: string[]) => {
+    try {
+      const statusMap: Record<string, MaterialListItem | null> = {};
+      for (const orderNumber of orderNumbers) {
+        const materialList = await MaterialListService.getMaterialListByOrder(
+          orderNumber
+        );
+        statusMap[orderNumber] = materialList;
+      }
+      setMaterialListStatusMap(statusMap);
+    } catch (error) {
+      console.error("加载物料清单状态失败:", error);
+    }
+  };
+
+  // 创建物料清单
+  const handleCreateMaterialList = (record: DesignOrder) => {
+    setSelectedOrderForMaterial(record);
+    setIsMaterialListModalVisible(true);
+  };
+
+
   // 组件挂载时加载数据
   useEffect(() => {
     handleSearch();
     loadUserData();
     loadCategoryData();
   }, []);
+
+  // 当设计数据变化时，加载物料清单状态
+  useEffect(() => {
+    if (designData.length > 0) {
+      const orderNumbers = designData.map((order) => order.order_number);
+      loadMaterialListStatus(orderNumbers);
+    }
+  }, [designData]);
 
   const columns: ColumnsType<DesignOrder> = [
     {
@@ -1075,6 +1119,7 @@ const DesignPage: React.FC = () => {
         </div>
       ),
     },
+
     {
       title: "订单状态",
       dataIndex: "order_status",
@@ -1093,6 +1138,28 @@ const DesignPage: React.FC = () => {
         }
 
         return <Tag color="blue">{text}</Tag>;
+      },
+    },
+    {
+      title: "物料清单状态",
+      key: "material_list_status",
+      width: 120,
+      render: (_: unknown, record: DesignOrder) => {
+        const materialList = materialListStatusMap[record.order_number];
+        if (!materialList) {
+          return <Tag color="default">未开始</Tag>;
+        }
+        const statusMap: Record<string, { color: string; text: string }> = {
+          not_started: { color: "default", text: "未开始" },
+          in_progress: { color: "processing", text: "进行中" },
+          revision: { color: "warning", text: "修订中" },
+          submitted: { color: "success", text: "已提报" },
+        };
+        const status = statusMap[materialList.status] || {
+          color: "default",
+          text: materialList.status,
+        };
+        return <Tag color={status.color}>{status.text}</Tag>;
       },
     },
     {
@@ -1172,6 +1239,57 @@ const DesignPage: React.FC = () => {
                 </Button>
               </Col>
             )}
+            {/* 物料清单操作按钮 */}
+            {(() => {
+              const materialList = materialListStatusMap[record.order_number];
+              const currentRole = PermissionService.getCurrentUserRole();
+              const isSuperAdmin = PermissionService.isSuperAdmin();
+              const isDesigner = currentRole === UserRole.DESIGNER;
+              const isClerk = currentRole === UserRole.CLERK;
+
+              // 判断是否可以操作
+              let canOperate = false;
+              let buttonText = "创建物料";
+
+              if (!materialList) {
+                // 未创建：未开始状态
+                buttonText = "创建物料";
+                canOperate = isSuperAdmin || isDesigner;
+              } else {
+                // 已创建：根据状态判断
+                buttonText = "编辑物料";
+                const status = materialList.status;
+
+                if (status === "submitted") {
+                  // 已提报：录入员和超管可以编辑
+                  canOperate = isSuperAdmin || isClerk;
+                } else if (status === "not_started" || status === "in_progress" || status === "revision") {
+                  // 未开始、进行中、修订中：设计师和超管可以编辑
+                  canOperate = isSuperAdmin || isDesigner;
+                } else {
+                  // 其他状态：默认不允许操作
+                  canOperate = isSuperAdmin;
+                }
+              }
+
+              if (!canOperate) {
+                return null;
+              }
+
+              return (
+                <Col span={14}>
+                  <Button
+                    type="link"
+                    size="small"
+                    style={{ padding: "0 4px", width: "100%" }}
+                    onClick={() => handleCreateMaterialList(record)}
+                  >
+                    {buttonText}
+                  </Button>
+                </Col>
+              );
+            })()}
+
           </Row>
         </div>
       ),
@@ -1594,6 +1712,22 @@ const DesignPage: React.FC = () => {
         onCancel={handlePreviewModalCancel}
         data={previewData}
         loading={previewLoading}
+      />
+
+      {/* 物料清单Modal */}
+      <MaterialListModal
+        visible={isMaterialListModalVisible}
+        onCancel={() => {
+          setIsMaterialListModalVisible(false);
+          setSelectedOrderForMaterial(null);
+        }}
+        order={selectedOrderForMaterial}
+        onSuccess={() => {
+          if (selectedOrderForMaterial) {
+            loadMaterialListStatus([selectedOrderForMaterial.order_number]);
+          }
+          handleSearch();
+        }}
       />
     </div>
   );

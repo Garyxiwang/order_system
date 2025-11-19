@@ -39,6 +39,11 @@ const Navbar: React.FC = () => {
       icon: <SettingOutlined />,
       label: <Link href="/config">配置页</Link>,
     },
+    {
+      key: 'quotation-config',
+      icon: <ShoppingCartOutlined />,
+      label: <Link href="/quotation-config">报价配置</Link>,
+    },
   ];
 
   return (
