@@ -25,6 +25,8 @@ import {
   EditOutlined,
   CheckOutlined,
   CloseOutlined,
+  EyeOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import type { DesignOrder } from "../../services/designApi";
 import MaterialListService, {
@@ -73,6 +75,19 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
   const [editingKey, setEditingKey] = useState<React.Key | null>(null);
   const [customerPhone, setCustomerPhone] = useState<string>("");
   const [quotationDate, setQuotationDate] = useState<string>("");
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+
+  // 货币格式化函数
+  const formatCurrency = (amount: number | undefined | null): string => {
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return "-";
+    }
+    return `¥${amount.toLocaleString("zh-CN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   // 加载物料清单数据
   useEffect(() => {
@@ -346,7 +361,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
             if (level2) {
               updated.level2_category_name = level2.name;
               updated.unit = level2.pricing_unit || "";
-              
+
               // 自动填充单价（根据报价类型和基材）
               if (updated.material_id && materialList) {
                 const unitPrice = autoFillUnitPrice(updated.material_id);
@@ -450,6 +465,24 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // 计算合计金额
+  const calculateTotalAmount = () => {
+    return tableData.reduce((sum, row) => {
+      return sum + (row.total_price || 0);
+    }, 0);
+  };
+
+  // 计算优惠后总金额
+  const calculateFinalAmount = () => {
+    const total = calculateTotalAmount();
+    return total - discountAmount;
+  };
+
+  // 移除优惠
+  const handleRemoveDiscount = () => {
+    setDiscountAmount(0);
   };
 
   // 表格列定义
@@ -684,10 +717,17 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               style={{ width: "100%" }}
               precision={2}
               min={0}
+              formatter={(value) =>
+                `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              }
+              parser={(value) => {
+                const parsed = value!.replace(/¥\s?|(,*)/g, "");
+                return parsed ? parseFloat(parsed) : 0;
+              }}
             />
           );
         }
-        return text ? `¥${text.toFixed(2)}` : "-";
+        return formatCurrency(text);
       },
     },
     {
@@ -696,7 +736,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
       key: "total_price",
       width: 120,
       render: (text: number | undefined) => {
-        return text ? `¥${text.toFixed(2)}` : "-";
+        return formatCurrency(text);
       },
     },
     {
@@ -775,7 +815,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
 
   return (
     <Modal
-      title={`物料清单报价 - ${order?.order_number || ""}`}
+      title={`物料清单报价`}
       open={visible}
       onCancel={onCancel}
       width={1800}
@@ -788,24 +828,26 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
           <Row gutter={24}>
             <Col span={6}>
               <div style={{ marginBottom: 12 }}>
-                <span style={{ color: "#666", marginRight: 8 }}>客户名称：</span>
+                <span style={{ color: "#666", marginRight: 8 }}>
+                  订单编号：
+                </span>
+                <span>{order?.order_number || "-"}</span>
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>
+                  客户名称：
+                </span>
                 <span>{order?.customer_name || "-"}</span>
               </div>
             </Col>
+
             <Col span={6}>
               <div style={{ marginBottom: 12 }}>
-                <span style={{ color: "#666", marginRight: 8 }}>客户电话：</span>
-                <Input
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="请输入客户电话"
-                  style={{ width: 200 }}
-                />
-              </div>
-            </Col>
-            <Col span={6}>
-              <div style={{ marginBottom: 12 }}>
-                <span style={{ color: "#666", marginRight: 8 }}>客户地址：</span>
+                <span style={{ color: "#666", marginRight: 8 }}>
+                  客户地址：
+                </span>
                 <span>{order?.address || "-"}</span>
               </div>
             </Col>
@@ -823,7 +865,22 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
             </Col>
             <Col span={6}>
               <div style={{ marginBottom: 12 }}>
-                <span style={{ color: "#666", marginRight: 8 }}>报价日期：</span>
+                <span style={{ color: "#666", marginRight: 8 }}>
+                  客户电话：
+                </span>
+                <Input
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="请输入客户电话"
+                  style={{ width: 200 }}
+                />
+              </div>
+            </Col>
+            <Col span={6}>
+              <div style={{ marginBottom: 12 }}>
+                <span style={{ color: "#666", marginRight: 8 }}>
+                  报价日期：
+                </span>
                 <DatePicker
                   value={quotationDate ? dayjs(quotationDate) : null}
                   onChange={(date) =>
@@ -835,15 +892,12 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
                 />
               </div>
             </Col>
+
             <Col span={6}>
               <div style={{ marginBottom: 12 }}>
-                <span style={{ color: "#666", marginRight: 8 }}>订单编号：</span>
-                <span>{order?.order_number || "-"}</span>
-              </div>
-            </Col>
-            <Col span={6}>
-              <div style={{ marginBottom: 12 }}>
-                <span style={{ color: "#666", marginRight: 8 }}>报价类型：</span>
+                <span style={{ color: "#666", marginRight: 8 }}>
+                  报价类型：
+                </span>
                 <Select
                   value={quotationType}
                   onChange={handleQuotationTypeChange}
@@ -857,14 +911,33 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
           </Row>
         </Card>
 
-        <div style={{ marginBottom: 16, textAlign: "left" }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAdd}
-          >
+        <div
+          style={{
+            marginBottom: 16,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
             添加类目
           </Button>
+          <Space>
+            <Button
+              icon={<EyeOutlined />}
+              onClick={() => setIsPreviewVisible(true)}
+            >
+              预览
+            </Button>
+            <Button
+              icon={<ExportOutlined />}
+              onClick={() => {
+                message.info("导出功能开发中");
+              }}
+            >
+              导出
+            </Button>
+          </Space>
         </div>
 
         <Divider />
@@ -878,6 +951,103 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
         />
 
         <Divider />
+
+        {/* 优惠金额和总金额展示区域 */}
+        <Card style={{ marginBottom: 16 }}>
+          <Row gutter={24} align="middle" justify="space-between">
+            <Col>
+              <div>
+                <span style={{ marginRight: 8 }}>优惠金额：</span>
+                <InputNumber
+                  value={discountAmount}
+                  onChange={(value) => setDiscountAmount(value || 0)}
+                  precision={2}
+                  min={0}
+                  max={calculateTotalAmount()}
+                  style={{ width: 200 }}
+                  formatter={(value) =>
+                    `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                  }
+                  parser={(value) => {
+                    const parsed = value!.replace(/¥\s?|(,*)/g, "");
+                    return parsed ? parseFloat(parsed) : 0;
+                  }}
+                />
+                {discountAmount > 0 && (
+                  <Button
+                    danger
+                    type="link"
+                    onClick={handleRemoveDiscount}
+                    style={{ marginLeft: 8 }}
+                  >
+                    移除优惠
+                  </Button>
+                )}
+              </div>
+            </Col>
+            <Col>
+              <Row gutter={24} style={{ textAlign: "right" }}>
+                {discountAmount > 0 ? (
+                  <>
+                    <Col>
+                      <div>
+                        <div style={{ color: "#666", marginBottom: 4 }}>
+                          合计金额
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 600 }}>
+                          {formatCurrency(calculateTotalAmount())}
+                        </div>
+                      </div>
+                    </Col>
+                    <Col>
+                      <div>
+                        <div style={{ color: "#666", marginBottom: 4 }}>
+                          优惠金额
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 600 }}>
+                          {formatCurrency(discountAmount)}
+                        </div>
+                      </div>
+                    </Col>
+                    <Col>
+                      <div>
+                        <div style={{ color: "#666", marginBottom: 4 }}>
+                          优惠后总金额
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 600,
+                            color: "#ff4d4f",
+                          }}
+                        >
+                          {formatCurrency(calculateFinalAmount())}
+                        </div>
+                      </div>
+                    </Col>
+                  </>
+                ) : (
+                  <Col>
+                    <div>
+                      <div style={{ color: "#666", marginBottom: 4 }}>
+                        合计金额
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 600,
+                          color: "#ff4d4f",
+                        }}
+                      >
+                        {formatCurrency(calculateTotalAmount())}
+                      </div>
+                    </div>
+                  </Col>
+                )}
+              </Row>
+            </Col>
+          </Row>
+        </Card>
 
         <div style={{ textAlign: "right" }}>
           <Space>
@@ -894,6 +1064,237 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
           </Space>
         </div>
       </Spin>
+
+      {/* 预览模态框 */}
+      <Modal
+        title="报价单预览"
+        open={isPreviewVisible}
+        onCancel={() => setIsPreviewVisible(false)}
+        footer={null}
+        width={1400}
+        destroyOnClose
+      >
+        <div style={{ padding: "20px 0" }}>
+          {/* 报价单信息 */}
+          <div style={{ marginBottom: 24 }}>
+            <Row gutter={24}>
+              <Col span={6}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: "#666" }}>订单编号：</span>
+                  <span>{order?.order_number || "-"}</span>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: "#666" }}>客户名称：</span>
+                  <span>{order?.customer_name || "-"}</span>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: "#666" }}>客户电话：</span>
+                  <span>{customerPhone || "-"}</span>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: "#666" }}>客户地址：</span>
+                  <span>{order?.address || "-"}</span>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: "#666" }}>销售员：</span>
+                  <span>{order?.salesperson || "-"}</span>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: "#666" }}>报价日期：</span>
+                  <span>{quotationDate || "-"}</span>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: "#666" }}>设计师：</span>
+                  <span>{order?.designer || "-"}</span>
+                </div>
+              </Col>
+              <Col span={6}>
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{ color: "#666" }}>报价类型：</span>
+                  <span>{quotationType === "dealer" ? "经销商" : "业主"}</span>
+                </div>
+              </Col>
+            </Row>
+          </div>
+
+          {/* 报价项目 */}
+          <div style={{ marginBottom: 24 }}>
+            <h3 style={{ marginBottom: 16 }}>报价项目</h3>
+            <Table
+              columns={[
+                {
+                  title: "项目",
+                  dataIndex: "project_name",
+                  key: "project_name",
+                  width: 100,
+                },
+                {
+                  title: "柜名/规格",
+                  key: "category",
+                  width: 150,
+                  render: (_: unknown, record: TableRowData) =>
+                    `${record.level1_category_name}-${record.level2_category_name}`,
+                },
+                {
+                  title: "高(mm)",
+                  dataIndex: "height",
+                  key: "height",
+                  width: 100,
+                  render: (text: number | undefined) => text || "-",
+                },
+                {
+                  title: "宽(mm)",
+                  dataIndex: "width",
+                  key: "width",
+                  width: 100,
+                  render: (text: number | undefined) => text || "-",
+                },
+                {
+                  title: "数量",
+                  dataIndex: "quantity",
+                  key: "quantity",
+                  width: 100,
+                },
+                {
+                  title: "单位",
+                  dataIndex: "unit",
+                  key: "unit",
+                  width: 80,
+                },
+                {
+                  title: "单价",
+                  dataIndex: "unit_price",
+                  key: "unit_price",
+                  width: 100,
+                  render: (text: number | undefined) => formatCurrency(text),
+                },
+                {
+                  title: "合计",
+                  dataIndex: "total_price",
+                  key: "total_price",
+                  width: 120,
+                  render: (text: number | undefined) => formatCurrency(text),
+                },
+                {
+                  title: "柜体颜色材质",
+                  key: "cabinet_material",
+                  width: 150,
+                  render: (_: unknown, record: TableRowData) => {
+                    if (record.material_name && record.color_name) {
+                      return `${record.material_name}-${record.color_name}`;
+                    }
+                    return record.material_name || "-";
+                  },
+                },
+                {
+                  title: "门板颜色材质",
+                  key: "door_material",
+                  width: 150,
+                  render: (_: unknown, record: TableRowData) => {
+                    if (record.material_name && record.color_name) {
+                      return `${record.material_name}-${record.color_name}`;
+                    }
+                    return "-";
+                  },
+                },
+                {
+                  title: "背板材质",
+                  key: "back_material",
+                  width: 120,
+                  render: (_: unknown, record: TableRowData) =>
+                    record.material_name || "-",
+                },
+                {
+                  title: "备注",
+                  dataIndex: "remark",
+                  key: "remark",
+                  width: 120,
+                  render: (text: string) => text || "-",
+                },
+              ]}
+              dataSource={tableData}
+              pagination={false}
+              rowKey="key"
+              size="small"
+            />
+          </div>
+
+          {/* 合计金额 */}
+          <div style={{ textAlign: "right", marginTop: 24 }}>
+            <Row gutter={24} justify="end">
+              {discountAmount > 0 ? (
+                <>
+                  <Col>
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ color: "#666", marginRight: 16 }}>
+                        合计金额：
+                      </span>
+                      <span style={{ fontSize: 16 }}>
+                        {formatCurrency(calculateTotalAmount())}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col>
+                    <div style={{ marginBottom: 8 }}>
+                      <span style={{ color: "#666", marginRight: 16 }}>
+                        优惠金额：
+                      </span>
+                      <span style={{ fontSize: 16 }}>
+                        {formatCurrency(discountAmount)}
+                      </span>
+                    </div>
+                  </Col>
+                  <Col>
+                    <div>
+                      <span style={{ color: "#666", marginRight: 16 }}>
+                        优惠后总金额：
+                      </span>
+                    <span
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: "#ff4d4f",
+                      }}
+                    >
+                      {formatCurrency(calculateFinalAmount())}
+                    </span>
+                    </div>
+                  </Col>
+                </>
+              ) : (
+                <Col>
+                  <div>
+                    <span style={{ color: "#666", marginRight: 16 }}>
+                      合计金额：
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: "#ff4d4f",
+                      }}
+                    >
+                      {formatCurrency(calculateTotalAmount())}
+                    </span>
+                  </div>
+                </Col>
+              )}
+            </Row>
+          </div>
+        </div>
+      </Modal>
     </Modal>
   );
 };
