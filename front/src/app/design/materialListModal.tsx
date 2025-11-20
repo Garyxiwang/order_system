@@ -14,10 +14,13 @@ import {
   Col,
   Divider,
 } from "antd";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { DesignerCompareView } from "./CompareView";
+import { PlusOutlined, DeleteOutlined, DiffOutlined } from "@ant-design/icons";
 import type { DesignOrder } from "../../services/designApi";
 import MaterialListService, {
   MaterialListItem,
+  QuotationCategory,
+  QuotationProject,
 } from "../../services/materialListService";
 import {
   QuotationConfigService,
@@ -70,6 +73,15 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
   const [categoryTree, setCategoryTree] = useState<QuotationCategoryTree[]>([]);
   const [materials, setMaterials] = useState<MaterialData[]>([]);
   const [colors, setColors] = useState<ColorData[]>([]);
+  const [isCompareVisible, setIsCompareVisible] = useState(false);
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<{
+    projects: QuotationProject[];
+    categories: QuotationCategory[];
+  } | null>(null);
+  const [revisionSnapshot, setRevisionSnapshot] = useState<{
+    projects: QuotationProject[];
+    categories: QuotationCategory[];
+  } | null>(null);
 
   // 加载物料清单数据
   useEffect(() => {
@@ -119,6 +131,36 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
           })
         );
         form.setFieldsValue({ projects: projectFormData });
+
+        // 加载提报时快照，用于对比（无论状态如何）
+        const submittedSnap = await MaterialListService.getSubmittedSnapshot(
+          materialListData.id
+        );
+        if (submittedSnap) {
+          setSubmittedSnapshot({
+            projects: submittedSnap.projects,
+            categories: submittedSnap.categories,
+          });
+        } else {
+          setSubmittedSnapshot(null);
+        }
+
+        // 如果是修订状态，加载修订后快照（录入员修订后的版本）
+        if (materialListData.status === 'revision') {
+          const revisionSnap = await MaterialListService.getRevisionSnapshot(
+            materialListData.id
+          );
+          if (revisionSnap) {
+            setRevisionSnapshot({
+              projects: revisionSnap.projects,
+              categories: revisionSnap.categories,
+            });
+          } else {
+            setRevisionSnapshot(null);
+          }
+        } else {
+          setRevisionSnapshot(null);
+        }
       } else {
         // 新建
         setMaterialList(null);
@@ -801,6 +843,15 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
         <Form.Item>
           <div style={{ textAlign: "right" }}>
             <Space>
+              {/* 只有存在修订快照时才显示对比按钮（说明已经修订过，不是第一次提报） */}
+              {revisionSnapshot && (
+                <Button
+                  icon={<DiffOutlined />}
+                  onClick={() => setIsCompareVisible(true)}
+                >
+                  对比
+                </Button>
+              )}
               <Button onClick={onCancel}>取消</Button>
               {!isReadOnly && (
                 <>
@@ -820,6 +871,22 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
           </div>
         </Form.Item>
       </Form>
+
+      {/* 对比模态框 - 设计师对比快照和当前数据 */}
+      <Modal
+        title="版本对比（提报时 / 修订后 / 当前）"
+        open={isCompareVisible}
+        onCancel={() => setIsCompareVisible(false)}
+        footer={null}
+        width={1800}
+        destroyOnClose
+      >
+        <DesignerCompareView
+          formData={form.getFieldsValue()}
+          submittedData={submittedSnapshot || undefined}
+          revisionData={revisionSnapshot || undefined}
+        />
+      </Modal>
     </Modal>
   );
 };

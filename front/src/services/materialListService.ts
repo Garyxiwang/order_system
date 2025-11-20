@@ -65,6 +65,19 @@ export interface UpdateMaterialListData {
 let mockMaterialLists: MaterialListItem[] = [];
 let mockProjects: QuotationProject[] = [];
 let mockCategories: QuotationCategory[] = [];
+// 快照存储：key为material_list_id，value包含提报时快照和修订前快照
+let mockSnapshots: Map<number, {
+  submitted_snapshot?: {
+    projects: QuotationProject[];
+    categories: QuotationCategory[];
+    snapshot_at: string;
+  };
+  revision_snapshot?: {
+    projects: QuotationProject[];
+    categories: QuotationCategory[];
+    snapshot_at: string;
+  };
+}> = new Map();
 
 let nextMaterialListId = 1;
 let nextProjectId = 1;
@@ -308,6 +321,15 @@ export class MaterialListService {
   // 提交物料清单（设计师操作）
   static async submitMaterialList(id: number): Promise<MaterialListItem> {
     await delay();
+    // 保存提报时的快照，供后续对比使用
+    const detail = await this.getMaterialListDetail(id);
+    const snapshot = mockSnapshots.get(id) || {};
+    snapshot.submitted_snapshot = {
+      projects: JSON.parse(JSON.stringify(detail.projects)),
+      categories: JSON.parse(JSON.stringify(detail.categories)),
+      snapshot_at: new Date().toISOString(),
+    };
+    mockSnapshots.set(id, snapshot);
     return this.updateMaterialList(id, { status: 'submitted' });
   }
 
@@ -320,7 +342,38 @@ export class MaterialListService {
   // 修订物料清单（录入员操作，状态变为修订中）
   static async reviseMaterialList(id: number): Promise<MaterialListItem> {
     await delay();
+    // 保存修订前的快照（当前提报的数据），供设计师对比使用
+    const detail = await this.getMaterialListDetail(id);
+    const snapshot = mockSnapshots.get(id) || {};
+    snapshot.revision_snapshot = {
+      projects: JSON.parse(JSON.stringify(detail.projects)),
+      categories: JSON.parse(JSON.stringify(detail.categories)),
+      snapshot_at: new Date().toISOString(),
+    };
+    mockSnapshots.set(id, snapshot);
     return this.updateMaterialList(id, { status: 'revision' });
+  }
+
+  // 获取提报时快照（用于设计师对比）
+  static async getSubmittedSnapshot(id: number): Promise<{
+    projects: QuotationProject[];
+    categories: QuotationCategory[];
+    snapshot_at: string;
+  } | null> {
+    await delay();
+    const snapshot = mockSnapshots.get(id);
+    return snapshot?.submitted_snapshot || null;
+  }
+
+  // 获取修订前快照（用于录入员对比）
+  static async getRevisionSnapshot(id: number): Promise<{
+    projects: QuotationProject[];
+    categories: QuotationCategory[];
+    snapshot_at: string;
+  } | null> {
+    await delay();
+    const snapshot = mockSnapshots.get(id);
+    return snapshot?.revision_snapshot || null;
   }
 
   // 完成报价（录入员操作）

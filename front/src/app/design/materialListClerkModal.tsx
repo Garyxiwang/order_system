@@ -27,12 +27,15 @@ import {
   CloseOutlined,
   EyeOutlined,
   ExportOutlined,
+  DiffOutlined,
 } from "@ant-design/icons";
 import type { DesignOrder } from "../../services/designApi";
 import MaterialListService, {
   MaterialListItem,
   QuotationCategory,
+  QuotationProject,
 } from "../../services/materialListService";
+import { ClerkCompareView, type TableRowData } from "./CompareView";
 import {
   QuotationConfigService,
   QuotationCategoryTree,
@@ -49,11 +52,7 @@ interface MaterialListClerkModalProps {
   onSuccess?: () => void;
 }
 
-interface TableRowData extends QuotationCategory {
-  key: React.Key;
-  project_name: string;
-  editing?: boolean;
-}
+// TableRowData 已从 CompareView.tsx 导入
 
 const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
   visible,
@@ -77,6 +76,15 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
   const [quotationDate, setQuotationDate] = useState<string>("");
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
+  const [isCompareVisible, setIsCompareVisible] = useState(false);
+  const [revisionSnapshot, setRevisionSnapshot] = useState<{
+    projects: QuotationProject[];
+    categories: QuotationCategory[];
+  } | null>(null);
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<{
+    projects: QuotationProject[];
+    categories: QuotationCategory[];
+  } | null>(null);
 
   // 货币格式化函数
   const formatCurrency = (amount: number | undefined | null): string => {
@@ -131,9 +139,42 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
             });
         });
         setTableData(data);
+
+        // 录入员在submitted状态时，加载提报时快照和修订前快照用于对比
+        if (materialListData.status === 'submitted') {
+          // 加载提报时快照
+          const submittedSnap = await MaterialListService.getSubmittedSnapshot(
+            materialListData.id
+          );
+          if (submittedSnap) {
+            setSubmittedSnapshot({
+              projects: submittedSnap.projects,
+              categories: submittedSnap.categories,
+            });
+          } else {
+            setSubmittedSnapshot(null);
+          }
+
+          // 加载修订前快照（用于对比）
+          const revisionSnap = await MaterialListService.getRevisionSnapshot(
+            materialListData.id
+          );
+          if (revisionSnap) {
+            setRevisionSnapshot({
+              projects: revisionSnap.projects,
+              categories: revisionSnap.categories,
+            });
+          } else {
+            setRevisionSnapshot(null);
+          }
+        } else {
+          setRevisionSnapshot(null);
+          setSubmittedSnapshot(null);
+        }
       } else {
         setMaterialList(null);
         setTableData([]);
+        setRevisionSnapshot(null);
       }
     } catch (error) {
       console.error("加载物料清单失败:", error);
@@ -211,6 +252,12 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
       projectMap.get(row.project_name)!.push(row);
     });
 
+    // 构建项目数据
+    const projectData = Array.from(projectMap.keys()).map((name, index) => ({
+      name,
+      sort_order: index,
+    }));
+
     const categoryData = tableData.map((row) => {
       const projectIndex = Array.from(projectMap.keys()).indexOf(
         row.project_name
@@ -238,6 +285,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
 
     await MaterialListService.updateMaterialList(materialList.id, {
       quotation_type: type || quotationType,
+      projects: projectData,
       categories: categoryData,
     });
   };
@@ -929,6 +977,14 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
             >
               预览
             </Button>
+            {(submittedSnapshot || revisionSnapshot) && (
+              <Button
+                icon={<DiffOutlined />}
+                onClick={() => setIsCompareVisible(true)}
+              >
+                对比
+              </Button>
+            )}
             <Button
               icon={<ExportOutlined />}
               onClick={() => {
@@ -1294,6 +1350,23 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
             </Row>
           </div>
         </div>
+      </Modal>
+
+      {/* 对比模态框 - 录入员对比快照和当前数据 */}
+      <Modal
+        title="版本对比（提报时 / 修订前 / 当前）"
+        open={isCompareVisible}
+        onCancel={() => setIsCompareVisible(false)}
+        footer={null}
+        width={1800}
+        destroyOnClose
+      >
+        <ClerkCompareView
+          currentData={tableData}
+          submittedData={submittedSnapshot || undefined}
+          revisionData={revisionSnapshot || undefined}
+          formatCurrency={formatCurrency}
+        />
       </Modal>
     </Modal>
   );
