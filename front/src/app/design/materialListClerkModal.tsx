@@ -1354,7 +1354,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
 
       {/* 对比模态框 - 录入员对比快照和当前数据 */}
       <Modal
-        title="版本对比（提报时 / 修订前 / 当前）"
+        title="版本对比（当前 / 提报时 / 修订前 ）"
         open={isCompareVisible}
         onCancel={() => setIsCompareVisible(false)}
         footer={null}

@@ -86,7 +86,11 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
   // 使用项目名称 + level1_category_id + level2_category_id 作为唯一键
   // 因为快照中的 project_id 可能和当前数据不一致
   const getMatchKey = (item: TableRowData) => {
-    return `${item.project_name}-${item.level1_category_id}-${item.level2_category_id}`;
+    // 确保所有值都转换为字符串，处理 undefined 和 null
+    const projectName = String(item.project_name || "");
+    const level1Id = String(item.level1_category_id ?? "");
+    const level2Id = String(item.level2_category_id ?? "");
+    return `${projectName}-${level1Id}-${level2Id}`;
   };
 
   // 确保所有数据都有 project_name
@@ -94,16 +98,60 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
   const allSubmittedData = submittedTableData.map(d => ({ ...d }));
   const allRevisionData = revisionTableData.map(d => ({ ...d }));
 
-  const allKeys = new Set([
-    ...allCurrentData.map((d) => getMatchKey(d)),
-    ...allSubmittedData.map((d) => getMatchKey(d)),
-    ...allRevisionData.map((d) => getMatchKey(d)),
-  ]);
+  // 收集所有唯一键
+  // 确保所有数据都被包含，即使某些字段缺失
+  const allKeys = new Set<string>();
+  
+  // 首先收集所有 currentData 的键（确保所有当前数据都被包含）
+  allCurrentData.forEach((d, index) => {
+    const key = getMatchKey(d);
+    // 如果匹配键有效，使用匹配键
+    if (key && key.trim() !== "" && key !== "--") {
+      allKeys.add(key);
+    } else {
+      // 如果匹配键无效，使用索引作为唯一标识（确保数据不被丢失）
+      allKeys.add(`current-index-${index}`);
+    }
+  });
+  
+  // 然后添加 submitted 和 revision 的键（用于匹配）
+  allSubmittedData.forEach((d) => {
+    const key = getMatchKey(d);
+    if (key && key.trim() !== "" && key !== "--") {
+      allKeys.add(key);
+    }
+  });
+  allRevisionData.forEach((d) => {
+    const key = getMatchKey(d);
+    if (key && key.trim() !== "" && key !== "--") {
+      allKeys.add(key);
+    }
+  });
 
   const compareData = Array.from(allKeys).map((key, index) => {
-    const current = allCurrentData.find((d) => getMatchKey(d) === key);
-    const submitted = allSubmittedData.find((d) => getMatchKey(d) === key);
-    const revision = allRevisionData.find((d) => getMatchKey(d) === key);
+    let current: TableRowData | undefined;
+    let submitted: TableRowData | undefined;
+    let revision: TableRowData | undefined;
+    
+    // 如果键是备用键（current-index-xxx），直接用索引查找
+    if (key.startsWith("current-index-")) {
+      const idx = parseInt(key.replace("current-index-", ""));
+      current = allCurrentData[idx];
+      // 尝试用匹配键查找对应的 submitted 和 revision
+      if (current) {
+        const matchKey = getMatchKey(current);
+        if (matchKey && matchKey.trim() !== "" && matchKey !== "--") {
+          submitted = allSubmittedData.find((d) => getMatchKey(d) === matchKey);
+          revision = allRevisionData.find((d) => getMatchKey(d) === matchKey);
+        }
+      }
+    } else {
+      // 使用匹配键查找
+      current = allCurrentData.find((d) => getMatchKey(d) === key);
+      submitted = allSubmittedData.find((d) => getMatchKey(d) === key);
+      revision = allRevisionData.find((d) => getMatchKey(d) === key);
+    }
+    
     // 使用唯一索引作为 rowKey，避免 id 冲突
     const id = current?.id || submitted?.id || revision?.id || index;
     return { current, submitted, revision, id };
@@ -114,42 +162,83 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
     return String(val1 || "") === String(val2 || "");
   };
 
-  // 判断字段变化来源（对于录入员：和设计师一样的逻辑）
+  // 判断字段变化来源（对于录入员：关注提报版和当前版的差异）
   const getChangeSource = (
     submitted: TableRowData | undefined,
     revision: TableRowData | undefined,
     current: TableRowData | undefined,
     field: keyof TableRowData
-  ): "none" | "revision" | "current" | "both" => {
+  ): { isCurrentModified: boolean; isSubmittedModified: boolean } => {
     const submittedVal = submitted?.[field];
     const revisionVal = revision?.[field];
     const currentVal = current?.[field];
 
-    // 判断是否在修订时新增（提报时不存在，修订前存在）
-    const isRevisionAdded = !submitted && revision && revisionVal !== undefined && revisionVal !== null && revisionVal !== "";
-    // 判断是否在修订时修改（提报时存在，修订前存在，但值不同）
-    const isRevisionChanged = submitted && revision && !isEqual(submittedVal, revisionVal);
-    // 判断是否在当前新增（修订前不存在，当前存在）
-    const isCurrentAdded = !revision && current && currentVal !== undefined && currentVal !== null && currentVal !== "";
-    // 判断是否在当前修改（修订前存在，当前存在，但值不同）
-    const isCurrentChanged = revision && current && !isEqual(revisionVal, currentVal);
-
-    // 修订时新增或修改都算作 revision（设计师的修改）
-    const isRevisionModified = isRevisionAdded || isRevisionChanged;
-    // 当前新增或修改都算作 current（录入员的修改）
-    const isCurrentModified = isCurrentAdded || isCurrentChanged;
-
-    if (isRevisionModified && isCurrentModified) {
-      return "both";
-    } else if (isRevisionModified) {
-      return "revision";
-    } else if (isCurrentModified) {
-      return "current";
+    // 判断提报时值是否和修订前值不同（提报版差异）
+    // 包括：1. 如果整个项目在修订前不存在，但提报时存在（录入员在修订时新增的项目）→ 显示绿色
+    //      2. 如果修订前存在，提报时存在，但值不同 → 显示绿色
+    //      3. 如果修订前存在，但提报时不存在 → 显示绿色
+    let isSubmittedModified = false;
+    
+    if (submitted) {
+      // 如果整个项目在修订前不存在，但提报时存在（录入员在修订时新增的项目）
+      if (!revision) {
+        isSubmittedModified = true;
+      } else {
+        // 修订前存在，判断值是否不同
+        if (!isEqual(submittedVal, revisionVal)) {
+          isSubmittedModified = true;
+        }
+      }
+    } else if (revision) {
+      // 修订前存在，但提报时不存在（这种情况理论上不应该发生，但也要考虑）
+      isSubmittedModified = true;
     }
-    return "none";
+
+    // 判断当前值是否被录入员修改了
+    // "当前修改"只针对录入员最新的改动，即当前值和提报时值不同的情况
+    // 1. 如果是新增（当前存在，但提报时和修订前都不存在）→ 算当前修改
+    // 2. 如果有修订前版本：
+    //    - 如果提报版和修订前不同（提报时有修改）：当前值和提报时值不同才算当前修改
+    //    - 如果提报版和修订前相同（提报时没有修改）：当前值和修订前值不同才算当前修改
+    // 3. 如果第一次提报（没有修订前版本）：当前值和提报时值不同才算当前修改
+    let isCurrentModified = false;
+    
+    if (current) {
+      // 判断是否是新增（当前存在，但提报时和修订前都不存在）
+      const isNewItem = !submitted && !revision && currentVal !== undefined && currentVal !== null && currentVal !== "";
+      
+      // 判断是否是录入员新增（当前存在，提报时不存在，但修订前也不存在）
+      // 或者当前存在，提报时不存在，但修订前存在（说明是录入员在修订时新增的，现在录入员又修改了）
+      const isClerkNewItem = currentVal !== undefined && currentVal !== null && currentVal !== "" && 
+        (!submitted || submittedVal === undefined || submittedVal === null || submittedVal === "");
+      
+      if (isNewItem || (isClerkNewItem && !revision)) {
+        // 新增的算当前修改（录入员新增的）
+        isCurrentModified = true;
+      } else if (revision && submitted) {
+        // 有修订前版本和提报时版本
+        if (isSubmittedModified) {
+          // 提报版和修订前不同（提报时有修改）：判断当前值和提报时值是否不同
+          isCurrentModified = !isEqual(submittedVal, currentVal);
+        } else {
+          // 提报版和修订前相同（提报时没有修改）：判断当前值和修订前值是否不同
+          isCurrentModified = !isEqual(revisionVal, currentVal);
+        }
+      } else if (submitted) {
+        // 第一次提报（没有修订前版本）：判断当前值和提报时值是否不同
+        isCurrentModified = !isEqual(submittedVal, currentVal);
+      } else if (revision) {
+        // 只有修订前版本，没有提报时版本（录入员新增的，在修订时新增的）
+        // 如果当前值和修订前值不同，说明录入员修改了
+        // 如果当前值和修订前值相同，也算当前修改（因为是录入员新增的）
+        isCurrentModified = true;
+      }
+    }
+
+    return { isCurrentModified, isSubmittedModified };
   };
 
-  // 渲染字段对比（区分修改来源）- 和设计师一样的展示方式
+  // 渲染字段对比（区分修改来源）- 录入员视图
   // 显示顺序：当前版本（最新） -> 提报时版本（最新） -> 修订前版本（旧值）
   const renderFieldCompare = (
     submitted: TableRowData | undefined,
@@ -158,33 +247,22 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
     field: keyof TableRowData,
     currentValue: any
   ) => {
-    const changeSource = getChangeSource(submitted, revision, current, field);
+    const { isCurrentModified, isSubmittedModified } = getChangeSource(submitted, revision, current, field);
+    const revisionVal = revision?.[field];
 
     return (
       <div>
-        {/* 第一行：当前版本（最新） */}
+        {/* 第一行：当前版本（最新）- 如果和修订前不同，标红 */}
         {current && (
           <div
             style={{
-              backgroundColor: changeSource === "current" || changeSource === "both" ? "#fff1f0" : "transparent",
+              backgroundColor: isCurrentModified ? "#fff1f0" : "transparent",
               padding: "4px",
               position: "relative",
             }}
           >
             {field === "unit_price" || field === "total_price" ? formatCurrency(currentValue) : (currentValue || "-")}
-            {changeSource === "current" && (
-              <span
-                style={{
-                  marginLeft: "8px",
-                  color: "#ff4d4f",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                }}
-              >
-                (当前修改)
-              </span>
-            )}
-            {changeSource === "both" && (
+            {isCurrentModified && (
               <span
                 style={{
                   marginLeft: "8px",
@@ -198,33 +276,20 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
             )}
           </div>
         )}
-        {/* 第二行：提报时版本（最新） */}
-        {submitted && (
+        {/* 第二行：提报时版本（最新）- 如果和修订前不同，标绿 */}
+        {/* 如果修订前存在但提报时不存在（录入员在修订时新增的项目），也要显示提报版 */}
+        {(submitted || (revision && !submitted && revisionVal !== undefined && revisionVal !== null && String(revisionVal) !== "")) && (
           <div
             style={{
-              backgroundColor: "transparent",
+              backgroundColor: isSubmittedModified ? "#f6ffed" : "transparent",
               padding: "4px",
               marginTop: current ? "4px" : 0,
               color: "#666",
               fontSize: "12px",
             }}
           >
-            提报时: {field === "unit_price" || field === "total_price" ? formatCurrency(submitted[field]) : (submitted[field] || "-")}
-          </div>
-        )}
-        {/* 第三行：修订前版本（旧值）- 如果和提报时不同，标绿 */}
-        {revision && (
-          <div
-            style={{
-              backgroundColor: changeSource === "revision" || changeSource === "both" ? "#f6ffed" : "transparent",
-              padding: "4px",
-              marginTop: (current || submitted) ? "4px" : 0,
-              color: "#999",
-              fontSize: "11px",
-            }}
-          >
-            修订前: {field === "unit_price" || field === "total_price" ? formatCurrency(revision[field]) : (revision[field] || "-")}
-            {(changeSource === "revision" || changeSource === "both") && (
+            提报版: {field === "unit_price" || field === "total_price" ? formatCurrency(submitted?.[field]) : (submitted?.[field] || "-")}
+            {isSubmittedModified && (
               <span
                 style={{
                   marginLeft: "8px",
@@ -233,9 +298,23 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
                   fontWeight: "bold",
                 }}
               >
-                (修订版)
+                (提报版)
               </span>
             )}
+          </div>
+        )}
+        {/* 第三行：修订前版本（旧值）- 不显示颜色，仅作为参考，如果第一次提报没有修订前则不显示 */}
+        {revision && (
+          <div
+            style={{
+              backgroundColor: "transparent",
+              padding: "4px",
+              marginTop: (current || submitted) ? "4px" : 0,
+              color: "#999",
+              fontSize: "11px",
+            }}
+          >
+            修订前: {field === "unit_price" || field === "total_price" ? formatCurrency(revision[field]) : (revision[field] || "-")}
           </div>
         )}
       </div>
@@ -407,9 +486,9 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           {submittedData && (
             <Col span={8}>
               <div>
-                <strong>提报时版本</strong>
+                <strong>提报版本</strong>
                 <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                  设计师提报的版本（最新）
+                  设计师提报的版本
                 </div>
               </div>
             </Col>
@@ -419,7 +498,7 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
               <div>
                 <strong>修订前版本</strong>
                 <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                  绿色背景 = 修订版（旧值）
+                  绿色背景 = 修订版
                 </div>
               </div>
             </Col>
@@ -672,7 +751,7 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
               fontSize: "12px",
             }}
           >
-            提报时: {submitted[field] || "-"}
+            提报版: {submitted[field] || "-"}
           </div>
         )}
         {/* 第三行：修订后版本（旧值） */}
@@ -870,9 +949,9 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           {submittedData && (
             <Col span={8}>
               <div>
-                <strong>提报时版本</strong>
+                <strong>提报版本</strong>
                 <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                  设计师提报的版本（最新）
+                  设计师提报的版本
                 </div>
               </div>
             </Col>
@@ -882,7 +961,7 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
               <div>
                 <strong>修订后版本</strong>
                 <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                  绿色背景 = 修订版（旧值）
+                  绿色背景 = 修订版
                 </div>
               </div>
             </Col>
