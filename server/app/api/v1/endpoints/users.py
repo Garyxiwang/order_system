@@ -4,7 +4,7 @@ from typing import List
 import logging
 
 from app.core.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.user import (
     UserCreate, UserResponse, UserListResponse, 
     DeleteUserResponse
@@ -137,6 +137,19 @@ async def delete_user(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="用户不存在"
+            )
+        
+        # 保护超级管理员和管理员角色，不允许删除
+        if user.role == UserRole.SUPER_ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="超级管理员不可删除"
+            )
+        
+        if user.role == UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="管理员不可删除"
             )
         
         # 真删除用户
