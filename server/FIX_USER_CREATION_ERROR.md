@@ -20,7 +20,25 @@
 
 根据日志显示，数据库中的枚举类型名称是 `userrole`（小写），而不是 `user_role`。修复脚本已更新以支持这两种情况。
 
-### 方法一：使用快速修复脚本（最简单，推荐）
+### 方法一：使用 SQL 脚本（最简单，推荐）
+
+直接使用 `psql` 命令执行 SQL 脚本：
+
+```bash
+cd server
+psql -h <数据库主机> -U <用户名> -d <数据库名> -f fix_admin_role_simple.sql
+```
+
+或者如果已经设置了 `PGPASSWORD` 环境变量：
+
+```bash
+export PGPASSWORD='your_password'
+psql -h <数据库主机> -U <用户名> -d <数据库名> -f server/fix_admin_role_simple.sql
+```
+
+**注意**：如果服务器上没有安装 `psycopg2`，这是最可靠的方法。
+
+### 方法二：使用快速修复脚本（需要 SQLAlchemy）
 
 1. 在服务器上设置数据库连接环境变量：
    ```bash
@@ -30,12 +48,12 @@
 2. 运行快速修复脚本：
    ```bash
    cd server
-   python quick_fix_admin_role.py
+   python3 quick_fix_admin_role.py
    ```
 
    脚本会自动：
    - 检测枚举类型名称（`user_role` 或 `userrole`）
-   - 检查 `admin` 角色是否存在
+   - 检查所有缺失的角色
    - 如果不存在，自动添加
    - 显示所有当前角色
 
