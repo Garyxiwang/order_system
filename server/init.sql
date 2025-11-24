@@ -18,6 +18,7 @@ SET timezone = 'Asia/Shanghai';
 DO $$ BEGIN
     CREATE TYPE user_role AS ENUM (
         'superAdmin',
+        'admin',
         'manager', 
         'auditor',
         'designer', 

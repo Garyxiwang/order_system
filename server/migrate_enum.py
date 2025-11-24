@@ -45,35 +45,96 @@ def check_database_type():
 def fix_postgresql_enum():
     """修复PostgreSQL的枚举类型"""
     try:
+        # 需要检查的角色列表（Python代码中定义的所有角色）
+        required_roles = [role.value for role in UserRole]
+        logger.info(f"Python代码中定义的角色: {required_roles}")
+        
+        # 首先查找枚举类型名称（可能是 user_role 或 userrole）
         with engine.connect() as conn:
-            # 检查auditor角色是否存在
             result = conn.execute(text("""
-                SELECT COUNT(*) FROM pg_enum 
-                WHERE enumlabel = 'auditor' 
-                AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'user_role')
+                SELECT typname FROM pg_type 
+                WHERE typname IN ('user_role', 'userrole')
+                LIMIT 1;
             """))
+            enum_type_row = result.fetchone()
             
-            if result.fetchone()[0] == 0:
-                # 添加auditor角色
-                conn.execute(text("ALTER TYPE user_role ADD VALUE 'auditor';"))
-                conn.commit()
-                logger.info("成功添加auditor角色到PostgreSQL枚举类型")
+            if not enum_type_row:
+                logger.error("未找到 user_role 或 userrole 枚举类型")
+                return False
+            
+            enum_type_name = enum_type_row[0]
+            logger.info(f"找到枚举类型: {enum_type_name}")
+            
+            # 获取数据库中现有的角色
+            result = conn.execute(text(f"""
+                SELECT enumlabel FROM pg_enum 
+                WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = :enum_type) 
+                ORDER BY enumsortorder;
+            """), {"enum_type": enum_type_name})
+            existing_roles = [row[0] for row in result.fetchall()]
+            logger.info(f"数据库中现有的角色: {existing_roles}")
+            
+            # 检查并添加缺失的角色
+            missing_roles = [role for role in required_roles if role not in existing_roles]
+            
+            if missing_roles:
+                logger.info(f"发现缺失的角色: {missing_roles}")
+                for role in missing_roles:
+                    try:
+                        # 检查角色是否已存在（防止并发添加）
+                        check_result = conn.execute(text(f"""
+                            SELECT COUNT(*) FROM pg_enum 
+                            WHERE enumlabel = :role 
+                            AND enumtypid = (SELECT oid FROM pg_type WHERE typname = :enum_type)
+                        """), {"role": role, "enum_type": enum_type_name})
+                        
+                        if check_result.fetchone()[0] == 0:
+                            # 尝试添加角色（PostgreSQL 9.1+ 支持）
+                            # 注意：ALTER TYPE ADD VALUE 不能在事务块中执行
+                            # 需要关闭自动提交，然后手动提交
+                            conn.commit()  # 先提交当前事务
+                            
+                            # 使用原始连接执行 ALTER TYPE（必须在 autocommit 模式下）
+                            raw_conn = conn.connection.dbapi_connection
+                            if hasattr(raw_conn, 'autocommit'):
+                                old_autocommit = raw_conn.autocommit
+                                raw_conn.autocommit = True
+                                try:
+                                    cursor = raw_conn.cursor()
+                                    cursor.execute(f"ALTER TYPE {enum_type_name} ADD VALUE '{role}';")
+                                    cursor.close()
+                                    logger.info(f"成功添加 {role} 角色到PostgreSQL枚举类型 {enum_type_name}")
+                                finally:
+                                    raw_conn.autocommit = old_autocommit
+                            else:
+                                # 如果无法设置 autocommit，尝试直接执行
+                                conn.execute(text(f"ALTER TYPE {enum_type_name} ADD VALUE '{role}';"))
+                                conn.commit()
+                                logger.info(f"成功添加 {role} 角色到PostgreSQL枚举类型 {enum_type_name}")
+                        else:
+                            logger.info(f"{role} 角色已存在（可能由并发操作添加）")
+                    except Exception as e:
+                        logger.warning(f"无法添加 {role} 角色（可能需要重新创建枚举类型）: {e}")
+                        import traceback
+                        logger.warning(traceback.format_exc())
             else:
-                logger.info("auditor角色已存在于PostgreSQL枚举类型中")
+                logger.info("所有角色都已存在于PostgreSQL枚举类型中")
                 
             # 显示所有角色
-            result = conn.execute(text("""
+            result = conn.execute(text(f"""
                 SELECT enumlabel FROM pg_enum 
-                WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'user_role') 
+                WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = :enum_type) 
                 ORDER BY enumsortorder;
-            """))
+            """), {"enum_type": enum_type_name})
             
             roles = [row[0] for row in result.fetchall()]
-            logger.info(f"当前数据库中的角色: {roles}")
+            logger.info(f"修复后的数据库角色: {roles}")
             
         return True
     except Exception as e:
         logger.error(f"修复PostgreSQL枚举失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 def test_user_creation():

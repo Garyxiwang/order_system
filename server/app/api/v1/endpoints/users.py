@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 import logging
+import traceback
 
 from app.core.database import get_db
 from app.models.user import User, UserRole
@@ -30,15 +31,31 @@ async def create_user(
     - **role**: 用户角色
     """
     try:
+        logger.info(f"开始创建用户: username={user_create.username}, role={user_create.role}")
+        
         # 检查用户名是否已存在
         existing_user = db.query(User).filter(
             User.username == user_create.username
         ).first()
         
         if existing_user:
+            logger.warning(f"用户名已存在: {user_create.username}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="用户名已存在"
+            )
+        
+        # 验证并转换角色值
+        user_role = user_create.role
+        try:
+            # 确保角色是有效的枚举值（Pydantic 应该已经处理了，但为了安全再验证一次）
+            if isinstance(user_role, str):
+                user_role = UserRole(user_role)
+        except (ValueError, AttributeError) as ve:
+            logger.error(f"无效的角色值: {user_create.role}, 错误: {str(ve)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"无效的角色值: {user_create.role}"
             )
         
         # 创建新用户
@@ -46,12 +63,16 @@ async def create_user(
         new_user = User(
             username=user_create.username,
             password=hashed_password,
-            role=user_create.role
+            role=user_role
         )
         
+        logger.info(f"准备添加用户到数据库: {new_user.username}")
         db.add(new_user)
+        logger.info(f"准备提交事务")
         db.commit()
+        logger.info(f"事务提交成功，准备刷新用户对象")
         db.refresh(new_user)
+        logger.info(f"用户创建成功: id={new_user.id}, username={new_user.username}")
         
         user_response = UserResponse.model_validate(new_user)
         
@@ -65,10 +86,25 @@ async def create_user(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"创建用户失败: {str(e)}")
+    except ValueError as ve:
+        logger.error(f"值错误: {str(ve)}")
+        logger.error(traceback.format_exc())
         db.rollback()
-        raise HTTPException(status_code=500, detail="创建用户失败")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"数据验证失败: {str(ve)}"
+        )
+    except Exception as e:
+        error_msg = f"创建用户失败: {str(e)}"
+        error_trace = traceback.format_exc()
+        logger.error(error_msg)
+        logger.error(f"错误堆栈:\n{error_trace}")
+        logger.error(f"请求数据: username={user_create.username}, role={user_create.role}")
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"创建用户失败: {str(e)}"
+        )
 
 
 @router.put("/{username}/reset-password", response_model=dict)
