@@ -6,7 +6,6 @@
 set -e
 
 SERVER="root@106.54.235.3"
-SSL_DIR="/etc/nginx/ssl"
 CERT_DIR="$(dirname "$0")/../../"
 
 echo "=========================================="
@@ -20,7 +19,34 @@ if [ ! -f "$CERT_ZIP" ]; then
     exit 1
 fi
 
-echo "1. 解压证书文件..."
+# 自动检测nginx配置路径并确定SSL目录
+echo "1. 检测nginx和SSL目录..."
+NGINX_CONF_DIR=$(ssh $SERVER "
+    if [ -f /www/server/nginx/conf/nginx.conf ]; then
+        echo '/www/server/nginx/conf'
+    elif [ -f /etc/nginx/nginx.conf ]; then
+        echo '/etc/nginx'
+    else
+        echo 'ERROR'
+    fi
+")
+
+if [ "$NGINX_CONF_DIR" = "ERROR" ]; then
+    echo "✗ 无法找到nginx配置文件"
+    exit 1
+fi
+
+# 根据nginx路径确定SSL目录
+if [ "$NGINX_CONF_DIR" = "/www/server/nginx/conf" ]; then
+    SSL_DIR="/www/server/nginx/conf/ssl"
+else
+    SSL_DIR="/etc/nginx/ssl"
+fi
+
+echo "   Nginx配置路径: $NGINX_CONF_DIR"
+echo "   SSL证书目录: $SSL_DIR"
+
+echo "2. 解压证书文件..."
 TMP_DIR=$(mktemp -d)
 unzip -q "$CERT_ZIP" -d "$TMP_DIR"
 CERT_PATH="$TMP_DIR/www.greenspring-order.cn_nginx"
@@ -33,21 +59,26 @@ if [ ! -f "$CERT_PATH/www.greenspring-order.cn_bundle.pem" ] || \
     exit 1
 fi
 
-echo "2. 创建SSL目录..."
+echo "3. 创建SSL目录..."
 ssh $SERVER "mkdir -p $SSL_DIR && chmod 700 $SSL_DIR"
 
-echo "3. 上传证书文件..."
+echo "4. 上传证书文件..."
 scp "$CERT_PATH/www.greenspring-order.cn_bundle.pem" $SERVER:$SSL_DIR/
 scp "$CERT_PATH/www.greenspring-order.cn.key" $SERVER:$SSL_DIR/
 
-echo "4. 设置证书文件权限..."
+echo "5. 设置证书文件权限..."
 ssh $SERVER "chmod 600 $SSL_DIR/www.greenspring-order.cn.key && chmod 644 $SSL_DIR/www.greenspring-order.cn_bundle.pem"
 
-echo "5. 验证证书文件..."
+echo "6. 验证证书文件..."
 ssh $SERVER "ls -la $SSL_DIR/"
 
-echo "6. 测试nginx配置..."
-ssh $SERVER "nginx -t"
+echo "7. 测试nginx配置..."
+if ssh $SERVER "nginx -t 2>&1"; then
+    echo "✓ Nginx配置测试通过"
+else
+    echo "⚠ 警告: Nginx配置测试失败，但证书已上传"
+    echo "   请检查nginx配置文件中的SSL证书路径是否正确"
+fi
 
 echo ""
 echo "=========================================="
