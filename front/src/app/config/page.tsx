@@ -113,6 +113,7 @@ const ConfigPage: React.FC = () => {
       render: (role: string) => {
         const roleMap: { [key: string]: string } = {
           superAdmin: "超级管理员",
+          admin: "管理员",
           designer: "设计师",
           splitting: "拆单员",
           salesperson: "销售",
@@ -138,14 +139,14 @@ const ConfigPage: React.FC = () => {
       key: "action",
       render: (_: unknown, record: StaffData) => {
         // 超管和管理员不可删除
-        if (record.role === "superAdmin") {
+        if (record.role === "superAdmin" || record.role === "admin") {
           return (
             <Button
               type="link"
               danger
               disabled
               icon={<DeleteOutlined />}
-              title={"超级管理员不可删除"}
+              title={record.role === "superAdmin" ? "超级管理员不可删除" : "管理员不可删除"}
             >
               删除
             </Button>
@@ -440,6 +441,7 @@ const ConfigPage: React.FC = () => {
             rules={[{ required: true, message: "请选择角色" }]}
           >
             <Select placeholder="请选择角色">
+              <Option value="admin">管理员</Option>
               <Option value="clerk">录入员</Option>
               <Option value="designer">设计师</Option>
               <Option value="splitting">拆单员</Option>

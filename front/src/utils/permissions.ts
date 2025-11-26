@@ -3,6 +3,7 @@ import AuthService from '@/services/authService';
 // 用户角色枚举
 export enum UserRole {
   SUPER_ADMIN = 'superAdmin',
+  ADMIN = 'admin',
   MANAGER = 'manager',
   AUDITOR = 'auditor',
   DESIGNER = 'designer',
@@ -32,6 +33,7 @@ export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
     UserRole.MANAGER,
     UserRole.SALESPERSON,
     UserRole.FINANCE,
+    UserRole.ADMIN,
     UserRole.SUPER_ADMIN
   ],
   [PageModule.SPLIT]: [
@@ -43,6 +45,7 @@ export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
     UserRole.AUDITOR,
     UserRole.PROCUREMENT,
     UserRole.WORKSHOP,
+    UserRole.ADMIN,
     UserRole.SUPER_ADMIN
   ],
   [PageModule.PRODUCTION]: [
@@ -52,6 +55,7 @@ export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
     UserRole.PROCUREMENT,
     UserRole.WORKSHOP,
     UserRole.SHIPPER,
+    UserRole.ADMIN,
     UserRole.SUPER_ADMIN
   ],
   [PageModule.CONFIG]: [
@@ -110,35 +114,42 @@ export enum SplitProgressAction {
 export const DESIGN_ACTION_PERMISSIONS: Record<DesignAction, UserRole[]> = {
   [DesignAction.EDIT_ORDER]: [
     UserRole.CLERK,      // 录入员
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [DesignAction.UPDATE_PROGRESS]: [
     UserRole.CLERK,      // 录入员
     UserRole.DESIGNER,   // 设计师
     UserRole.MANAGER,    // 主管
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [DesignAction.PLACE_ORDER]: [
     UserRole.CLERK,      // 录入员
     UserRole.DESIGNER,   // 设计师
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [DesignAction.CANCEL_ORDER]: [
     UserRole.CLERK,      // 录入员
     UserRole.DESIGNER,   // 设计师
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [DesignAction.DELETE_ORDER]: [
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管（仅允许超管删除以降低风险）
   ],
   [DesignAction.EXPORT]: [
     UserRole.FINANCE,    // 财务
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [DesignAction.VIEW_ORDER_AMOUNT]: [
     UserRole.CLERK,      // 录入员
     UserRole.FINANCE,    // 财务
     UserRole.SALESPERSON, // 销售
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ]
 };
@@ -148,6 +159,7 @@ export const SPLIT_ACTION_PERMISSIONS: Record<SplitAction, UserRole[]> = {
   [SplitAction.EDIT_ORDER]: [
     UserRole.CLERK,      // 录入员
     UserRole.MANAGER,    // 主管
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [SplitAction.UPDATE_PROGRESS]: [
@@ -155,32 +167,38 @@ export const SPLIT_ACTION_PERMISSIONS: Record<SplitAction, UserRole[]> = {
     UserRole.SPLITTING,  // 拆单员
     UserRole.MANAGER,    // 主管
     UserRole.PROCUREMENT, // 采购
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [SplitAction.ORDER_STATUS]: [
     UserRole.CLERK,      // 录入员
     UserRole.MANAGER,    // 主管
     UserRole.AUDITOR,    // 审核员
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [SplitAction.QUOTE_STATUS]: [
     UserRole.CLERK,      // 录入员
     UserRole.MANAGER,    // 主管
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [SplitAction.PLACE_ORDER]: [
     UserRole.CLERK,      // 录入员
     UserRole.MANAGER,    // 主管
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [SplitAction.EXPORT]: [
     UserRole.FINANCE,    // 财务
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [SplitAction.VIEW_ORDER_AMOUNT]: [
     UserRole.CLERK,      // 录入员
     UserRole.SALESPERSON, // 销售
     UserRole.FINANCE,    // 财务
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ]
 };
@@ -189,22 +207,27 @@ export const SPLIT_ACTION_PERMISSIONS: Record<SplitAction, UserRole[]> = {
 export const PRODUCTION_ACTION_PERMISSIONS: Record<ProductionAction, UserRole[]> = {
   [ProductionAction.EDIT_ORDER]: [
     UserRole.SHIPPER,    // 发货员
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [ProductionAction.PURCHASE_STATUS]: [
     UserRole.PROCUREMENT, // 采购
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [ProductionAction.PRODUCTION_PROGRESS]: [
     UserRole.WORKSHOP,   // 车间
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [ProductionAction.ORDER_STATUS]: [
     UserRole.SHIPPER,    // 发货员
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [ProductionAction.EXPORT]: [
     UserRole.FINANCE,    // 财务
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ]
 };
@@ -214,16 +237,19 @@ export const DESIGN_PROGRESS_ACTION_PERMISSIONS: Record<DesignProgressAction, Us
   [DesignProgressAction.ADD_PROGRESS]: [
     UserRole.CLERK,      // 录入员
     UserRole.MANAGER,    // 主管
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [DesignProgressAction.EDIT_PROGRESS]: [
     UserRole.CLERK,      // 录入员
     UserRole.DESIGNER,   // 设计师
     UserRole.MANAGER,    // 主管
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [DesignProgressAction.DELETE_PROGRESS]: [
     UserRole.CLERK,      // 录入员
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ]
 };
@@ -234,12 +260,14 @@ export const SPLIT_PROGRESS_ACTION_PERMISSIONS: Record<SplitProgressAction, User
     UserRole.CLERK,      // 录入员
     UserRole.SPLITTING,  // 拆单员
     UserRole.MANAGER,    // 主管
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ],
   [SplitProgressAction.EDIT_EXTERNAL_ITEMS]: [
     UserRole.CLERK,      // 录入员
     UserRole.PROCUREMENT, // 采购员
     UserRole.MANAGER,    // 主管
+    UserRole.ADMIN,      // 管理员
     UserRole.SUPER_ADMIN // 超管
   ]
 };
@@ -563,6 +591,7 @@ export class PermissionService {
   static getRoleDisplayName(role: UserRole): string {
     const roleNames: Record<UserRole, string> = {
       [UserRole.SUPER_ADMIN]: '超级管理员',
+      [UserRole.ADMIN]: '管理员',
       [UserRole.MANAGER]: '主管',
       [UserRole.AUDITOR]: '审核员',
       [UserRole.DESIGNER]: '设计师',
