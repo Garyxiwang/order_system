@@ -8,6 +8,7 @@ import {
   SettingOutlined,
   ShopOutlined,
   ShoppingCartOutlined,
+  CustomerServiceOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -68,6 +69,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
     if (pathname.startsWith("/production")) return ["production"];
     if (pathname.startsWith("/config")) return ["config"];
     if (pathname.startsWith("/quotation-config")) return ["quotation-config"];
+    if (pathname.startsWith("/after-sales")) return ["after-sales"];
     return [];
   };
 
@@ -168,6 +170,35 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
                 onClick={() => handleMenuClick("/production", "生产管理")}
               >
                 生产管理
+              </Link>
+            ) : null,
+          },
+        ]
+      : []),
+    // 售后管理
+    ...(hasPermission(PageModule.AFTER_SALES)
+      ? [
+          {
+            key: "after-sales",
+            icon: collapsed ? (
+              <Tooltip title="售后管理" placement="right">
+                <Link
+                  href="/after-sales"
+                  onClick={() => handleMenuClick("/after-sales", "售后管理")}
+                >
+                  <CustomerServiceOutlined className="text-blue-600" />
+                </Link>
+              </Tooltip>
+            ) : (
+              <CustomerServiceOutlined className="text-blue-600" />
+            ),
+            label: !collapsed ? (
+              <Link
+                href="/after-sales"
+                className="text-gray-700 hover:text-blue-600 font-medium"
+                onClick={() => handleMenuClick("/after-sales", "售后管理")}
+              >
+                售后管理
               </Link>
             ) : null,
           },

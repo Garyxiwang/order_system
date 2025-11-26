@@ -22,7 +22,8 @@ export enum PageModule {
   SPLIT = 'split',
   PRODUCTION = 'production',
   CONFIG = 'config',
-  QUOTATION = 'quotation'
+  QUOTATION = 'quotation',
+  AFTER_SALES = 'after-sales'
 }
 
 // 模块权限配置
@@ -62,6 +63,15 @@ export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
     UserRole.SUPER_ADMIN
   ],
   [PageModule.QUOTATION]: [
+    UserRole.SUPER_ADMIN
+  ],
+  [PageModule.AFTER_SALES]: [
+    UserRole.CLERK,
+    UserRole.DESIGNER,
+    UserRole.SPLITTING,
+    UserRole.MANAGER,
+    UserRole.SALESPERSON,
+    UserRole.ADMIN,
     UserRole.SUPER_ADMIN
   ]
 };

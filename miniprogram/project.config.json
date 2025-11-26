@@ -49,8 +49,8 @@
   },
   "compileType": "miniprogram",
   "libVersion": "2.19.4",
-  "appid": "wx7576435246e30cd2",
-  "projectname": "订单助手",
+  "appid": "wx56ce554c34149442",
+  "projectname": "进度管理系统移动端",
   "isGameTourist": false,
   "condition": {
     "search": {

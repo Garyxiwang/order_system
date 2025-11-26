@@ -299,6 +299,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             },
                           ]
                         : []),
+                      // 售后管理
+                      ...(hasPermission(PageModule.AFTER_SALES)
+                        ? [
+                            {
+                              key: "after-sales",
+                              label: (
+                                <Link
+                                  href="/after-sales"
+                                  className="text-gray-700 hover:text-blue-600"
+                                >
+                                  售后管理
+                                </Link>
+                              ),
+                            },
+                          ]
+                        : []),
                       // 系统配置
                       ...(hasPermission(PageModule.CONFIG)
                         ? [
