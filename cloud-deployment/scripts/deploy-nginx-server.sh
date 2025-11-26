@@ -100,9 +100,72 @@ echo "   备份文件: $BACKUP_DIR/$BACKUP_FILE"
 echo ""
 
 echo "2. 准备nginx配置文件..."
-# 创建临时配置文件，更新SSL证书路径
+# 创建临时配置文件
 TMP_CONF=$(mktemp)
-cp "$LOCAL_CONF" "$TMP_CONF"
+
+# 检查源配置文件是否包含主配置指令（user, events, http等）
+if grep -q "^[[:space:]]*user[[:space:]]" "$LOCAL_CONF" || \
+   grep -q "^[[:space:]]*events[[:space:]]*{" "$LOCAL_CONF" || \
+   grep -q "^[[:space:]]*http[[:space:]]*{" "$LOCAL_CONF"; then
+    echo "   检测到完整nginx配置，提取server块..."
+    # 提取所有server块（使用awk更可靠）
+    awk '
+        /^[[:space:]]*server[[:space:]]*{/ { 
+            in_server=1
+            print
+            next
+        }
+        in_server {
+            print
+            if (/^[[:space:]]*}[[:space:]]*$/) {
+                in_server=0
+            }
+        }
+    ' "$LOCAL_CONF" > "$TMP_CONF"
+    
+    # 如果提取失败或为空，使用默认配置
+    if [ ! -s "$TMP_CONF" ]; then
+        echo "   警告: 无法提取server块，使用默认server块配置"
+        cat > "$TMP_CONF" << 'EOF'
+# HTTP 重定向到 HTTPS
+server {
+    listen 80;
+    server_name www.greenspring-order.cn greenspring-order.cn _;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS 主服务器配置
+server {
+    listen 443 ssl http2;
+    server_name www.greenspring-order.cn greenspring-order.cn;
+
+    ssl_certificate /etc/nginx/ssl/www.greenspring-order.cn_bundle.pem;
+    ssl_certificate_key /etc/nginx/ssl/www.greenspring-order.cn.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    location /api/ {
+        proxy_pass http://backend:8000/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://frontend:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+    fi
+else
+    # 如果已经是server块配置，直接复制
+    cp "$LOCAL_CONF" "$TMP_CONF"
+    echo "   使用server块配置"
+fi
 
 # 更新配置文件中的SSL路径（使用容器内路径）
 sed -i "s|/etc/nginx/ssl|$SSL_CONTAINER_PATH|g" "$TMP_CONF"
