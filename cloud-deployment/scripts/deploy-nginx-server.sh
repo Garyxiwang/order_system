@@ -26,13 +26,31 @@ echo ""
 
 cd "$DEPLOY_DIR"
 
-NGINX_CONF_DIR="$DEPLOY_DIR/cloud-deployment/nginx"
-NGINX_CONF_FILE="nginx.conf"
-LOCAL_CONF="$NGINX_CONF_DIR/$NGINX_CONF_FILE"
-
-# 检查配置文件是否存在
-if [ ! -f "$LOCAL_CONF" ]; then
-    echo "错误: 找不到nginx配置文件 $LOCAL_CONF"
+# 优先使用项目根目录的nginx.conf（适合conf.d/default.conf）
+# 如果没有，则使用cloud-deployment/nginx/nginx.conf并提取server块
+if [ -f "$DEPLOY_DIR/nginx.conf" ]; then
+    LOCAL_CONF="$DEPLOY_DIR/nginx.conf"
+    echo "   使用项目根目录的nginx.conf"
+elif [ -f "$DEPLOY_DIR/cloud-deployment/nginx/nginx.conf" ]; then
+    # 从完整配置中提取server块
+    LOCAL_CONF=$(mktemp)
+    echo "   从完整配置中提取server块..."
+    # 提取server块（从第一个server到文件结束）
+    sed -n '/^[[:space:]]*server[[:space:]]*{/,/^}$/p' "$DEPLOY_DIR/cloud-deployment/nginx/nginx.conf" > "$LOCAL_CONF"
+    # 添加HTTP重定向server块
+    {
+        echo "# HTTP 重定向到 HTTPS"
+        echo "server {"
+        echo "    listen 80;"
+        echo "    server_name www.greenspring-order.cn greenspring-order.cn _;"
+        echo "    return 301 https://\$host\$request_uri;"
+        echo "}"
+        echo ""
+        cat "$LOCAL_CONF"
+    } > "${LOCAL_CONF}.tmp"
+    mv "${LOCAL_CONF}.tmp" "$LOCAL_CONF"
+else
+    echo "错误: 找不到nginx配置文件"
     exit 1
 fi
 
@@ -47,7 +65,7 @@ else
     mkdir -p "$SSL_DIR"
 fi
 
-echo "   Nginx配置目录: $NGINX_CONF_DIR"
+echo "   Nginx配置文件: $LOCAL_CONF"
 echo "   SSL证书目录: $SSL_DIR"
 
 # 查找nginx容器
@@ -100,7 +118,7 @@ if grep -q "nginx:" docker-compose.yml 2>/dev/null; then
     # 查找nginx配置挂载行
     NGINX_MOUNT_LINE=$(grep -A 10 "nginx:" docker-compose.yml | grep -E "nginx\.conf|\.conf:" | head -1)
     if [ -n "$NGINX_MOUNT_LINE" ]; then
-        # 提取本地路径（冒号前的部分）
+        # 提取本地路径（冒号前的部分，去掉开头的./）
         NGINX_TARGET=$(echo "$NGINX_MOUNT_LINE" | sed 's/.*- *\.\?\/\?\([^:]*\):.*/\1/' | sed 's/^\.\///' | xargs)
         # 如果是相对路径，转换为绝对路径
         if [[ "$NGINX_TARGET" != /* ]]; then
@@ -110,23 +128,13 @@ if grep -q "nginx:" docker-compose.yml 2>/dev/null; then
     fi
 fi
 
-# 如果没找到，尝试默认路径
-if [ -z "$NGINX_TARGET" ] || [ ! -f "$NGINX_TARGET" ]; then
-    # 尝试常见路径
-    for path in "$DEPLOY_DIR/nginx.conf" "$DEPLOY_DIR/nginx/nginx.conf" "$NGINX_CONF_DIR/$NGINX_CONF_FILE"; do
-        if [ -f "$path" ]; then
-            NGINX_TARGET="$path"
-            break
-        fi
-    done
-fi
-
-# 如果还是没找到，使用默认路径
+# 如果没找到，使用默认路径
 if [ -z "$NGINX_TARGET" ]; then
     NGINX_TARGET="$DEPLOY_DIR/nginx.conf"
-    # 确保目录存在
-    mkdir -p "$(dirname "$NGINX_TARGET")"
 fi
+
+# 确保目录存在
+mkdir -p "$(dirname "$NGINX_TARGET")"
 
 # 复制配置文件
 cp "$TMP_CONF" "$NGINX_TARGET"
@@ -176,8 +184,13 @@ echo ""
 echo "=========================================="
 echo "Nginx配置部署完成！"
 echo "=========================================="
-echo "配置文件位置: $NGINX_CONF_DIR/$NGINX_CONF_FILE"
+echo "配置文件位置: $NGINX_TARGET"
 echo "SSL证书目录: $SSL_DIR"
 echo "Nginx容器: $NGINX_CONTAINER"
 echo ""
+
+# 清理临时文件
+if [ -f "$LOCAL_CONF" ] && [ "$LOCAL_CONF" != "$DEPLOY_DIR/nginx.conf" ]; then
+    rm -f "$LOCAL_CONF"
+fi
 
