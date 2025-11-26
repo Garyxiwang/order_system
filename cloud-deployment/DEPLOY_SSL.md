@@ -1,6 +1,19 @@
 # SSL证书部署快速指南
 
-## 快速开始
+## ⚠️ 重要提示
+
+**如果您的服务器使用Docker部署，请使用Docker专用脚本：**
+
+```bash
+cd cloud-deployment/scripts
+./deploy-docker-all.sh
+```
+
+详细说明请查看: [DOCKER_DEPLOY.md](scripts/DOCKER_DEPLOY.md)
+
+---
+
+## 快速开始（非Docker环境）
 
 ### 一键部署（推荐）
 
