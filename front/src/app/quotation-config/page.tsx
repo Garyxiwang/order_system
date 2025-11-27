@@ -17,6 +17,7 @@ import {
   message,
   Spin,
   InputNumber,
+  Tag,
 } from "antd";
 import { PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import {
@@ -26,6 +27,7 @@ import {
   QuotationCategoryLevel2,
   MaterialData,
   ColorData,
+  ProjectData,
 } from "../../services/quotationConfigService";
 
 const { Title } = Typography;
@@ -35,6 +37,7 @@ const { TextArea } = Input;
 interface CategoryLevel1FormValues {
   name: string;
   remark?: string;
+  material_ids?: number[];
 }
 
 interface CategoryLevel2FormValues {
@@ -49,11 +52,16 @@ interface MaterialFormValues {
   remark?: string;
   dealer_price?: number;
   owner_price?: number;
+  color_ids?: number[];
 }
 
 interface ColorFormValues {
   name: string;
-  color_code?: string;
+  remark?: string;
+}
+
+interface ProjectFormValues {
+  name: string;
   remark?: string;
 }
 
@@ -86,6 +94,12 @@ const QuotationConfigPage: React.FC = () => {
   const [colorModalVisible, setColorModalVisible] = useState(false);
   const [editingColor, setEditingColor] = useState<ColorData | null>(null);
   const [colorForm] = Form.useForm();
+
+  // 项目配置相关状态
+  const [projectData, setProjectData] = useState<ProjectData[]>([]);
+  const [projectModalVisible, setProjectModalVisible] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
+  const [projectForm] = Form.useForm();
 
   // 加载报价类目树
   const loadCategoryTree = async () => {
@@ -126,12 +140,37 @@ const QuotationConfigPage: React.FC = () => {
     }
   };
 
+  // 加载项目列表
+  const loadProjectList = async () => {
+    try {
+      setLoading(true);
+      const data = await QuotationConfigService.getProjectList();
+      setProjectData(data);
+    } catch (error) {
+      message.error("加载项目列表失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "1") {
       loadCategoryTree();
     } else if (activeTab === "2") {
       loadMaterialList();
     } else if (activeTab === "3") {
+      loadColorList();
+    } else if (activeTab === "4") {
+      loadProjectList();
+    }
+  }, [activeTab]);
+
+  // 当切换到基材或颜色tab时，也需要加载对应的数据（用于下拉选择）
+  useEffect(() => {
+    if (activeTab === "1" || activeTab === "2") {
+      loadMaterialList();
+    }
+    if (activeTab === "2" || activeTab === "3") {
       loadColorList();
     }
   }, [activeTab]);
@@ -158,6 +197,7 @@ const QuotationConfigPage: React.FC = () => {
     level1Form.setFieldsValue({
       name: category.name,
       remark: category.remark || "",
+      material_ids: category.material_ids || [],
     });
     setLevel1ModalVisible(true);
   };
@@ -285,6 +325,7 @@ const QuotationConfigPage: React.FC = () => {
       remark: material.remark || "",
       dealer_price: material.dealer_price,
       owner_price: material.owner_price,
+      color_ids: material.color_ids || [],
     });
     setMaterialModalVisible(true);
   };
@@ -350,7 +391,6 @@ const QuotationConfigPage: React.FC = () => {
     setEditingColor(color);
     colorForm.setFieldsValue({
       name: color.name,
-      color_code: color.color_code || "",
       remark: color.remark || "",
     });
     setColorModalVisible(true);
@@ -403,6 +443,69 @@ const QuotationConfigPage: React.FC = () => {
   // 过滤颜色列表（暂时不使用搜索，直接返回全部数据）
   const filteredColorData = colorData;
 
+  // ========== 项目配置相关处理函数 ==========
+
+  // 打开添加项目Modal
+  const handleAddProject = () => {
+    setEditingProject(null);
+    projectForm.resetFields();
+    setProjectModalVisible(true);
+  };
+
+  // 打开编辑项目Modal
+  const handleEditProject = (project: ProjectData) => {
+    setEditingProject(project);
+    projectForm.setFieldsValue({
+      name: project.name,
+      remark: project.remark || "",
+    });
+    setProjectModalVisible(true);
+  };
+
+  // 提交项目
+  const handleSubmitProject = async (values: ProjectFormValues) => {
+    try {
+      setLoading(true);
+      if (editingProject) {
+        await QuotationConfigService.updateProject(editingProject.id, values);
+        message.success("更新成功");
+      } else {
+        await QuotationConfigService.createProject(values);
+        message.success("添加成功");
+      }
+      setProjectModalVisible(false);
+      projectForm.resetFields();
+      loadProjectList();
+    } catch (error) {
+      message.error(editingProject ? "更新失败" : "添加失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 删除项目
+  const handleDeleteProject = (id: number) => {
+    Modal.confirm({
+      title: "确认删除",
+      content: "确定要删除此项目吗？",
+      okText: "确定",
+      cancelText: "取消",
+      okType: "danger",
+      onOk: async () => {
+        try {
+          setLoading(true);
+          await QuotationConfigService.deleteProject(id);
+          message.success("删除成功");
+          loadProjectList();
+        } catch (error) {
+          message.error("删除失败");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
   // ========== 基材管理表格列 ==========
   const materialColumns = [
     {
@@ -421,6 +524,24 @@ const QuotationConfigPage: React.FC = () => {
       dataIndex: "owner_price",
       key: "owner_price",
       render: (price: number) => (price ? `¥${price.toFixed(2)}` : "-"),
+    },
+    {
+      title: "关联颜色",
+      dataIndex: "color_ids",
+      key: "color_ids",
+      render: (colorIds: number[]) => {
+        if (!colorIds || colorIds.length === 0) return "-";
+        const colors = colorData.filter(c => colorIds.includes(c.id));
+        return (
+          <Space wrap>
+            {colors.map(color => (
+              <Tag key={color.id}>
+                {color.name}
+              </Tag>
+            ))}
+          </Space>
+        );
+      },
     },
     {
       title: "备注",
@@ -459,27 +580,6 @@ const QuotationConfigPage: React.FC = () => {
       title: "颜色名称",
       dataIndex: "name",
       key: "name",
-    },
-    {
-      title: "颜色代码",
-      dataIndex: "color_code",
-      key: "color_code",
-      render: (text: string) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {text && (
-            <div
-              style={{
-                width: "20px",
-                height: "20px",
-                backgroundColor: text,
-                border: "1px solid #d9d9d9",
-                borderRadius: "4px",
-              }}
-            />
-          )}
-          <span>{text || "-"}</span>
-        </div>
-      ),
     },
     {
       title: "备注",
@@ -553,9 +653,24 @@ const QuotationConfigPage: React.FC = () => {
                             className="mb-4 border border-blue-200 rounded p-3 bg-blue-50"
                           >
                             <div className="flex justify-between items-center mb-2 pb-2 border-b-2 border-blue-200">
-                              <span className="font-semibold text-blue-600 text-base">
-                                {treeItem.level1.name}
-                              </span>
+                              <div className="flex-1">
+                                <span className="font-semibold text-blue-600 text-base">
+                                  {treeItem.level1.name}
+                                </span>
+                                {treeItem.level1.material_ids && treeItem.level1.material_ids.length > 0 && (
+                                  <div className="mt-1">
+                                    <Space wrap size="small">
+                                      {materialData
+                                        .filter(m => treeItem.level1.material_ids?.includes(m.id))
+                                        .map(material => (
+                                          <Tag key={material.id} color="blue">
+                                            {material.name}
+                                          </Tag>
+                                        ))}
+                                    </Space>
+                                  </div>
+                                )}
+                              </div>
                               <Space>
                                 <Button
                                   type="link"
@@ -682,6 +797,66 @@ const QuotationConfigPage: React.FC = () => {
                 </div>
               ),
             },
+            {
+              key: "4",
+              label: "项目配置",
+              children: (
+                <div>
+                  <div className="mb-4 flex justify-between">
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={handleAddProject}
+                    >
+                      添加项目
+                    </Button>
+                  </div>
+                  <Spin spinning={loading}>
+                    <Table
+                      columns={[
+                        {
+                          title: "项目名称",
+                          dataIndex: "name",
+                          key: "name",
+                        },
+                        {
+                          title: "备注",
+                          dataIndex: "remark",
+                          key: "remark",
+                          render: (text: string) => text || "-",
+                        },
+                        {
+                          title: "操作",
+                          key: "action",
+                          render: (_: unknown, record: ProjectData) => (
+                            <Space>
+                              <Button
+                                type="link"
+                                icon={<EditOutlined />}
+                                onClick={() => handleEditProject(record)}
+                              >
+                                编辑
+                              </Button>
+                              <Button
+                                type="link"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => handleDeleteProject(record.id)}
+                              >
+                                删除
+                              </Button>
+                            </Space>
+                          ),
+                        },
+                      ]}
+                      dataSource={projectData}
+                      rowKey="id"
+                      pagination={false}
+                    />
+                  </Spin>
+                </div>
+              ),
+            },
           ]}
         />
       </Card>
@@ -709,6 +884,26 @@ const QuotationConfigPage: React.FC = () => {
             rules={[{ required: true, message: "请输入类目名称" }]}
           >
             <Input placeholder="请输入一级类目名称，如：柜体、墙板" />
+          </Form.Item>
+          <Form.Item
+            name="material_ids"
+            label="关联基材"
+            tooltip="可选择多个基材，基材来源于基材管理"
+          >
+            <Select
+              mode="multiple"
+              placeholder="请选择基材（可多选）"
+              showSearch
+              filterOption={(input, option) =>
+                String(option?.children || option?.value || "").toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {materialData.map((material) => (
+                <Option key={material.id} value={material.id}>
+                  {material.name}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <TextArea rows={3} placeholder="请输入备注信息" />
@@ -839,16 +1034,47 @@ const QuotationConfigPage: React.FC = () => {
           <Form.Item
             name="dealer_price"
             label="经销商单价"
-            rules={[{ required: true, message: "请输入基材名称" }]}
+            rules={[{ required: true, message: "请输入经销商价格" }]}
           >
-            <Input style={{ width: "100%" }} placeholder="请输入经销商价格" />
+            <InputNumber
+              style={{ width: "100%" }}
+              placeholder="请输入经销商价格"
+              min={0}
+              precision={2}
+            />
           </Form.Item>
           <Form.Item
             name="owner_price"
             label="业主单价"
-            rules={[{ required: true, message: "请输入基材名称" }]}
+            rules={[{ required: true, message: "请输入业主价格" }]}
           >
-            <Input style={{ width: "100%" }} placeholder="请输入业主价格" />
+            <InputNumber
+              style={{ width: "100%" }}
+              placeholder="请输入业主价格"
+              min={0}
+              precision={2}
+            />
+          </Form.Item>
+          <Form.Item
+            name="color_ids"
+            label="关联颜色"
+            tooltip="可选择多个颜色，颜色来源于颜色管理"
+          >
+            <Select
+              mode="multiple"
+              placeholder="请选择颜色（可多选）"
+              showSearch
+              filterOption={(input, option) => {
+                const color = colorData.find(c => c.id === option?.value);
+                return color?.name.toLowerCase().includes(input.toLowerCase()) || false;
+              }}
+            >
+              {colorData.map((color) => (
+                <Option key={color.id} value={color.id}>
+                  {color.name}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <TextArea rows={3} placeholder="请输入备注信息" />
@@ -897,9 +1123,6 @@ const QuotationConfigPage: React.FC = () => {
           >
             <Input placeholder="请输入颜色名称" />
           </Form.Item>
-          <Form.Item name="color_code" label="颜色代码">
-            <Input placeholder="如：#FFFFFF 或 RGB值" />
-          </Form.Item>
           <Form.Item name="remark" label="备注">
             <TextArea rows={3} placeholder="请输入备注信息" />
           </Form.Item>
@@ -910,6 +1133,53 @@ const QuotationConfigPage: React.FC = () => {
                   onClick={() => {
                     setColorModalVisible(false);
                     colorForm.resetFields();
+                  }}
+                >
+                  取消
+                </Button>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  确定
+                </Button>
+              </Space>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 添加/编辑项目Modal */}
+      <Modal
+        title={editingProject ? "编辑项目" : "添加项目"}
+        open={projectModalVisible}
+        onCancel={() => {
+          setProjectModalVisible(false);
+          projectForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form
+          form={projectForm}
+          layout="horizontal"
+          labelCol={{ span: 6 }}
+          wrapperCol={{ span: 18 }}
+          onFinish={handleSubmitProject}
+        >
+          <Form.Item
+            name="name"
+            label="项目名称"
+            rules={[{ required: true, message: "请输入项目名称" }]}
+          >
+            <Input placeholder="请输入项目名称，如：主卧、次卧、客厅" />
+          </Form.Item>
+          <Form.Item name="remark" label="备注">
+            <TextArea rows={3} placeholder="请输入备注信息" />
+          </Form.Item>
+          <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
+            <div style={{ textAlign: "right" }}>
+              <Space>
+                <Button
+                  onClick={() => {
+                    setProjectModalVisible(false);
+                    projectForm.resetFields();
                   }}
                 >
                   取消

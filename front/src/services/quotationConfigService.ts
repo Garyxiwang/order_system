@@ -3,6 +3,7 @@ export interface QuotationCategoryLevel1 {
   id: number;
   name: string;
   remark?: string;
+  material_ids?: number[]; // 关联的基材ID列表
   created_at?: string;
   updated_at?: string;
 }
@@ -26,6 +27,7 @@ export interface QuotationCategoryTree {
 export interface CreateCategoryLevel1Data {
   name: string;
   remark?: string;
+  material_ids?: number[]; // 关联的基材ID列表
 }
 
 // 创建二级类目请求数据类型
@@ -43,6 +45,7 @@ export interface MaterialData {
   remark?: string;
   dealer_price?: number; // 经销商价格
   owner_price?: number; // 业主价格
+  color_ids?: number[]; // 关联的颜色ID列表
   created_at?: string;
   updated_at?: string;
 }
@@ -53,6 +56,7 @@ export interface CreateMaterialData {
   remark?: string;
   dealer_price?: number;
   owner_price?: number;
+  color_ids?: number[]; // 关联的颜色ID列表
 }
 
 // 更新基材请求数据类型
@@ -67,7 +71,6 @@ export interface UpdateMaterialData {
 export interface ColorData {
   id: number;
   name: string;
-  color_code?: string;
   remark?: string;
   created_at?: string;
   updated_at?: string;
@@ -76,14 +79,33 @@ export interface ColorData {
 // 创建颜色请求数据类型
 export interface CreateColorData {
   name: string;
-  color_code?: string;
   remark?: string;
 }
 
 // 更新颜色请求数据类型
 export interface UpdateColorData {
   name?: string;
-  color_code?: string;
+  remark?: string;
+}
+
+// ========== 项目配置数据类型定义 ==========
+export interface ProjectData {
+  id: number;
+  name: string;
+  remark?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// 创建项目请求数据类型
+export interface CreateProjectData {
+  name: string;
+  remark?: string;
+}
+
+// 更新项目请求数据类型
+export interface UpdateProjectData {
+  name?: string;
   remark?: string;
 }
 
@@ -116,16 +138,27 @@ const mockMaterials: MaterialData[] = [
 ];
 
 const mockColors: ColorData[] = [
-  { id: 1, name: 'TB-9009', color_code: '#F5F5DC', remark: '', created_at: new Date().toISOString() },
-  { id: 2, name: '婷兰灰肤感', color_code: '#E8E8E8', remark: '', created_at: new Date().toISOString() },
-  { id: 3, name: '白色', color_code: '#FFFFFF', remark: '', created_at: new Date().toISOString() },
-  { id: 4, name: '香奈儿白', color_code: '#FFF8F0', remark: '', created_at: new Date().toISOString() },
+  { id: 1, name: 'TB-9009', remark: '', created_at: new Date().toISOString() },
+  { id: 2, name: '婷兰灰肤感', remark: '', created_at: new Date().toISOString() },
+  { id: 3, name: '白色', remark: '', created_at: new Date().toISOString() },
+  { id: 4, name: '香奈儿白', remark: '', created_at: new Date().toISOString() },
 ];
+
+const mockProjects: ProjectData[] = [
+  { id: 1, name: '主卧', remark: '', created_at: new Date().toISOString() },
+  { id: 2, name: '次卧', remark: '', created_at: new Date().toISOString() },
+  { id: 3, name: '客厅', remark: '', created_at: new Date().toISOString() },
+];
+
+// 关联关系存储
+const categoryLevel1MaterialMap: Map<number, number[]> = new Map();
+const materialColorMap: Map<number, number[]> = new Map();
 
 let nextCategoryLevel1Id = 5;
 let nextCategoryLevel2Id = 10;
 let nextMaterialId = 5;
 let nextColorId = 5;
+let nextProjectId = 4;
 
 // 模拟异步延迟
 const delay = (ms: number = 300) => new Promise(resolve => setTimeout(resolve, ms));
@@ -137,9 +170,12 @@ export class QuotationConfigService {
   // 获取报价类目树形结构
   static async getCategoryTree(): Promise<QuotationCategoryTree[]> {
     await delay();
-    // 构建树形结构
+    // 构建树形结构，并添加关联的基材ID
     const tree: QuotationCategoryTree[] = mockCategoryLevel1.map(level1 => ({
-      level1,
+      level1: {
+        ...level1,
+        material_ids: categoryLevel1MaterialMap.get(level1.id) || [],
+      },
       level2: mockCategoryLevel2.filter(level2 => level2.parent_id === level1.id),
     }));
     return tree;
@@ -152,10 +188,15 @@ export class QuotationConfigService {
       id: nextCategoryLevel1Id++,
       name: data.name,
       remark: data.remark,
+      material_ids: data.material_ids || [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     mockCategoryLevel1.push(newCategory);
+    // 保存关联关系
+    if (data.material_ids && data.material_ids.length > 0) {
+      categoryLevel1MaterialMap.set(newCategory.id, data.material_ids);
+    }
     return newCategory;
   }
 
@@ -185,9 +226,18 @@ export class QuotationConfigService {
     const updated = {
       ...mockCategoryLevel1[index],
       ...data,
+      material_ids: data.material_ids !== undefined ? data.material_ids : mockCategoryLevel1[index].material_ids,
       updated_at: new Date().toISOString(),
     };
     mockCategoryLevel1[index] = updated;
+    // 更新关联关系
+    if (data.material_ids !== undefined) {
+      if (data.material_ids.length > 0) {
+        categoryLevel1MaterialMap.set(id, data.material_ids);
+      } else {
+        categoryLevel1MaterialMap.delete(id);
+      }
+    }
     return updated;
   }
 
@@ -217,6 +267,8 @@ export class QuotationConfigService {
     // 同时删除所有子类目
     mockCategoryLevel2 = mockCategoryLevel2.filter(item => item.parent_id !== id);
     mockCategoryLevel1.splice(index, 1);
+    // 删除关联关系
+    categoryLevel1MaterialMap.delete(id);
   }
 
   // 删除二级类目
@@ -234,7 +286,11 @@ export class QuotationConfigService {
   // 获取基材列表
   static async getMaterialList(): Promise<MaterialData[]> {
     await delay();
-    return [...mockMaterials];
+    // 添加关联的颜色ID
+    return mockMaterials.map(material => ({
+      ...material,
+      color_ids: materialColorMap.get(material.id) || [],
+    }));
   }
 
   // 创建基材
@@ -246,15 +302,20 @@ export class QuotationConfigService {
       remark: data.remark,
       dealer_price: data.dealer_price,
       owner_price: data.owner_price,
+      color_ids: data.color_ids || [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     mockMaterials.push(newMaterial);
+    // 保存关联关系
+    if (data.color_ids && data.color_ids.length > 0) {
+      materialColorMap.set(newMaterial.id, data.color_ids);
+    }
     return newMaterial;
   }
 
   // 更新基材
-  static async updateMaterial(id: number, data: UpdateMaterialData): Promise<MaterialData> {
+  static async updateMaterial(id: number, data: UpdateMaterialData & { color_ids?: number[] }): Promise<MaterialData> {
     await delay();
     const index = mockMaterials.findIndex(item => item.id === id);
     if (index === -1) {
@@ -263,9 +324,18 @@ export class QuotationConfigService {
     const updated = {
       ...mockMaterials[index],
       ...data,
+      color_ids: data.color_ids !== undefined ? data.color_ids : mockMaterials[index].color_ids,
       updated_at: new Date().toISOString(),
     };
     mockMaterials[index] = updated;
+    // 更新关联关系
+    if (data.color_ids !== undefined) {
+      if (data.color_ids.length > 0) {
+        materialColorMap.set(id, data.color_ids);
+      } else {
+        materialColorMap.delete(id);
+      }
+    }
     return updated;
   }
 
@@ -277,6 +347,8 @@ export class QuotationConfigService {
       throw new Error('基材不存在');
     }
     mockMaterials.splice(index, 1);
+    // 删除关联关系
+    materialColorMap.delete(id);
   }
 
   // ========== 颜色管理相关 ==========
@@ -293,7 +365,6 @@ export class QuotationConfigService {
     const newColor: ColorData = {
       id: nextColorId++,
       name: data.name,
-      color_code: data.color_code,
       remark: data.remark,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -326,6 +397,63 @@ export class QuotationConfigService {
       throw new Error('颜色不存在');
     }
     mockColors.splice(index, 1);
+    // 从所有基材的关联关系中移除该颜色
+    materialColorMap.forEach((colorIds, materialId) => {
+      const newColorIds = colorIds.filter(cid => cid !== id);
+      if (newColorIds.length > 0) {
+        materialColorMap.set(materialId, newColorIds);
+      } else {
+        materialColorMap.delete(materialId);
+      }
+    });
+  }
+
+  // ========== 项目配置相关 ==========
+  
+  // 获取项目列表
+  static async getProjectList(): Promise<ProjectData[]> {
+    await delay();
+    return [...mockProjects];
+  }
+
+  // 创建项目
+  static async createProject(data: CreateProjectData): Promise<ProjectData> {
+    await delay();
+    const newProject: ProjectData = {
+      id: nextProjectId++,
+      name: data.name,
+      remark: data.remark,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    mockProjects.push(newProject);
+    return newProject;
+  }
+
+  // 更新项目
+  static async updateProject(id: number, data: UpdateProjectData): Promise<ProjectData> {
+    await delay();
+    const index = mockProjects.findIndex(item => item.id === id);
+    if (index === -1) {
+      throw new Error('项目不存在');
+    }
+    const updated = {
+      ...mockProjects[index],
+      ...data,
+      updated_at: new Date().toISOString(),
+    };
+    mockProjects[index] = updated;
+    return updated;
+  }
+
+  // 删除项目
+  static async deleteProject(id: number): Promise<void> {
+    await delay();
+    const index = mockProjects.findIndex(item => item.id === id);
+    if (index === -1) {
+      throw new Error('项目不存在');
+    }
+    mockProjects.splice(index, 1);
   }
 }
 
