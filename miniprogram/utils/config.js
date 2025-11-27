@@ -5,7 +5,7 @@ const config = {
   // baseURL: 'http://192.168.1.165:8000/api/v1',
   
   // 生产环境 - 根据实际部署的地址修改
-  baseURL: 'http://www.greenspring-order.cn/api/v1',
+  baseURL: 'https://www.greenspring-order.cn/api/v1',
   
   // 请求超时时间（毫秒）
   timeout: 10000,

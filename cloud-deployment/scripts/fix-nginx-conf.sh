@@ -1,3 +1,42 @@
+#!/bin/bash
+
+# 修复nginx.conf文件，确保只包含server块配置
+# 在服务器上直接执行此脚本来修复nginx.conf
+
+set -e
+
+# 检测部署目录
+if [ -f "docker-compose.yml" ]; then
+    DEPLOY_DIR="$(pwd)"
+elif [ -f "/root/order_system/docker-compose.yml" ]; then
+    DEPLOY_DIR="/root/order_system"
+elif [ -f "/home/www/order_system/docker-compose.yml" ]; then
+    DEPLOY_DIR="/home/www/order_system"
+else
+    echo "错误: 无法找到docker-compose.yml文件"
+    echo "请确保在项目根目录执行此脚本"
+    exit 1
+fi
+
+echo "=========================================="
+echo "修复nginx.conf配置文件"
+echo "=========================================="
+echo "部署目录: $DEPLOY_DIR"
+echo ""
+
+cd "$DEPLOY_DIR"
+
+NGINX_CONF="$DEPLOY_DIR/nginx.conf"
+
+# 备份原文件
+if [ -f "$NGINX_CONF" ]; then
+    BACKUP_FILE="${NGINX_CONF}.backup.$(date +%Y%m%d_%H%M%S)"
+    cp "$NGINX_CONF" "$BACKUP_FILE"
+    echo "已备份原文件: $BACKUP_FILE"
+fi
+
+# 创建新的nginx.conf（只包含server块）
+cat > "$NGINX_CONF" << 'NGINX_EOF'
 # Nginx Server配置 - 用于conf.d/default.conf
 # 注意：此文件只包含server块配置，会被挂载到 /etc/nginx/conf.d/default.conf
 
@@ -136,3 +175,16 @@ server {
         log_not_found off;
     }
 }
+NGINX_EOF
+
+echo "✓ 已创建新的nginx.conf文件（只包含server块）"
+echo ""
+echo "文件位置: $NGINX_CONF"
+echo ""
+echo "现在可以测试配置:"
+echo "  docker exec order_system_nginx nginx -t"
+echo ""
+echo "然后重启容器:"
+echo "  docker restart order_system_nginx"
+echo ""
+

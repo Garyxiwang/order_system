@@ -8,6 +8,7 @@ services:
       - "443:443"  # 如果需要 HTTPS
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./ssl:/etc/nginx/ssl:ro  # SSL证书目录
       - ./logs/nginx:/var/log/nginx  # 日志目录
       - /etc/localtime:/etc/localtime:ro
     logging:
