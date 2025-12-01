@@ -13,6 +13,7 @@ import {
   Row,
   Col,
   Divider,
+  AutoComplete,
 } from "antd";
 import { DesignerCompareView } from "./CompareView";
 import { PlusOutlined, DeleteOutlined, DiffOutlined } from "@ant-design/icons";
@@ -27,6 +28,7 @@ import {
   QuotationCategoryTree,
   MaterialData,
   ColorData,
+  ProjectData,
 } from "../../services/quotationConfigService";
 
 const { Option } = Select;
@@ -73,6 +75,7 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
   const [categoryTree, setCategoryTree] = useState<QuotationCategoryTree[]>([]);
   const [materials, setMaterials] = useState<MaterialData[]>([]);
   const [colors, setColors] = useState<ColorData[]>([]);
+  const [projects, setProjects] = useState<ProjectData[]>([]);
   const [isCompareVisible, setIsCompareVisible] = useState(false);
   const [submittedSnapshot, setSubmittedSnapshot] = useState<{
     projects: QuotationProject[];
@@ -174,14 +177,16 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
 
   const loadConfigData = async () => {
     try {
-      const [treeData, materialData, colorData] = await Promise.all([
+      const [treeData, materialData, colorData, projectData] = await Promise.all([
         QuotationConfigService.getCategoryTree(),
         QuotationConfigService.getMaterialList(),
         QuotationConfigService.getColorList(),
+        QuotationConfigService.getProjectList(),
       ]);
       setCategoryTree(treeData);
       setMaterials(materialData);
       setColors(colorData);
+      setProjects(projectData);
     } catch (error) {
       console.error("加载配置数据失败:", error);
     }
@@ -368,10 +373,17 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                       rules={[{ required: true, message: "请输入项目名称" }]}
                       style={{ marginBottom: 0 }}
                     >
-                      <Input
-                        placeholder="请输入项目名称，如：主卧、厨房"
+                      <AutoComplete
+                        placeholder="请输入或选择项目名称，如：主卧、厨房"
                         disabled={isReadOnly}
                         style={{ fontWeight: 600 }}
+                        options={projects.map((p) => ({
+                          value: p.name,
+                          label: p.name,
+                        }))}
+                        filterOption={(inputValue, option) =>
+                          option?.value?.toUpperCase().includes(inputValue.toUpperCase()) || false
+                        }
                       />
                     </Form.Item>
                   }
@@ -471,6 +483,10 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                                                   level2_category_name:
                                                                     undefined,
                                                                   unit: undefined, // 清空单位
+                                                                  material_id: undefined, // 清空基材
+                                                                  material_name: undefined,
+                                                                  color_id: undefined, // 清空颜色
+                                                                  color_name: undefined,
                                                                 };
                                                               }
                                                               return c;
@@ -689,6 +705,8 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                                                     value,
                                                                   material_name:
                                                                     material.name,
+                                                                  color_id: undefined, // 清空颜色
+                                                                  color_name: undefined,
                                                                 };
                                                               }
                                                               return c;
@@ -703,14 +721,34 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                           }
                                         }}
                                       >
-                                        {materials.map((material) => (
-                                          <Option
-                                            key={material.id}
-                                            value={material.id}
-                                          >
-                                            {material.name}
-                                          </Option>
-                                        ))}
+                                        {(() => {
+                                          // 根据一级类目过滤基材
+                                          const level1Id = form.getFieldValue([
+                                            "projects",
+                                            projectIndex,
+                                            "categories",
+                                            categoryIndex,
+                                            "level1_category_id",
+                                          ]);
+                                          const level1 = categoryTree.find(
+                                            (t) => t.level1.id === level1Id
+                                          );
+                                          const allowedMaterialIds = level1?.level1.material_ids || [];
+                                          
+                                          // 如果一级类目有关联的基材，只显示关联的基材；否则显示所有基材
+                                          const filteredMaterials = allowedMaterialIds.length > 0
+                                            ? materials.filter((m) => allowedMaterialIds.includes(m.id))
+                                            : materials;
+                                          
+                                          return filteredMaterials.map((material) => (
+                                            <Option
+                                              key={material.id}
+                                              value={material.id}
+                                            >
+                                              {material.name}
+                                            </Option>
+                                          ));
+                                        })()}
                                       </Select>
                                     </Form.Item>
                                   </Col>
@@ -765,14 +803,34 @@ const MaterialListModal: React.FC<MaterialListModalProps> = ({
                                           }
                                         }}
                                       >
-                                        {colors.map((color) => (
-                                          <Option
-                                            key={color.id}
-                                            value={color.id}
-                                          >
-                                            {color.name}
-                                          </Option>
-                                        ))}
+                                        {(() => {
+                                          // 根据基材过滤颜色
+                                          const materialId = form.getFieldValue([
+                                            "projects",
+                                            projectIndex,
+                                            "categories",
+                                            categoryIndex,
+                                            "material_id",
+                                          ]);
+                                          const material = materials.find(
+                                            (m) => m.id === materialId
+                                          );
+                                          const allowedColorIds = material?.color_ids || [];
+                                          
+                                          // 如果基材有关联的颜色，只显示关联的颜色；否则显示所有颜色
+                                          const filteredColors = allowedColorIds.length > 0
+                                            ? colors.filter((c) => allowedColorIds.includes(c.id))
+                                            : colors;
+                                          
+                                          return filteredColors.map((color) => (
+                                            <Option
+                                              key={color.id}
+                                              value={color.id}
+                                            >
+                                              {color.name}
+                                            </Option>
+                                          ));
+                                        })()}
                                       </Select>
                                     </Form.Item>
                                   </Col>

@@ -69,7 +69,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
   const [materials, setMaterials] = useState<MaterialData[]>([]);
   const [colors, setColors] = useState<ColorData[]>([]);
   const [quotationType, setQuotationType] = useState<"dealer" | "owner">(
-    "dealer"
+    "owner"
   );
   const [editingKey, setEditingKey] = useState<React.Key | null>(null);
   const [customerPhone, setCustomerPhone] = useState<string>("");
@@ -77,6 +77,8 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const [isCompareVisible, setIsCompareVisible] = useState(false);
+  const [isDiscountPriceVisible, setIsDiscountPriceVisible] = useState(false);
+  const [discountPrices, setDiscountPrices] = useState<Map<number, number>>(new Map());
   const [revisionSnapshot, setRevisionSnapshot] = useState<{
     projects: QuotationProject[];
     categories: QuotationCategory[];
@@ -118,7 +120,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
       );
       if (materialListData) {
         setMaterialList(materialListData);
-        setQuotationType(materialListData.quotation_type || "dealer");
+        setQuotationType(materialListData.quotation_type || "owner");
 
         const detail = await MaterialListService.getMaterialListDetail(
           materialListData.id
@@ -422,11 +424,13 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               }
             }
           }
-          // 选择基材时，如果已有二级类目，自动填充单价
+          // 选择基材时，如果已有二级类目，自动填充单价，并清空颜色
           if (field === "material_id") {
             const material = materials.find((m) => m.id === value);
             if (material) {
               updated.material_name = material.name;
+              updated.color_id = undefined; // 清空颜色
+              updated.color_name = undefined;
               // 如果已有二级类目，自动填充单价
               if (updated.level2_category_id && materialList) {
                 const unitPrice = autoFillUnitPrice(value as number);
@@ -439,7 +443,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               }
             }
           }
-          // 选择一级类目时清空二级类目
+          // 选择一级类目时清空二级类目、基材和颜色
           if (field === "level1_category_id") {
             const level1 = categoryTree.find((t) => t.level1.id === value);
             if (level1) {
@@ -447,6 +451,10 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               updated.level2_category_id = 0;
               updated.level2_category_name = "";
               updated.unit = "";
+              updated.material_id = undefined;
+              updated.material_name = undefined;
+              updated.color_id = undefined;
+              updated.color_name = undefined;
             }
           }
           // 选择颜色时更新名称
@@ -711,11 +719,24 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               style={{ width: "100%" }}
               allowClear
             >
-              {materials.map((material) => (
-                <Option key={material.id} value={material.id}>
-                  {material.name}
-                </Option>
-              ))}
+              {(() => {
+                // 根据一级类目过滤基材
+                const level1 = categoryTree.find(
+                  (t) => t.level1.id === record.level1_category_id
+                );
+                const allowedMaterialIds = level1?.level1.material_ids || [];
+                
+                // 如果一级类目有关联的基材，只显示关联的基材；否则显示所有基材
+                const filteredMaterials = allowedMaterialIds.length > 0
+                  ? materials.filter((m) => allowedMaterialIds.includes(m.id))
+                  : materials;
+                
+                return filteredMaterials.map((material) => (
+                  <Option key={material.id} value={material.id}>
+                    {material.name}
+                  </Option>
+                ));
+              })()}
             </Select>
           );
         }
@@ -737,11 +758,24 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               style={{ width: "100%" }}
               allowClear
             >
-              {colors.map((color) => (
-                <Option key={color.id} value={color.id}>
-                  {color.name}
-                </Option>
-              ))}
+              {(() => {
+                // 根据基材过滤颜色
+                const material = materials.find(
+                  (m) => m.id === record.material_id
+                );
+                const allowedColorIds = material?.color_ids || [];
+                
+                // 如果基材有关联的颜色，只显示关联的颜色；否则显示所有颜色
+                const filteredColors = allowedColorIds.length > 0
+                  ? colors.filter((c) => allowedColorIds.includes(c.id))
+                  : colors;
+                
+                return filteredColors.map((color) => (
+                  <Option key={color.id} value={color.id}>
+                    {color.name}
+                  </Option>
+                ));
+              })()}
             </Select>
           );
         }
@@ -976,6 +1010,33 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               onClick={() => setIsPreviewVisible(true)}
             >
               预览
+            </Button>
+            <Button
+              onClick={() => {
+                // 收集所有基材和单价
+                const materialPriceMap = new Map<number, { name: string; price: number }>();
+                tableData.forEach((row) => {
+                  if (row.material_id && row.unit_price !== undefined) {
+                    const material = materials.find((m) => m.id === row.material_id);
+                    if (material && !materialPriceMap.has(row.material_id)) {
+                      materialPriceMap.set(row.material_id, {
+                        name: material.name,
+                        price: row.unit_price,
+                      });
+                    }
+                  }
+                });
+                
+                // 初始化折扣价格（默认为原价）
+                const initialDiscountPrices = new Map<number, number>();
+                materialPriceMap.forEach((value, key) => {
+                  initialDiscountPrices.set(key, value.price);
+                });
+                setDiscountPrices(initialDiscountPrices);
+                setIsDiscountPriceVisible(true);
+              }}
+            >
+              折扣价格暗九
             </Button>
             {(submittedSnapshot || revisionSnapshot) && (
               <Button
@@ -1366,6 +1427,122 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
           submittedData={submittedSnapshot || undefined}
           revisionData={revisionSnapshot || undefined}
           formatCurrency={formatCurrency}
+        />
+      </Modal>
+
+      {/* 折扣价格暗九编辑模态框 */}
+      <Modal
+        title="折扣价格暗九"
+        open={isDiscountPriceVisible}
+        onCancel={() => setIsDiscountPriceVisible(false)}
+        onOk={async () => {
+          try {
+            setLoading(true);
+            // 应用折扣价格到报价单
+            const updatedTableData = tableData.map((row) => {
+              if (row.material_id && discountPrices.has(row.material_id)) {
+                const newPrice = discountPrices.get(row.material_id)!;
+                return {
+                  ...row,
+                  unit_price: newPrice,
+                  total_price: (row.quantity || 0) * newPrice,
+                };
+              }
+              return row;
+            });
+            setTableData(updatedTableData);
+            await saveTableData();
+            setIsDiscountPriceVisible(false);
+            message.success("折扣价格已应用");
+          } catch (error) {
+            console.error("应用折扣价格失败:", error);
+            message.error("应用折扣价格失败");
+          } finally {
+            setLoading(false);
+          }
+        }}
+        width={800}
+        okText="应用"
+        cancelText="取消"
+      >
+        <Table
+          columns={[
+            {
+              title: "基材名称",
+              dataIndex: "name",
+              key: "name",
+              width: 200,
+            },
+            {
+              title: "原单价",
+              dataIndex: "price",
+              key: "price",
+              width: 150,
+              render: (price: number) => formatCurrency(price),
+            },
+            {
+              title: "折扣价",
+              dataIndex: "materialId",
+              key: "discountPrice",
+              width: 200,
+              render: (_: unknown, record: { materialId: number; price: number }) => (
+                <InputNumber
+                  value={discountPrices.get(record.materialId) || record.price}
+                  onChange={(value) => {
+                    const newDiscountPrices = new Map(discountPrices);
+                    newDiscountPrices.set(record.materialId, value || record.price);
+                    setDiscountPrices(newDiscountPrices);
+                  }}
+                  precision={2}
+                  min={0}
+                  style={{ width: "100%" }}
+                  formatter={(value) =>
+                    `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                  }
+                  parser={(value) => {
+                    const parsed = value!.replace(/¥\s?|(,*)/g, "");
+                    return parsed ? parseFloat(parsed) : 0;
+                  }}
+                />
+              ),
+            },
+            {
+              title: "折扣率",
+              key: "discountRate",
+              width: 120,
+              render: (_: unknown, record: { materialId: number; price: number }) => {
+                const discountPrice = discountPrices.get(record.materialId) || record.price;
+                const rate = record.price > 0 
+                  ? ((record.price - discountPrice) / record.price * 100).toFixed(2)
+                  : "0.00";
+                return `${rate}%`;
+              },
+            },
+          ]}
+          dataSource={Array.from(
+            (() => {
+              const materialPriceMap = new Map<number, { name: string; price: number }>();
+              tableData.forEach((row) => {
+                if (row.material_id && row.unit_price !== undefined) {
+                  const material = materials.find((m) => m.id === row.material_id);
+                  if (material && !materialPriceMap.has(row.material_id)) {
+                    materialPriceMap.set(row.material_id, {
+                      name: material.name,
+                      price: row.unit_price,
+                    });
+                  }
+                }
+              });
+              return materialPriceMap;
+            })()
+          ).map(([materialId, { name, price }]) => ({
+            key: materialId,
+            materialId,
+            name,
+            price,
+          }))}
+          pagination={false}
+          rowKey="materialId"
         />
       </Modal>
     </Modal>

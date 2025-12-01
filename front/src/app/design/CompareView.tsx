@@ -154,7 +154,9 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
     
     // 使用唯一索引作为 rowKey，避免 id 冲突
     const id = current?.id || submitted?.id || revision?.id || index;
-    return { current, submitted, revision, id };
+    // 判断是否被删除：在旧版本中存在，但在当前版本中不存在
+    const isDeleted = (submitted || revision) && !current;
+    return { current, submitted, revision, id, isDeleted };
   });
 
   // 判断字段值是否相等
@@ -245,7 +247,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
     revision: TableRowData | undefined,
     current: TableRowData | undefined,
     field: keyof TableRowData,
-    currentValue: any
+    currentValue: any,
+    isDeleted: boolean = false
   ) => {
     const { isCurrentModified, isSubmittedModified } = getChangeSource(submitted, revision, current, field);
     const revisionVal = revision?.[field];
@@ -276,15 +279,29 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
             )}
           </div>
         )}
+        {/* 如果被删除，显示删除标记 */}
+        {isDeleted && !current && (
+          <div
+            style={{
+              backgroundColor: "#fff7e6",
+              padding: "4px",
+              color: "#fa8c16",
+              fontSize: "12px",
+              fontWeight: "bold",
+            }}
+          >
+            [已删除]
+          </div>
+        )}
         {/* 第二行：提报时版本（最新）- 如果和修订前不同，标绿 */}
         {/* 如果修订前存在但提报时不存在（录入员在修订时新增的项目），也要显示提报版 */}
         {(submitted || (revision && !submitted && revisionVal !== undefined && revisionVal !== null && String(revisionVal) !== "")) && (
           <div
             style={{
-              backgroundColor: isSubmittedModified ? "#f6ffed" : "transparent",
+              backgroundColor: isSubmittedModified ? "#f6ffed" : (isDeleted ? "#fff7e6" : "transparent"),
               padding: "4px",
               marginTop: current ? "4px" : 0,
-              color: "#666",
+              color: isDeleted ? "#fa8c16" : "#666",
               fontSize: "12px",
             }}
           >
@@ -307,10 +324,10 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
         {revision && (
           <div
             style={{
-              backgroundColor: "transparent",
+              backgroundColor: isDeleted ? "#fff7e6" : "transparent",
               padding: "4px",
               marginTop: (current || submitted) ? "4px" : 0,
-              color: "#999",
+              color: isDeleted ? "#fa8c16" : "#999",
               fontSize: "11px",
             }}
           >
@@ -326,6 +343,7 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
     submitted?: TableRowData;
     revision?: TableRowData;
     id: number;
+    isDeleted?: boolean;
   }
 
   const columns: ColumnsType<CompareRecord> = [
@@ -339,7 +357,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "project_name",
-          record.current?.project_name
+          record.current?.project_name,
+          record.isDeleted
         );
       },
     },
@@ -353,7 +372,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "level1_category_name",
-          record.current?.level1_category_name
+          record.current?.level1_category_name,
+          record.isDeleted
         );
       },
     },
@@ -367,7 +387,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "level2_category_name",
-          record.current?.level2_category_name
+          record.current?.level2_category_name,
+          record.isDeleted
         );
       },
     },
@@ -381,7 +402,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "height",
-          record.current?.height
+          record.current?.height,
+          record.isDeleted
         );
       },
     },
@@ -395,7 +417,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "width",
-          record.current?.width
+          record.current?.width,
+          record.isDeleted
         );
       },
     },
@@ -409,7 +432,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "quantity",
-          record.current?.quantity
+          record.current?.quantity,
+          record.isDeleted
         );
       },
     },
@@ -423,7 +447,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "unit",
-          record.current?.unit
+          record.current?.unit,
+          record.isDeleted
         );
       },
     },
@@ -437,7 +462,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "material_name",
-          record.current?.material_name
+          record.current?.material_name,
+          record.isDeleted
         );
       },
     },
@@ -451,7 +477,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "color_name",
-          record.current?.color_name
+          record.current?.color_name,
+          record.isDeleted
         );
       },
     },
@@ -465,7 +492,8 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
           record.revision,
           record.current,
           "remark",
-          record.current?.remark
+          record.current?.remark,
+          record.isDeleted
         );
       },
     },
@@ -479,7 +507,7 @@ export const ClerkCompareView: React.FC<ClerkCompareViewProps> = ({
             <div>
               <strong>当前版本</strong>
               <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                红色背景 = 当前修改
+                红色背景 = 当前修改，橙色背景 = 已删除
               </div>
             </div>
           </Col>
@@ -637,18 +665,42 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
       });
   });
 
-  // 合并数据用于对比
-  const allKeys = new Set([
-    ...currentTableData.map((d) => d.id),
-    ...submittedTableData.map((d) => d.id),
-    ...revisionTableData.map((d) => d.id),
-  ]);
+  // 使用项目名称 + 一级类目名称 + 二级类目名称作为唯一键来匹配
+  const getMatchKey = (item: any) => {
+    const projectName = String(item?.project_name || "");
+    const level1Name = String(item?.level1_category_name || "");
+    const level2Name = String(item?.level2_category_name || "");
+    return `${projectName}-${level1Name}-${level2Name}`;
+  };
 
-  const compareData = Array.from(allKeys).map((id) => {
-    const current = currentTableData.find((d) => d.id === id);
-    const submitted = submittedTableData.find((d) => d.id === id);
-    const revision = revisionTableData.find((d) => d.id === id);
-    return { current, submitted, revision, id };
+  // 收集所有唯一键
+  const allKeys = new Set<string>();
+  currentTableData.forEach((d) => {
+    const key = getMatchKey(d);
+    if (key && key.trim() !== "" && key !== "--") {
+      allKeys.add(key);
+    }
+  });
+  submittedTableData.forEach((d) => {
+    const key = getMatchKey(d);
+    if (key && key.trim() !== "" && key !== "--") {
+      allKeys.add(key);
+    }
+  });
+  revisionTableData.forEach((d) => {
+    const key = getMatchKey(d);
+    if (key && key.trim() !== "" && key !== "--") {
+      allKeys.add(key);
+    }
+  });
+
+  const compareData = Array.from(allKeys).map((key, index) => {
+    const current = currentTableData.find((d) => getMatchKey(d) === key);
+    const submitted = submittedTableData.find((d) => getMatchKey(d) === key);
+    const revision = revisionTableData.find((d) => getMatchKey(d) === key);
+    // 判断是否被删除：在旧版本中存在，但在当前版本中不存在
+    const isDeleted = (submitted || revision) && !current;
+    return { current, submitted, revision, id: current?.id || submitted?.id || revision?.id || index, isDeleted };
   });
 
   // 判断字段值是否相等
@@ -698,7 +750,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
     revision: any,
     current: any,
     field: string,
-    currentValue: any
+    currentValue: any,
+    isDeleted: boolean = false
   ) => {
     const changeSource = getChangeSource(submitted, revision, current, field);
 
@@ -740,14 +793,28 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
             )}
           </div>
         )}
+        {/* 如果被删除，显示删除标记 */}
+        {isDeleted && !current && (
+          <div
+            style={{
+              backgroundColor: "#fff7e6",
+              padding: "4px",
+              color: "#fa8c16",
+              fontSize: "12px",
+              fontWeight: "bold",
+            }}
+          >
+            [已删除]
+          </div>
+        )}
         {/* 第二行：提报时版本（最新） */}
         {submitted && (
           <div
             style={{
-              backgroundColor: "transparent",
+              backgroundColor: isDeleted ? "#fff7e6" : "transparent",
               padding: "4px",
               marginTop: current ? "4px" : 0,
-              color: "#666",
+              color: isDeleted ? "#fa8c16" : "#666",
               fontSize: "12px",
             }}
           >
@@ -758,10 +825,10 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
         {revision && (
           <div
             style={{
-              backgroundColor: changeSource === "revision" || changeSource === "both" ? "#f6ffed" : "transparent",
+              backgroundColor: (changeSource === "revision" || changeSource === "both") ? "#f6ffed" : (isDeleted ? "#fff7e6" : "transparent"),
               padding: "4px",
               marginTop: (current || submitted) ? "4px" : 0,
-              color: "#999",
+              color: isDeleted ? "#fa8c16" : "#999",
               fontSize: "11px",
             }}
           >
@@ -789,6 +856,7 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
     submitted?: any;
     revision?: any;
     id: number;
+    isDeleted?: boolean;
   }
 
   const columns: ColumnsType<CompareRecord> = [
@@ -802,7 +870,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "project_name",
-          record.current?.project_name
+          record.current?.project_name,
+          record.isDeleted
         );
       },
     },
@@ -816,7 +885,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "level1_category_name",
-          record.current?.level1_category_name
+          record.current?.level1_category_name,
+          record.isDeleted
         );
       },
     },
@@ -830,7 +900,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "level2_category_name",
-          record.current?.level2_category_name
+          record.current?.level2_category_name,
+          record.isDeleted
         );
       },
     },
@@ -844,7 +915,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "height",
-          record.current?.height
+          record.current?.height,
+          record.isDeleted
         );
       },
     },
@@ -858,7 +930,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "width",
-          record.current?.width
+          record.current?.width,
+          record.isDeleted
         );
       },
     },
@@ -872,7 +945,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "quantity",
-          record.current?.quantity
+          record.current?.quantity,
+          record.isDeleted
         );
       },
     },
@@ -886,7 +960,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "unit",
-          record.current?.unit
+          record.current?.unit,
+          record.isDeleted
         );
       },
     },
@@ -900,7 +975,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "material_name",
-          record.current?.material_name
+          record.current?.material_name,
+          record.isDeleted
         );
       },
     },
@@ -914,7 +990,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "color_name",
-          record.current?.color_name
+          record.current?.color_name,
+          record.isDeleted
         );
       },
     },
@@ -928,7 +1005,8 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
           record.revision,
           record.current,
           "remark",
-          record.current?.remark
+          record.current?.remark,
+          record.isDeleted
         );
       },
     },
@@ -942,7 +1020,7 @@ export const DesignerCompareView: React.FC<DesignerCompareViewProps> = ({
             <div>
               <strong>当前版本</strong>
               <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-                红色背景 = 当前修改
+                红色背景 = 当前修改，橙色背景 = 已删除
               </div>
             </div>
           </Col>
