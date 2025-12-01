@@ -136,27 +136,75 @@ const AfterSalesPage: React.FC = () => {
 
       if (editingRecord) {
         // 编辑模式
-        const response = await updateAfterSalesOrder(
-          editingRecord.id!.toString(),
-          {
-            customer_name: values.customer_name,
-            shipping_address: values.shipping_address,
-            customer_phone: values.customer_phone,
-            delivery_date: values.delivery_date,
-            installation_date: values.installation_date,
-            first_completion_date: values.first_completion_date,
-            is_completed: values.is_completed,
-            external_purchase_details: values.external_purchase_details,
-            costs: values.costs,
-            designer: values.designer,
-            splitter: values.splitter,
+        // 由于数据来自生产管理，可能还没有对应的安装订单记录
+        // 使用"创建或更新"的逻辑：如果记录不存在则创建，存在则更新
+        let response;
+        
+        try {
+          // 尝试更新（如果 id 存在且有效）
+          if (editingRecord.id) {
+            try {
+              response = await updateAfterSalesOrder(
+                editingRecord.id.toString(),
+                {
+                  customer_name: values.customer_name,
+                  shipping_address: values.shipping_address,
+                  customer_phone: values.customer_phone,
+                  delivery_date: values.delivery_date,
+                  installation_date: values.installation_date,
+                  first_completion_date: values.first_completion_date,
+                  is_completed: values.is_completed,
+                  external_purchase_details: values.external_purchase_details,
+                  costs: values.costs,
+                  designer: values.designer,
+                  splitter: values.splitter,
+                }
+              );
+            } catch (updateError) {
+              // 如果更新失败（可能是 id 无效），则创建新记录
+              console.warn("更新失败，创建新记录:", updateError);
+              response = await createAfterSalesOrder({
+                order_number: values.order_number,
+                customer_name: values.customer_name,
+                shipping_address: values.shipping_address,
+                customer_phone: values.customer_phone,
+                delivery_date: values.delivery_date,
+                installation_date: values.installation_date,
+                first_completion_date: values.first_completion_date,
+                is_completed: values.is_completed,
+                external_purchase_details: values.external_purchase_details,
+                costs: values.costs,
+                designer: values.designer,
+                splitter: values.splitter,
+              });
+            }
+          } else {
+            // 如果没有 id，直接创建（createAfterSalesOrder 应该支持创建或更新）
+            response = await createAfterSalesOrder({
+              order_number: values.order_number,
+              customer_name: values.customer_name,
+              shipping_address: values.shipping_address,
+              customer_phone: values.customer_phone,
+              delivery_date: values.delivery_date,
+              installation_date: values.installation_date,
+              first_completion_date: values.first_completion_date,
+              is_completed: values.is_completed,
+              external_purchase_details: values.external_purchase_details,
+              costs: values.costs,
+              designer: values.designer,
+              splitter: values.splitter,
+            });
           }
-        );
+        } catch (error) {
+          console.error("保存安装订单失败:", error);
+          message.error("保存失败，请稍后重试");
+          return false;
+        }
 
         if (response.code === 200) {
-          message.success("更新成功");
+          message.success(response.message || "保存成功");
         } else {
-          message.error(response.message || "更新失败");
+          message.error(response.message || "保存失败");
           return false;
         }
       } else {
@@ -374,6 +422,7 @@ const AfterSalesPage: React.FC = () => {
       title: "客户电话",
       dataIndex: "customer_phone",
       key: "customer_phone",
+      width: 120,
       render: (text: string) => text || "-",
     },
     {
@@ -412,6 +461,7 @@ const AfterSalesPage: React.FC = () => {
       title: "外购产品明细",
       dataIndex: "external_purchase_details",
       key: "external_purchase_details",
+      width: 120,
       render: (text: string) => (
         <div
           style={{
@@ -520,6 +570,7 @@ const AfterSalesPage: React.FC = () => {
       title: "产生费用",
       dataIndex: "costs",
       key: "costs",
+      width: 120,
       render: (text: string) =>
         text
           ? `¥${Number(text).toLocaleString("zh-CN", {
@@ -527,12 +578,6 @@ const AfterSalesPage: React.FC = () => {
               maximumFractionDigits: 2,
             })}`
           : "-",
-    },
-    {
-      title: "设计师",
-      dataIndex: "designer",
-      key: "designer",
-      render: (text: string) => text || "-",
     },
     {
       title: "拆单员",
@@ -761,18 +806,16 @@ const AfterSalesPage: React.FC = () => {
 
         {/* 内容Card */}
         <Card variant="outlined">
-          {/* 新增按钮 */}
+          {/* 说明：安装订单从生产管理中自动创建（当完成订单且 is_installation=true 时） */}
           <div className="flex justify-between items-center mb-4">
-            <div>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className="bg-blue-600 hover:bg-blue-700"
-                onClick={showModal}
-              >
-                新增售后单
-              </Button>
-            </div>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={showModal}
+            >
+              创建安装单
+            </Button>
           </div>
 
           {/* 表格区域 */}

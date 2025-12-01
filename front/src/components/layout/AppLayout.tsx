@@ -299,7 +299,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                             },
                           ]
                         : []),
-                      // 售后管理
+                      // 安装管理
                       ...(hasPermission(PageModule.AFTER_SALES)
                         ? [
                             {
@@ -309,7 +309,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                                   href="/after-sales"
                                   className="text-gray-700 hover:text-blue-600"
                                 >
-                                  售后管理
+                                  安装管理
                                 </Link>
                               ),
                             },

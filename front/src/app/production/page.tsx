@@ -34,6 +34,7 @@ import {
   updateProductionOrder,
   type ProductionOrder,
 } from "../../services/productionApi";
+import { createAfterSalesOrder } from "../../services/afterSalesApi";
 import EditProductionModal from "./editProductionModal";
 import PurchaseStatusModal from "./purchaseStatusModal";
 import ProductionProgressModal from "./productionProgressModal";
@@ -937,13 +938,42 @@ const ProductionPage: React.FC = () => {
               onClick={() => {
                 Modal.confirm({
                   title: "确认完成订单",
-                  content: `确定要将订单 ${record.order_number} 标记为已完成吗？`,
+                  content: `确定要将订单 ${record.order_number} 标记为已完成吗？${
+                    record.is_installation
+                      ? "\n注意：此订单需要安装，完成后将自动创建安装订单。"
+                      : ""
+                  }`,
                   onOk: async () => {
                     try {
                       await updateProductionOrder(record.id.toString(), {
                         order_status: "已完成",
                       });
                       message.success("订单状态更新成功");
+                      
+                      // 如果需要安装，自动创建安装订单
+                      if (record.is_installation) {
+                        try {
+                          await createAfterSalesOrder({
+                            order_number: record.order_number,
+                            customer_name: record.customer_name,
+                            shipping_address: record.address || "",
+                            customer_phone: "",
+                            delivery_date: undefined,
+                            installation_date: undefined,
+                            first_completion_date: undefined,
+                            is_completed: false,
+                            external_purchase_details: undefined,
+                            costs: undefined,
+                            designer: "",
+                            splitter: record.splitter,
+                          });
+                          message.success("安装订单已自动创建");
+                        } catch (installError) {
+                          console.error("创建安装订单失败:", installError);
+                          message.warning("订单状态已更新，但创建安装订单失败，请手动创建");
+                        }
+                      }
+                      
                       handleSearch();
                     } catch (error) {
                       console.error("更新订单状态失败:", error);

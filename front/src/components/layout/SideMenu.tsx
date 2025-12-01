@@ -175,16 +175,16 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
           },
         ]
       : []),
-    // 售后管理
+    // 安装管理
     ...(hasPermission(PageModule.AFTER_SALES)
       ? [
           {
             key: "after-sales",
             icon: collapsed ? (
-              <Tooltip title="售后管理" placement="right">
+              <Tooltip title="安装管理" placement="right">
                 <Link
                   href="/after-sales"
-                  onClick={() => handleMenuClick("/after-sales", "售后管理")}
+                  onClick={() => handleMenuClick("/after-sales", "安装管理")}
                 >
                   <CustomerServiceOutlined className="text-blue-600" />
                 </Link>
@@ -196,9 +196,9 @@ const SideMenu: React.FC<SideMenuProps> = ({ collapsed = false }) => {
               <Link
                 href="/after-sales"
                 className="text-gray-700 hover:text-blue-600 font-medium"
-                onClick={() => handleMenuClick("/after-sales", "售后管理")}
+                onClick={() => handleMenuClick("/after-sales", "安装管理")}
               >
-                售后管理
+                安装管理
               </Link>
             ) : null,
           },

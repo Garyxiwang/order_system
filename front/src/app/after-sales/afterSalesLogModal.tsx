@@ -16,8 +16,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import styles from "./afterSalesModal.module.css";
-import { createDesignOrder } from "../../services/designApi";
-import { getAfterSalesOrders } from "../../services/afterSalesApi";
+import { getAfterSalesOrders, createAfterSalesOrder } from "../../services/afterSalesApi";
 import AddAfterSalesLogModal from "./addAfterSalesLogModal";
 
 const { TextArea } = Input;
@@ -228,43 +227,43 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
     }
 
     Modal.confirm({
-      title: "确认创建订单",
-      content: `确定要为此售后日志创建设计订单吗？`,
+      title: "确认创建安装补单",
+      content: `确定要为此售后日志创建安装补单吗？`,
       okText: "确认",
       cancelText: "取消",
       onOk: async () => {
         setLoading(true);
         try {
           // 生成新的订单编号（基于原订单编号+后缀）
-          const newOrderNumber = `${afterSalesOrder.order_number}-${Date.now()}`;
+          const newOrderNumber = `${afterSalesOrder.order_number}-补${Date.now().toString().slice(-6)}`;
           
-          const response = await createDesignOrder({
+          // 创建安装补单（安装订单）
+          const response = await createAfterSalesOrder({
             order_number: newOrderNumber,
             customer_name: afterSalesOrder.customer_name,
-            address: afterSalesOrder.shipping_address,
+            shipping_address: afterSalesOrder.shipping_address,
+            customer_phone: "",
+            delivery_date: undefined,
+            installation_date: undefined,
+            first_completion_date: undefined,
+            is_completed: false,
+            external_purchase_details: undefined,
+            costs: undefined,
             designer: afterSalesOrder.designer || "",
-            salesperson: afterSalesOrder.designer || "",
-            assignment_date: dayjs().format("YYYY-MM-DD"),
-            design_process: "",
-            category_name: "",
-            order_status: "未下单",
-            order_type: "设计单",
-            design_cycle: "0",
-            remarks: `由售后日志创建，原订单：${orderNumber}，售后类型：${record.after_sales_type || "问题单"}`,
-            is_installation: false,
+            splitter: undefined,
           });
 
           if (response.code === 200) {
-            message.success(`订单创建成功，订单编号：${newOrderNumber}`);
+            message.success(`安装补单创建成功，订单编号：${newOrderNumber}`);
             if (onSuccess) {
               onSuccess();
             }
           } else {
-            message.error(response.message || "创建订单失败");
+            message.error(response.message || "创建安装补单失败");
           }
         } catch (error) {
-          console.error("创建订单失败:", error);
-          message.error("创建订单失败，请稍后重试");
+          console.error("创建安装补单失败:", error);
+          message.error("创建安装补单失败，请稍后重试");
         } finally {
           setLoading(false);
         }
@@ -604,7 +603,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
               size="small"
               onClick={() => handleCreateOrder(record)}
             >
-              创建订单
+              创建安装补单
             </Button>
           </Space>
         );

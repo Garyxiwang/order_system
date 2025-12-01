@@ -13,8 +13,7 @@ import {
   InputNumber,
 } from "antd";
 import dayjs from "dayjs";
-import { getDesignOrders, type DesignOrder } from "../../services/designApi";
-import { getSplitOrders, type SplitOrder } from "../../services/splitApi";
+import { getProductionOrders, type ProductionOrder } from "../../services/productionApi";
 import type { AfterSalesOrder } from "../../services/afterSalesApi";
 
 const { Option } = Select;
@@ -55,7 +54,7 @@ const CreateAfterSalesModal: React.FC<CreateAfterSalesModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [orderNumberSearching, setOrderNumberSearching] = useState(false);
 
-  // 根据订单编号查询设计表和拆单表，自动填充数据
+  // 根据订单编号从生产管理查询，自动填充数据
   const handleOrderNumberBlur = async () => {
     const orderNumber = form.getFieldValue("order_number");
     if (!orderNumber || initialValues) {
@@ -69,57 +68,30 @@ const CreateAfterSalesModal: React.FC<CreateAfterSalesModalProps> = ({
 
     try {
       setOrderNumberSearching(true);
-      // 查询设计表
-      const designResponse = await getDesignOrders({
-        orderNumber: orderNumber,
+      // 从生产管理查询订单（只查询需要安装的订单）
+      const productionResponse = await getProductionOrders({
         page: 1,
-        pageSize: 1,
-        no_pagination: false,
+        page_size: 100,
       });
 
-      // 查询拆单表
-      const splitResponse = await getSplitOrders({
-        orderNumber: orderNumber,
-        page: 1,
-        pageSize: 1,
-        no_pagination: false,
-      });
+      // 查找匹配的订单
+      const matchedOrder = productionResponse.data?.find(
+        (order) =>
+          order.order_number === orderNumber && order.is_installation === true
+      );
 
-      let customerName = "";
-      let designer = "";
-      let splitter = "";
-
-      // 优先从设计表获取数据
-      if (designResponse.items && designResponse.items.length > 0) {
-        const designOrder = designResponse.items[0];
-        customerName = designOrder.customer_name || "";
-        designer = designOrder.designer || "";
-      }
-
-      // 从拆单表获取拆单员
-      if (splitResponse.items && splitResponse.items.length > 0) {
-        const splitOrder = splitResponse.items[0];
-        splitter = splitOrder.splitter || "";
-        // 如果设计表没有客户名称，从拆单表获取
-        if (!customerName) {
-          customerName = splitOrder.customer_name || "";
-        }
-        // 如果设计表没有设计师，从拆单表获取
-        if (!designer) {
-          designer = splitOrder.designer || "";
-        }
-      }
-
-      // 自动填充表单
-      if (customerName || designer || splitter) {
+      if (matchedOrder) {
+        // 自动填充表单：订单编号、客户名称、发货地址、拆单员信息
         form.setFieldsValue({
-          customer_name: customerName,
-          designer: designer,
-          splitter: splitter,
+          customer_name: matchedOrder.customer_name || "",
+          shipping_address: matchedOrder.address || "",
+          splitter: matchedOrder.splitter || "",
         });
-        message.success("已自动填充订单信息");
+        message.success("已从生产管理自动填充订单信息");
       } else {
-        message.warning("未找到该订单编号的相关信息");
+        message.warning(
+          "未找到该订单编号或该订单不需要安装，请确认订单编号是否正确"
+        );
       }
     } catch (error) {
       console.error("查询订单信息失败:", error);
@@ -192,7 +164,7 @@ const CreateAfterSalesModal: React.FC<CreateAfterSalesModalProps> = ({
 
   return (
     <Modal
-      title={initialValues ? "编辑售后单" : "新增售后单"}
+      title={initialValues ? "编辑安装单" : "新增安装单"}
       open={visible}
       onOk={handleOk}
       onCancel={handleCancel}
