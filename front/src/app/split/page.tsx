@@ -263,7 +263,8 @@ const DesignPage: React.FC = () => {
       );
 
       // 如果是用户主动查询（没有传入customParams和page），重置到第一页
-      const targetPage = page !== undefined ? page : (!customParams ? 1 : currentPage);
+      const targetPage =
+        page !== undefined ? page : !customParams ? 1 : currentPage;
       const targetPageSize = size || pageSize;
 
       const params = {
@@ -595,8 +596,8 @@ const DesignPage: React.FC = () => {
         Object.assign(baseData, {
           报价状态: item.quote_status || "",
           完成日期: item.completion_date || "",
-          柜体面积: `${item.cabinet_area || 0}㎡`,
-          墙板面积: `${item.wall_panel_area || 0}㎡`,
+          "柜体面积㎡": `${item.cabinet_area || 0}`,
+          "墙板面积㎡": `${item.wall_panel_area || 0}`,
           订单金额: item.order_amount
             ? `${Number(item.order_amount).toLocaleString("zh-CN", {
                 minimumFractionDigits: 2,
@@ -653,8 +654,8 @@ const DesignPage: React.FC = () => {
         header1.push(
           "报价状态",
           "完成日期",
-          "柜体面积",
-          "墙板面积",
+          "柜体面积㎡",
+          "墙板面积㎡",
           "订单金额",
           "订单状态",
           "备注"
@@ -732,8 +733,8 @@ const DesignPage: React.FC = () => {
         const afterProductionStartCol = externalEndCol + 1;
         const afterProductionCols = [
           { col: afterProductionStartCol, name: "完成日期" },
-          { col: afterProductionStartCol + 1, name: "柜体面积" },
-          { col: afterProductionStartCol + 2, name: "墙板面积" },
+          { col: afterProductionStartCol + 1, name: "柜体面积㎡" },
+          { col: afterProductionStartCol + 2, name: "墙板面积㎡" },
           { col: afterProductionStartCol + 3, name: "订单金额" },
           { col: afterProductionStartCol + 4, name: "备注" },
           { col: afterProductionStartCol + 5, name: "订单状态" },
@@ -1707,7 +1708,11 @@ const DesignPage: React.FC = () => {
               </Form.Item>
             </Col>
             <Col span={6} className="py-2">
-              <Form.Item name="completionStatus" label="类目是否完成" className="mb-0">
+              <Form.Item
+                name="completionStatus"
+                label="类目是否完成"
+                className="mb-0"
+              >
                 <Select
                   placeholder="全部"
                   className="rounded-md"
