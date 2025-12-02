@@ -78,7 +78,9 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const [isCompareVisible, setIsCompareVisible] = useState(false);
   const [isDiscountPriceVisible, setIsDiscountPriceVisible] = useState(false);
-  const [discountPrices, setDiscountPrices] = useState<Map<number, number>>(new Map());
+  const [discountPrices, setDiscountPrices] = useState<Map<number, number>>(
+    new Map()
+  );
   const [revisionSnapshot, setRevisionSnapshot] = useState<{
     projects: QuotationProject[];
     categories: QuotationCategory[];
@@ -143,7 +145,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
         setTableData(data);
 
         // 录入员在submitted状态时，加载提报时快照和修订前快照用于对比
-        if (materialListData.status === 'submitted') {
+        if (materialListData.status === "submitted") {
           // 加载提报时快照
           const submittedSnap = await MaterialListService.getSubmittedSnapshot(
             materialListData.id
@@ -536,6 +538,93 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
     return total - discountAmount;
   };
 
+  // 按类型计算面积（仅统计单位为平方的数量）
+  const calculateAreaByType = (
+    rows: TableRowData[],
+    type: "cabinet" | "wall"
+  ): number => {
+    const keyword = type === "cabinet" ? "柜体" : "墙板";
+    return rows.reduce((sum, row) => {
+      const level1Name = row.level1_category_name || "";
+      // 仅统计对应一级类目，且单位为平方
+      if (
+        level1Name.startsWith(keyword) &&
+        row.unit === "平方" &&
+        typeof row.quantity === "number"
+      ) {
+        return sum + (row.quantity || 0);
+      }
+      return sum;
+    }, 0);
+  };
+
+  // 预览行数据类型
+  type PreviewRow = TableRowData & {
+    isSummary?: boolean;
+    cabinetArea?: number;
+    wallArea?: number;
+    projectTotal?: number;
+  };
+
+  // 构建预览数据源：在每个项目的最后一行后插入小计行
+  const buildPreviewData = (): PreviewRow[] => {
+    const projectMap = new Map<string, TableRowData[]>();
+    tableData.forEach((row) => {
+      const name = row.project_name || "未命名项目";
+      if (!projectMap.has(name)) {
+        projectMap.set(name, []);
+      }
+      projectMap.get(name)!.push(row);
+    });
+
+    const result: PreviewRow[] = [];
+
+    projectMap.forEach((rows, projectName) => {
+      // 先推入当前项目的明细行
+      rows.forEach((r) => result.push(r));
+
+      // 计算当前项目的柜体/墙板面积和总价
+      const cabinetArea = calculateAreaByType(rows, "cabinet");
+      const wallArea = calculateAreaByType(rows, "wall");
+      const projectTotal = rows.reduce(
+        (sum, row) => sum + (row.total_price || 0),
+        0
+      );
+
+      // 再追加一行小计
+      if (rows.length > 0) {
+        const first = rows[0];
+        result.push({
+          ...first,
+          key: `summary-${projectName}`,
+          project_name: projectName,
+          level1_category_name: "",
+          level2_category_name: "",
+          height: undefined,
+          width: undefined,
+          quantity: 0,
+          unit: "",
+          unit_price: undefined,
+          total_price: projectTotal,
+          material_name: "",
+          color_name: "",
+          remark: "",
+          isSummary: true,
+          cabinetArea,
+          wallArea,
+          projectTotal,
+        });
+      }
+    });
+
+    return result;
+  };
+
+  // 预览数据源
+  const previewData = buildPreviewData();
+  const overallCabinetArea = calculateAreaByType(tableData, "cabinet");
+  const overallWallArea = calculateAreaByType(tableData, "wall");
+
   // 移除优惠
   const handleRemoveDiscount = () => {
     setDiscountAmount(0);
@@ -725,12 +814,13 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
                   (t) => t.level1.id === record.level1_category_id
                 );
                 const allowedMaterialIds = level1?.level1.material_ids || [];
-                
+
                 // 如果一级类目有关联的基材，只显示关联的基材；否则显示所有基材
-                const filteredMaterials = allowedMaterialIds.length > 0
-                  ? materials.filter((m) => allowedMaterialIds.includes(m.id))
-                  : materials;
-                
+                const filteredMaterials =
+                  allowedMaterialIds.length > 0
+                    ? materials.filter((m) => allowedMaterialIds.includes(m.id))
+                    : materials;
+
                 return filteredMaterials.map((material) => (
                   <Option key={material.id} value={material.id}>
                     {material.name}
@@ -764,12 +854,13 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
                   (m) => m.id === record.material_id
                 );
                 const allowedColorIds = material?.color_ids || [];
-                
+
                 // 如果基材有关联的颜色，只显示关联的颜色；否则显示所有颜色
-                const filteredColors = allowedColorIds.length > 0
-                  ? colors.filter((c) => allowedColorIds.includes(c.id))
-                  : colors;
-                
+                const filteredColors =
+                  allowedColorIds.length > 0
+                    ? colors.filter((c) => allowedColorIds.includes(c.id))
+                    : colors;
+
                 return filteredColors.map((color) => (
                   <Option key={color.id} value={color.id}>
                     {color.name}
@@ -1014,10 +1105,15 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
             <Button
               onClick={() => {
                 // 收集所有基材和单价
-                const materialPriceMap = new Map<number, { name: string; price: number }>();
+                const materialPriceMap = new Map<
+                  number,
+                  { name: string; price: number }
+                >();
                 tableData.forEach((row) => {
                   if (row.material_id && row.unit_price !== undefined) {
-                    const material = materials.find((m) => m.id === row.material_id);
+                    const material = materials.find(
+                      (m) => m.id === row.material_id
+                    );
                     if (material && !materialPriceMap.has(row.material_id)) {
                       materialPriceMap.set(row.material_id, {
                         name: material.name,
@@ -1026,7 +1122,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
                     }
                   }
                 });
-                
+
                 // 初始化折扣价格（默认为原价）
                 const initialDiscountPrices = new Map<number, number>();
                 materialPriceMap.forEach((value, key) => {
@@ -1036,7 +1132,7 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
                 setIsDiscountPriceVisible(true);
               }}
             >
-              折扣价格暗九
+              折扣价
             </Button>
             {(submittedSnapshot || revisionSnapshot) && (
               <Button
@@ -1256,100 +1352,348 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
                   dataIndex: "project_name",
                   key: "project_name",
                   width: 100,
+                  render: (text: string, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      const cabinetArea =
+                        typeof record.cabinetArea === "number"
+                          ? record.cabinetArea
+                          : 0;
+                      const wallArea =
+                        typeof record.wallArea === "number"
+                          ? record.wallArea
+                          : 0;
+                      const projectTotal =
+                        record.projectTotal !== undefined
+                          ? record.projectTotal
+                          : 0;
+                      return {
+                        children: (
+                          <div style={{ textAlign: "right", paddingRight: 16 }}>
+                            <span style={{ fontWeight: 600 }}>
+                              {record.project_name} 小计：
+                            </span>
+                            <span style={{ marginLeft: 8, fontSize: "12px", color: "#666" }}>
+                              柜体：{cabinetArea.toFixed(2)} ㎡，墙板：{wallArea.toFixed(2)} ㎡，
+                            </span>
+                            <span
+                              style={{
+                                fontWeight: 600,
+                                color: "#ff4d4f",
+                                marginLeft: 8,
+                              }}
+                            >
+                              合计：{formatCurrency(projectTotal)}
+                            </span>
+                          </div>
+                        ),
+                        props: {
+                          colSpan: 12, // 合并前8列（项目、柜名/规格、高、宽、数量、单位、单价、合计之前的列）
+                        },
+                      };
+                    }
+                    return {
+                      children: text || "-",
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
                 {
                   title: "柜名/规格",
                   key: "category",
                   width: 150,
-                  render: (_: unknown, record: TableRowData) =>
-                    `${record.level1_category_name}-${record.level2_category_name}`,
+                  render: (_: unknown, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0, // 隐藏此列（已被项目列合并）
+                        },
+                      };
+                    }
+                    return {
+                      children: `${record.level1_category_name}-${record.level2_category_name}`,
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
                 {
                   title: "高(mm)",
                   dataIndex: "height",
                   key: "height",
                   width: 100,
-                  render: (text: number | undefined) => text || "-",
+                  render: (text: number | undefined, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
+                    }
+                    return {
+                      children: text || "-",
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
                 {
                   title: "宽(mm)",
                   dataIndex: "width",
                   key: "width",
                   width: 100,
-                  render: (text: number | undefined) => text || "-",
+                  render: (text: number | undefined, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
+                    }
+                    return {
+                      children: text || "-",
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
                 {
                   title: "数量",
                   dataIndex: "quantity",
                   key: "quantity",
                   width: 100,
+                  render: (text: number, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
+                    }
+                    return {
+                      children: text,
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
                 {
                   title: "单位",
                   dataIndex: "unit",
                   key: "unit",
                   width: 80,
+                  render: (text: string, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
+                    }
+                    return {
+                      children: text,
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
                 {
                   title: "单价",
                   dataIndex: "unit_price",
                   key: "unit_price",
                   width: 100,
-                  render: (text: number | undefined) => formatCurrency(text),
+                  render: (text: number | undefined, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
+                    }
+                    return {
+                      children: formatCurrency(text),
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
-                {
-                  title: "合计",
-                  dataIndex: "total_price",
-                  key: "total_price",
-                  width: 120,
-                  render: (text: number | undefined) => formatCurrency(text),
-                },
+
                 {
                   title: "柜体颜色材质",
                   key: "cabinet_material",
                   width: 150,
-                  render: (_: unknown, record: TableRowData) => {
-                    if (record.material_name && record.color_name) {
-                      return `${record.material_name}-${record.color_name}`;
+                  render: (_: unknown, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
                     }
-                    return record.material_name || "-";
+                    const content = record.material_name && record.color_name
+                      ? `${record.material_name}-${record.color_name}`
+                      : record.material_name || "-";
+                    return {
+                      children: content,
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
                   },
                 },
                 {
                   title: "门板颜色材质",
                   key: "door_material",
                   width: 150,
-                  render: (_: unknown, record: TableRowData) => {
-                    if (record.material_name && record.color_name) {
-                      return `${record.material_name}-${record.color_name}`;
+                  render: (_: unknown, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
                     }
-                    return "-";
+                    const content = record.material_name && record.color_name
+                      ? `${record.material_name}-${record.color_name}`
+                      : "-";
+                    return {
+                      children: content,
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
                   },
                 },
                 {
                   title: "背板材质",
                   key: "back_material",
                   width: 120,
-                  render: (_: unknown, record: TableRowData) =>
-                    record.material_name || "-",
+                  render: (_: unknown, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
+                    }
+                    return {
+                      children: record.material_name || "-",
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
                 {
                   title: "备注",
                   dataIndex: "remark",
                   key: "remark",
                   width: 120,
-                  render: (text: string) => text || "-",
+                  render: (text: string, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0,
+                        },
+                      };
+                    }
+                    return {
+                      children: text || "-",
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
+                },
+                {
+                  title: "合计",
+                  dataIndex: "total_price",
+                  key: "total_price",
+                  width: 120,
+                  render: (text: number | undefined, record: PreviewRow) => {
+                    if (record.isSummary) {
+                      return {
+                        children: "",
+                        props: {
+                          colSpan: 0, // 隐藏此列（已被项目列合并）
+                        },
+                      };
+                    }
+                    return {
+                      children: formatCurrency(text),
+                      props: {
+                        colSpan: 1,
+                      },
+                    };
+                  },
                 },
               ]}
-              dataSource={tableData}
+              dataSource={previewData}
               pagination={false}
               rowKey="key"
               size="small"
+              components={{
+                body: {
+                  row: (props: {
+                    children?: React.ReactNode[];
+                    style?: React.CSSProperties;
+                    [key: string]: unknown;
+                  }) => {
+                    const record = (
+                      props.children?.[0] as { props?: { record?: PreviewRow } }
+                    )?.props?.record;
+                    if (record?.isSummary) {
+                      return (
+                        <tr
+                          {...props}
+                          style={{
+                            backgroundColor: "#f5f5f5",
+                            ...props.style,
+                          }}
+                        />
+                      );
+                    }
+                    return <tr {...props} />;
+                  },
+                },
+              }}
             />
           </div>
 
           {/* 合计金额 */}
           <div style={{ textAlign: "right", marginTop: 24 }}>
+            {/* 全局柜体 / 墙板面积统计 */}
+            <div style={{ marginTop: 8,marginBottom: 8 }}>
+              <span style={{ color: "#666", marginRight: 16 }}>
+                总柜体面积：
+              </span>
+              <span style={{ fontWeight: 600 }}>
+                {overallCabinetArea.toFixed(2)} ㎡
+              </span>
+              <span style={{ marginLeft: 32, color: "#666", marginRight: 16 }}>
+                总墙板面积：
+              </span>
+              <span style={{ fontWeight: 600 }}>
+                {overallWallArea.toFixed(2)} ㎡
+              </span>
+            </div>
             <Row gutter={24} justify="end">
               {discountAmount > 0 ? (
                 <>
@@ -1378,15 +1722,15 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
                       <span style={{ color: "#666", marginRight: 16 }}>
                         优惠后总金额：
                       </span>
-                    <span
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 600,
-                        color: "#ff4d4f",
-                      }}
-                    >
-                      {formatCurrency(calculateFinalAmount())}
-                    </span>
+                      <span
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 600,
+                          color: "#ff4d4f",
+                        }}
+                      >
+                        {formatCurrency(calculateFinalAmount())}
+                      </span>
                     </div>
                   </Col>
                 </>
@@ -1485,12 +1829,18 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               dataIndex: "materialId",
               key: "discountPrice",
               width: 200,
-              render: (_: unknown, record: { materialId: number; price: number }) => (
+              render: (
+                _: unknown,
+                record: { materialId: number; price: number }
+              ) => (
                 <InputNumber
                   value={discountPrices.get(record.materialId) || record.price}
                   onChange={(value) => {
                     const newDiscountPrices = new Map(discountPrices);
-                    newDiscountPrices.set(record.materialId, value || record.price);
+                    newDiscountPrices.set(
+                      record.materialId,
+                      value || record.price
+                    );
                     setDiscountPrices(newDiscountPrices);
                   }}
                   precision={2}
@@ -1510,21 +1860,34 @@ const MaterialListClerkModal: React.FC<MaterialListClerkModalProps> = ({
               title: "折扣率",
               key: "discountRate",
               width: 120,
-              render: (_: unknown, record: { materialId: number; price: number }) => {
-                const discountPrice = discountPrices.get(record.materialId) || record.price;
-                const rate = record.price > 0 
-                  ? ((record.price - discountPrice) / record.price * 100).toFixed(2)
-                  : "0.00";
+              render: (
+                _: unknown,
+                record: { materialId: number; price: number }
+              ) => {
+                const discountPrice =
+                  discountPrices.get(record.materialId) || record.price;
+                const rate =
+                  record.price > 0
+                    ? (
+                        ((record.price - discountPrice) / record.price) *
+                        100
+                      ).toFixed(2)
+                    : "0.00";
                 return `${rate}%`;
               },
             },
           ]}
           dataSource={Array.from(
             (() => {
-              const materialPriceMap = new Map<number, { name: string; price: number }>();
+              const materialPriceMap = new Map<
+                number,
+                { name: string; price: number }
+              >();
               tableData.forEach((row) => {
                 if (row.material_id && row.unit_price !== undefined) {
-                  const material = materials.find((m) => m.id === row.material_id);
+                  const material = materials.find(
+                    (m) => m.id === row.material_id
+                  );
                   if (material && !materialPriceMap.has(row.material_id)) {
                     materialPriceMap.set(row.material_id, {
                       name: material.name,
