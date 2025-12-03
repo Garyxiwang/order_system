@@ -18,6 +18,17 @@ import styles from "./afterSalesModal.module.css";
 const { TextArea } = Input;
 const { Option } = Select;
 
+// 导出mock存储，供afterSalesLogModal使用
+export const mockLogsStorage: Record<string, Array<{
+  id: string;
+  log_date: string;
+  content: string;
+  feedback_person?: string;
+  is_processed?: boolean;
+  responsible_person?: string;
+  created_at?: string;
+}>> = {};
+
 interface AfterSalesLogFormValues {
   log_date: dayjs.Dayjs;
   content: string;
@@ -60,16 +71,20 @@ const AddAfterSalesLogModal: React.FC<AddAfterSalesLogModalProps> = ({
         responsible_person: values.responsible_person,
       };
 
-      // 模拟数据 - 实际应该调用API
-      // const response = await createAfterSalesLog(logData);
-      // if (response.code === 200) {
-      //   message.success("售后日志添加成功");
-      //   form.resetFields();
-      //   setAfterSalesType("");
-      //   onSuccess();
-      // } else {
-      //   message.error(response.message || "添加失败");
-      // }
+      // 保存到mock存储
+      if (!mockLogsStorage[orderNumber]) {
+        mockLogsStorage[orderNumber] = [];
+      }
+      const newLog = {
+        id: Date.now().toString(),
+        log_date: logData.log_date,
+        content: logData.content,
+        feedback_person: logData.feedback_person,
+        is_processed: logData.is_processed,
+        responsible_person: logData.responsible_person,
+        created_at: new Date().toISOString(),
+      };
+      mockLogsStorage[orderNumber].push(newLog);
 
       message.success("售后日志添加成功");
       form.resetFields();

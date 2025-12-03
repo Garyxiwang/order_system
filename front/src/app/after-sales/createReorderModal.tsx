@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Modal,
   Form,
@@ -21,6 +21,7 @@ interface CreateReorderModalProps {
   visible: boolean;
   onCancel: () => void;
   onSuccess: (data: {
+    reorderNumber: string;
     reorderDetails: string;
     files: UploadFile[];
     expectedDeliveryDate?: string;
@@ -28,6 +29,7 @@ interface CreateReorderModalProps {
     actualDeliveryDate?: string;
   }) => void;
   afterSalesDate?: string; // 售后时间，用于计算默认预计发货时间
+  originalOrderNumber?: string; // 原订单编号，用于生成补单编号
 }
 
 const CreateReorderModal: React.FC<CreateReorderModalProps> = ({
@@ -35,13 +37,21 @@ const CreateReorderModal: React.FC<CreateReorderModalProps> = ({
   onCancel,
   onSuccess,
   afterSalesDate,
+  originalOrderNumber,
 }) => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  // 生成默认补单编号
+  const generateReorderNumber = useCallback((): string => {
+    if (originalOrderNumber) {
+      return `${originalOrderNumber}-补${Date.now().toString().slice(-6)}`;
+    }
+    return `补单-${Date.now().toString().slice(-8)}`;
+  }, [originalOrderNumber]);
 
   // 计算默认预计发货时间（售后时间后3天）
-  const getDefaultExpectedDeliveryDate = (): Dayjs | null => {
+  const getDefaultExpectedDeliveryDate = useCallback((): Dayjs | null => {
     if (afterSalesDate) {
       const date = dayjs(afterSalesDate);
       if (date.isValid()) {
@@ -50,7 +60,7 @@ const CreateReorderModal: React.FC<CreateReorderModalProps> = ({
     }
     // 如果没有售后时间，使用当前时间后3天
     return dayjs().add(3, "day");
-  };
+  }, [afterSalesDate]);
 
   useEffect(() => {
     if (visible) {
@@ -58,21 +68,25 @@ const CreateReorderModal: React.FC<CreateReorderModalProps> = ({
       form.resetFields();
       setFileList([]);
       
+      // 生成并设置默认补单编号
+      const defaultReorderNumber = generateReorderNumber();
+      
       // 设置默认预计发货时间
       const defaultDate = getDefaultExpectedDeliveryDate();
-      if (defaultDate) {
-        form.setFieldsValue({
-          expected_delivery_date: defaultDate,
-        });
-      }
+      
+      form.setFieldsValue({
+        reorder_number: defaultReorderNumber,
+        expected_delivery_date: defaultDate,
+      });
     }
-  }, [visible, afterSalesDate, form]);
+  }, [visible, afterSalesDate, originalOrderNumber, form, generateReorderNumber, getDefaultExpectedDeliveryDate]);
 
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       
       const formData = {
+        reorderNumber: values.reorder_number || generateReorderNumber(),
         reorderDetails: values.reorder_details || "",
         files: fileList,
         expectedDeliveryDate: values.expected_delivery_date
@@ -132,7 +146,7 @@ const CreateReorderModal: React.FC<CreateReorderModalProps> = ({
         <Button key="cancel" onClick={handleCancel}>
           取消
         </Button>,
-        <Button key="submit" type="primary" onClick={handleSubmit} loading={loading}>
+        <Button key="submit" type="primary" onClick={handleSubmit}>
           确认
         </Button>,
       ]}
@@ -143,6 +157,17 @@ const CreateReorderModal: React.FC<CreateReorderModalProps> = ({
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 18 }}
       >
+        <Form.Item
+          label="补单编号"
+          name="reorder_number"
+          rules={[{ required: true, message: "请输入补单编号" }]}
+        >
+          <Input
+            className={styles.fullWidth}
+            placeholder="补单编号（自动生成，可修改）"
+          />
+        </Form.Item>
+
         <Form.Item
           label="补单明细"
           name="reorder_details"

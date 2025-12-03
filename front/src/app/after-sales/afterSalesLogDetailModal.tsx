@@ -1,15 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Modal, Table, Card, message, Spin } from "antd";
+import { Modal, Table, Card, message, Spin, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { formatDateTime } from "../../utils/dateUtils";
 import styles from "./afterSalesModal.module.css";
+import { mockLogsStorage } from "./addAfterSalesLogModal";
 
 interface AfterSalesLogItem {
   id: string;
   log_date: string;
   content: string;
+  feedback_person?: string; // 反馈人
+  is_processed?: boolean; // 是否处理
+  responsible_person?: string; // 责任人
   created_at?: string;
 }
 
@@ -35,23 +39,11 @@ const AfterSalesLogDetailModal: React.FC<AfterSalesLogDetailModalProps> = ({
 
     setLoading(true);
     try {
-      // 模拟数据 - 实际应该调用API
-      // const response = await getAfterSalesLogs(orderNumber);
-      
-      const mockData: AfterSalesLogItem[] = [
-        {
-          id: "1",
-          log_date: "2024-01-15",
-          content: "客户反馈安装完成，整体满意",
-          created_at: "2024-01-15 10:00:00",
-        },
-        {
-          id: "2",
-          log_date: "2024-01-20",
-          content: "回访客户，无问题",
-          created_at: "2024-01-20 14:30:00",
-        },
-      ];
+      // 模拟API延迟
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      // 从mock存储中获取数据
+      const mockData = mockLogsStorage[orderNumber] || [];
 
       setLogList(mockData);
     } catch (error) {
@@ -70,20 +62,28 @@ const AfterSalesLogDetailModal: React.FC<AfterSalesLogDetailModalProps> = ({
 
   const columns: ColumnsType<AfterSalesLogItem> = [
     {
-      title: "日期",
+      title: "反馈日期",
       dataIndex: "log_date",
       key: "log_date",
-      width: 150,
-      render: (text: string) => formatDateTime(text),
+      width: 120,
+      render: (text: string) => (text ? formatDateTime(text) : "-"),
     },
     {
-      title: "内容",
+      title: "反馈人",
+      dataIndex: "feedback_person",
+      key: "feedback_person",
+      width: 100,
+      render: (text: string) => text || "-",
+    },
+    {
+      title: "问题描述",
       dataIndex: "content",
       key: "content",
+      width: 200,
       render: (text: string) => (
         <div
           style={{
-            maxWidth: "500px",
+            maxWidth: "200px",
             wordWrap: "break-word",
             whiteSpace: "pre-wrap",
           }}
@@ -91,6 +91,24 @@ const AfterSalesLogDetailModal: React.FC<AfterSalesLogDetailModalProps> = ({
           {text || "-"}
         </div>
       ),
+    },
+    {
+      title: "是否处理",
+      dataIndex: "is_processed",
+      key: "is_processed",
+      width: 100,
+      render: (isProcessed: boolean) => (
+        <Tag color={isProcessed ? "green" : "orange"}>
+          {isProcessed ? "已处理" : "未处理"}
+        </Tag>
+      ),
+    },
+    {
+      title: "责任人",
+      dataIndex: "responsible_person",
+      key: "responsible_person",
+      width: 100,
+      render: (text: string) => text || "-",
     },
   ];
 

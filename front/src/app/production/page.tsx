@@ -35,6 +35,7 @@ import {
   type ProductionOrder,
 } from "../../services/productionApi";
 import { createAfterSalesOrder } from "../../services/afterSalesApi";
+import { getSplitOrders } from "../../services/splitApi";
 import EditProductionModal from "./editProductionModal";
 import PurchaseStatusModal from "./purchaseStatusModal";
 import ProductionProgressModal from "./productionProgressModal";
@@ -950,9 +951,25 @@ const ProductionPage: React.FC = () => {
                       });
                       message.success("订单状态更新成功");
                       
-                      // 如果需要安装，自动创建安装订单
+                      // 如果需要安装，自动创建售后管理单
                       if (record.is_installation) {
                         try {
+                          // 从拆单表获取设计师信息
+                          let designer = "";
+                          try {
+                            const splitResponse = await getSplitOrders({
+                              orderNumber: record.order_number,
+                              page: 1,
+                              pageSize: 1,
+                              no_pagination: false,
+                            });
+                            if (splitResponse.items && splitResponse.items.length > 0) {
+                              designer = splitResponse.items[0].designer || "";
+                            }
+                          } catch (splitError) {
+                            console.warn("获取拆单信息失败:", splitError);
+                          }
+
                           await createAfterSalesOrder({
                             order_number: record.order_number,
                             customer_name: record.customer_name,
@@ -960,17 +977,16 @@ const ProductionPage: React.FC = () => {
                             customer_phone: "",
                             delivery_date: undefined,
                             installation_date: undefined,
-                            first_completion_date: undefined,
                             is_completed: false,
-                            external_purchase_details: undefined,
-                            costs: undefined,
-                            designer: "",
-                            splitter: record.splitter,
+                            is_reorder: false,
+                            external_purchase_details: record.external_purchase_items || "",
+                            designer: designer,
+                            related_person: record.splitter,
                           });
-                          message.success("安装订单已自动创建");
+                          message.success("售后管理单已自动创建");
                         } catch (installError) {
-                          console.error("创建安装订单失败:", installError);
-                          message.warning("订单状态已更新，但创建安装订单失败，请手动创建");
+                          console.error("创建售后管理单失败:", installError);
+                          message.warning("订单状态已更新，但创建售后管理单失败，请手动创建");
                         }
                       }
                       

@@ -57,71 +57,149 @@ export interface AfterSalesListResponse {
   total_pages: number;
 }
 
-// 1. 安装订单列表查询 - 从生产管理中获取 is_installation=true 的订单
+// Mock数据存储（用于演示流程）
+const mockAfterSalesOrders: AfterSalesOrder[] = [
+  {
+    id: 1,
+    order_number: "GBB241015-05",
+    customer_name: "白水绿色家-民族小区增补（浴室柜）",
+    shipping_address: "白水",
+    customer_phone: "13800138000",
+    delivery_date: "2024-01-15",
+    installation_date: "2024-01-20",
+    is_completed: false,
+    is_reorder: false,
+    external_purchase_details: "石材:2025/07/01:3,板材:2025/07/01:2",
+    designer: "设计师A",
+    related_person: "拆单员B",
+    is_installation: true,
+    created_at: "2024-01-10T00:00:00Z",
+    updated_at: "2024-01-10T00:00:00Z",
+  },
+  {
+    id: 2,
+    order_number: "GBB241015-06",
+    customer_name: "测试客户-补单测试",
+    shipping_address: "北京市朝阳区",
+    customer_phone: "13900139000",
+    delivery_date: "2024-01-18",
+    installation_date: "2024-01-25",
+    is_completed: false,
+    is_reorder: true,
+    external_purchase_details: "单门板，木门，柜体",
+    designer: "设计师B",
+    related_person: "拆单员C",
+    is_installation: true,
+    created_at: "2024-01-12T00:00:00Z",
+    updated_at: "2024-01-12T00:00:00Z",
+  },
+];
+
+// 1. 安装订单列表查询 - 使用Mock数据
 export const getAfterSalesOrders = async (
   params?: AfterSalesListParams
 ): Promise<AfterSalesListResponse> => {
   try {
-    // 从生产管理获取需要安装的订单（is_installation=true）
-    const productionResponse = await getProductionOrders({
-      page: params?.no_pagination ? 1 : params?.page || 1,
-      page_size: params?.no_pagination ? 10000 : params?.pageSize || 10,
-    });
+    // 模拟API延迟
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
-    // 过滤出需要安装的订单
-    let filteredProductionOrders = (productionResponse.data || []).filter(
-      (order) => order.is_installation === true
-    );
+    // 合并从生产管理获取的数据和mock数据
+    const allOrders: AfterSalesOrder[] = [...mockAfterSalesOrders];
+
+    // 从生产管理获取需要安装的订单（is_installation=true）
+    try {
+      const productionResponse = await getProductionOrders({
+        page: params?.no_pagination ? 1 : params?.page || 1,
+        page_size: params?.no_pagination ? 10000 : params?.pageSize || 10,
+      });
+
+      // 过滤出需要安装的订单
+      const filteredProductionOrders = (productionResponse.data || []).filter(
+        (order) => order.is_installation === true
+      );
+
+      // 转换为售后订单格式，并检查是否已存在于mock数据中
+      filteredProductionOrders.forEach((prodOrder) => {
+        const exists = allOrders.some(
+          (order) => order.order_number === prodOrder.order_number
+        );
+        if (!exists) {
+          allOrders.push({
+            id: prodOrder.id,
+            order_number: prodOrder.order_number,
+            customer_name: prodOrder.customer_name,
+            shipping_address: prodOrder.address || "",
+            customer_phone: "",
+            delivery_date: undefined,
+            installation_date: undefined,
+            is_completed: false,
+            is_reorder: false,
+            external_purchase_details: prodOrder.external_purchase_items || "",
+            designer: "",
+            related_person: prodOrder.splitter,
+            is_installation: true,
+            created_at: prodOrder.created_at,
+            updated_at: prodOrder.updated_at,
+          });
+        }
+      });
+    } catch (error) {
+      console.warn("从生产管理获取数据失败，仅使用mock数据:", error);
+    }
 
     // 应用搜索过滤条件
+    let filteredData = allOrders;
+
     if (params?.orderNumber) {
-      filteredProductionOrders = filteredProductionOrders.filter((order) =>
+      filteredData = filteredData.filter((order) =>
         order.order_number.includes(params.orderNumber!)
       );
     }
     if (params?.customerName) {
-      filteredProductionOrders = filteredProductionOrders.filter((order) =>
+      filteredData = filteredData.filter((order) =>
         order.customer_name.includes(params.customerName!)
       );
     }
-    if (params?.splitter) {
-      filteredProductionOrders = filteredProductionOrders.filter(
-        (order) => order.splitter === params.splitter
+    if (params?.relatedPerson) {
+      filteredData = filteredData.filter(
+        (order) => order.related_person === params.relatedPerson
       );
     }
-
-    // 转换为安装订单格式
-    // 注意：这里需要从实际的安装订单表获取已编辑的信息
-    // 目前先使用生产管理的数据，后续需要合并安装订单表中的编辑信息
-    const afterSalesOrders: AfterSalesOrder[] = filteredProductionOrders.map(
-      (prodOrder) => ({
-        id: prodOrder.id,
-        order_number: prodOrder.order_number,
-        customer_name: prodOrder.customer_name,
-        shipping_address: prodOrder.address || "",
-        customer_phone: "", // 需要从安装订单表获取
-        delivery_date: undefined, // 需要从安装订单表获取
-        installation_date: undefined, // 需要从安装订单表获取
-        first_completion_date: undefined, // 需要从安装订单表获取
-        is_completed: false, // 需要从安装订单表获取
-        external_purchase_details: undefined, // 需要从安装订单表获取
-        costs: undefined, // 需要从安装订单表获取
-        designer: "", // 需要从安装订单表获取
-        splitter: prodOrder.splitter,
-      })
-    );
-
-    // 应用日期和完成状态过滤（这些字段需要从安装订单表获取）
-    let finalFilteredData = afterSalesOrders;
+    if (params?.designer) {
+      filteredData = filteredData.filter(
+        (order) => order.designer === params.designer
+      );
+    }
     if (params?.isCompleted !== undefined) {
-      // 暂时无法过滤，因为数据来自生产管理
-      // finalFilteredData = finalFilteredData.filter(
-      //   (item) => item.is_completed === params.isCompleted
-      // );
+      filteredData = filteredData.filter(
+        (order) => order.is_completed === params.isCompleted
+      );
+    }
+    if (params?.isInstallation !== undefined) {
+      filteredData = filteredData.filter(
+        (order) => order.is_installation === params.isInstallation
+      );
+    }
+    if (params?.isReorder !== undefined) {
+      filteredData = filteredData.filter(
+        (order) => (order.is_reorder || false) === params.isReorder
+      );
     }
     if (params?.installationDateStart || params?.installationDateEnd) {
-      // 暂时无法过滤，因为数据来自生产管理
-      // 需要从安装订单表获取安装日期
+      filteredData = filteredData.filter((order) => {
+        if (!order.installation_date) return false;
+        const installDate = new Date(order.installation_date);
+        if (params.installationDateStart) {
+          const startDate = new Date(params.installationDateStart);
+          if (installDate < startDate) return false;
+        }
+        if (params.installationDateEnd) {
+          const endDate = new Date(params.installationDateEnd);
+          endDate.setHours(23, 59, 59, 999);
+          if (installDate > endDate) return false;
+        }
+        return true;
+      });
     }
 
     // 分页处理
@@ -130,18 +208,18 @@ export const getAfterSalesOrders = async (
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     const paginatedData = params?.no_pagination
-      ? finalFilteredData
-      : finalFilteredData.slice(start, end);
+      ? filteredData
+      : filteredData.slice(start, end);
 
     return {
       items: paginatedData,
-      total: finalFilteredData.length,
+      total: filteredData.length,
       page,
       page_size: pageSize,
-      total_pages: Math.ceil(finalFilteredData.length / pageSize),
+      total_pages: Math.ceil(filteredData.length / pageSize),
     };
   } catch (error) {
-    console.error("获取安装订单列表失败:", error);
+    console.error("获取售后订单列表失败:", error);
     // 返回空数据
     return {
       items: [],
@@ -158,23 +236,40 @@ export const getAfterSalesOrders = async (
 export const createAfterSalesOrder = async (
   order: Omit<AfterSalesOrder, 'id' | 'created_at' | 'updated_at'>
 ): Promise<ApiResponse<AfterSalesOrder>> => {
-  // 模拟数据 - 实际应该调用真实API
-  // 实际应该先检查订单编号是否已存在，如果存在则更新，否则创建
-  // return await api.post('/v1/after-sales/', order);
-  
-  // 模拟：检查是否已存在（在实际实现中，应该调用后端API检查）
-  // 这里简化处理，直接创建新记录
-  const newOrder: AfterSalesOrder = {
-    ...order,
-    id: Date.now(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  // 模拟API延迟
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  // 检查是否已存在
+  const existingIndex = mockAfterSalesOrders.findIndex(
+    (item) => item.order_number === order.order_number
+  );
+
+  const now = new Date().toISOString();
+  let resultOrder: AfterSalesOrder;
+
+  if (existingIndex >= 0) {
+    // 更新现有记录
+    resultOrder = {
+      ...mockAfterSalesOrders[existingIndex],
+      ...order,
+      updated_at: now,
+    };
+    mockAfterSalesOrders[existingIndex] = resultOrder;
+  } else {
+    // 创建新记录
+    resultOrder = {
+      ...order,
+      id: Date.now(),
+      created_at: now,
+      updated_at: now,
+    };
+    mockAfterSalesOrders.push(resultOrder);
+  }
 
   return {
     code: 200,
     message: '保存成功',
-    data: newOrder,
+    data: resultOrder,
   };
 };
 
@@ -214,17 +309,45 @@ export const updateAfterSalesOrder = async (
   id: string,
   updates: Partial<AfterSalesOrder>
 ): Promise<ApiResponse<AfterSalesOrder>> => {
-  // 模拟数据 - 实际应该调用真实API
-  // return await api.put(`/v1/after-sales/${id}`, updates);
-  
-  return {
-    code: 200,
-    message: '更新成功',
-    data: {
-      id: parseInt(id),
+  // 模拟API延迟
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const orderId = parseInt(id);
+  const index = mockAfterSalesOrders.findIndex((item) => item.id === orderId);
+
+  if (index >= 0) {
+    // 更新现有记录
+    mockAfterSalesOrders[index] = {
+      ...mockAfterSalesOrders[index],
       ...updates,
-    } as AfterSalesOrder,
-  };
+      updated_at: new Date().toISOString(),
+    };
+    return {
+      code: 200,
+      message: '更新成功',
+      data: mockAfterSalesOrders[index],
+    };
+  } else {
+    // 如果不存在，创建新记录
+    const newOrder: AfterSalesOrder = {
+      id: orderId,
+      order_number: `ORDER-${orderId}`,
+      customer_name: '',
+      shipping_address: '',
+      customer_phone: '',
+      is_completed: false,
+      designer: '',
+      ...updates,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    mockAfterSalesOrders.push(newOrder);
+    return {
+      code: 200,
+      message: '更新成功',
+      data: newOrder,
+    };
+  }
 };
 
 // 5. 删除售后订单 - DELETE /api/v1/after-sales/{id}

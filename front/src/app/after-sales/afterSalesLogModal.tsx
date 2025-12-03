@@ -20,6 +20,7 @@ import styles from "./afterSalesModal.module.css";
 import {
   getAfterSalesOrders,
   createAfterSalesOrder,
+  updateAfterSalesOrder,
 } from "../../services/afterSalesApi";
 import AddAfterSalesLogModal from "./addAfterSalesLogModal";
 import CreateReorderModal from "./createReorderModal";
@@ -35,6 +36,44 @@ interface AfterSalesLogItem {
   is_processed?: boolean; // 是否处理
   responsible_person?: string; // 责任人
   created_at?: string;
+}
+
+// 导入共享的mock存储
+import { mockLogsStorage } from "./addAfterSalesLogModal";
+
+// 初始化mock数据
+if (Object.keys(mockLogsStorage).length === 0) {
+  mockLogsStorage["GBB241015-05"] = [
+    {
+      id: "1",
+      log_date: "2024-01-15",
+      content: "客户反馈安装完成，整体满意",
+      feedback_person: "客户A",
+      is_processed: true,
+      responsible_person: "设计师1",
+      created_at: "2024-01-15 10:00:00",
+    },
+    {
+      id: "2",
+      log_date: "2024-01-20",
+      content: "回访客户，无问题",
+      feedback_person: "客户A",
+      is_processed: false,
+      responsible_person: "设计师1",
+      created_at: "2024-01-20 14:30:00",
+    },
+  ];
+  mockLogsStorage["GBB241015-06"] = [
+    {
+      id: "3",
+      log_date: "2024-01-18",
+      content: "发现配件质量问题，需要补单",
+      feedback_person: "安装师傅",
+      is_processed: true,
+      responsible_person: "设计师B",
+      created_at: "2024-01-18 09:00:00",
+    },
+  ];
 }
 
 interface AfterSalesLogModalProps {
@@ -93,30 +132,11 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
 
     setLoading(true);
     try {
-      // 模拟数据 - 实际应该调用API
-      // const response = await getAfterSalesLogs(orderNumber);
+      // 模拟API延迟
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-      // 模拟数据
-      const mockData: AfterSalesLogItem[] = [
-        {
-          id: "1",
-          log_date: "2024-01-15",
-          content: "客户反馈安装完成，整体满意",
-          feedback_person: "客户A",
-          is_processed: true,
-          responsible_person: "设计师1",
-          created_at: "2024-01-15 10:00:00",
-        },
-        {
-          id: "2",
-          log_date: "2024-01-20",
-          content: "回访客户，无问题",
-          feedback_person: "客户A",
-          is_processed: false,
-          responsible_person: "设计师1",
-          created_at: "2024-01-20 14:30:00",
-        },
-      ];
+      // 从mock存储中获取数据
+      const mockData = mockLogsStorage[orderNumber] || [];
 
       setLogList(mockData);
     } catch (err) {
@@ -171,8 +191,19 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
         responsible_person: tempResponsiblePerson,
       };
 
-      // 模拟数据 - 实际应该调用API
-      // const response = await updateAfterSalesLog(editingId, updateData);
+      // 更新mock存储
+      if (!mockLogsStorage[orderNumber]) {
+        mockLogsStorage[orderNumber] = [];
+      }
+      const logIndex = mockLogsStorage[orderNumber].findIndex(
+        (item) => item.id === editingId
+      );
+      if (logIndex >= 0) {
+        mockLogsStorage[orderNumber][logIndex] = {
+          ...mockLogsStorage[orderNumber][logIndex],
+          ...updateData,
+        };
+      }
 
       setLogList(
         logList.map((item) =>
@@ -206,6 +237,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
 
   // 处理创建补单成功
   const handleCreateReorderSuccess = async (data: {
+    reorderNumber: string;
     reorderDetails: string;
     files: UploadFile[];
     expectedDeliveryDate?: string;
@@ -219,10 +251,8 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
 
     setLoading(true);
     try {
-      // 生成新的订单编号（基于原订单编号+后缀）
-      const newOrderNumber = `${afterSalesOrder.order_number}-补${Date.now()
-        .toString()
-        .slice(-6)}`;
+      // 使用从modal返回的补单编号
+      const newOrderNumber = data.reorderNumber;
 
       // 处理文件列表（这里可以根据实际需求上传文件到服务器）
       const fileNames = data.files.map((file) => file.name).join(", ");
@@ -245,6 +275,27 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
 
       if (response.code === 200) {
         message.success(`补单创建成功，订单编号：${newOrderNumber}`);
+        
+        // 更新原订单的是否补单字段为是
+        try {
+          const originalOrderResponse = await getAfterSalesOrders({
+            orderNumber: afterSalesOrder.order_number,
+            page: 1,
+            pageSize: 1,
+          });
+          
+          if (originalOrderResponse.items && originalOrderResponse.items.length > 0) {
+            const originalOrder = originalOrderResponse.items[0];
+            if (originalOrder.id) {
+              await updateAfterSalesOrder(originalOrder.id.toString(), {
+                is_reorder: true,
+              });
+            }
+          }
+        } catch (updateError) {
+          console.warn("更新原订单补单状态失败:", updateError);
+        }
+        
         setIsCreateReorderModalVisible(false);
         setSelectedLogForReorder(null);
         if (onSuccess) {
@@ -272,8 +323,12 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
       onOk: async () => {
         setLoading(true);
         try {
-          // 模拟数据 - 实际应该调用API
-          // const response = await deleteAfterSalesLog(record.id);
+          // 更新mock存储
+          if (mockLogsStorage[orderNumber]) {
+            mockLogsStorage[orderNumber] = mockLogsStorage[orderNumber].filter(
+              (item) => item.id !== record.id
+            );
+          }
 
           setLogList(logList.filter((item) => item.id !== record.id));
           message.success("删除成功");
@@ -494,7 +549,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
       footer={null}
     >
       <div className={styles.bottomMargin}>
-        <div style={{ marginBottom: 16, textAlign: "left" }}>
+        <div style={{ marginBottom: 16, textAlign: "right" }}>
           <Button type="primary" onClick={() => setIsAddModalVisible(true)}>
             添加日志
           </Button>
@@ -529,6 +584,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
         }}
         onSuccess={handleCreateReorderSuccess}
         afterSalesDate={selectedLogForReorder?.log_date}
+        originalOrderNumber={afterSalesOrder?.order_number}
       />
     </Modal>
   );

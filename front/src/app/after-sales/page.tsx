@@ -25,6 +25,8 @@ import AfterSalesLogModal from "./afterSalesLogModal";
 import FollowUpModal from "./followUpModal";
 import AfterSalesLogDetailModal from "./afterSalesLogDetailModal";
 import FollowUpDetailModal from "./followUpDetailModal";
+import ReorderDetailModal from "./reorderDetailModal";
+import { mockLogsStorage } from "./addAfterSalesLogModal";
 import {
   getAfterSalesOrders,
   createAfterSalesOrder,
@@ -59,9 +61,11 @@ const AfterSalesPage: React.FC = () => {
   const [isFollowUpModalVisible, setIsFollowUpModalVisible] = useState(false);
   const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
 
-  // 两个详情modal的状态
+  // 三个详情modal的状态
   const [isLogDetailModalVisible, setIsLogDetailModalVisible] = useState(false);
   const [isFollowUpDetailModalVisible, setIsFollowUpDetailModalVisible] =
+    useState(false);
+  const [isReorderDetailModalVisible, setIsReorderDetailModalVisible] =
     useState(false);
   const [selectedOrderForDetail, setSelectedOrderForDetail] =
     useState<AfterSalesOrder | null>(null);
@@ -98,6 +102,12 @@ const AfterSalesPage: React.FC = () => {
   const showFollowUpDetailModal = (record: AfterSalesOrder) => {
     setSelectedOrderForDetail(record);
     setIsFollowUpDetailModalVisible(true);
+  };
+
+  // 显示补单详情modal
+  const showReorderDetailModal = (record: AfterSalesOrder) => {
+    setSelectedOrderForDetail(record);
+    setIsReorderDetailModalVisible(true);
   };
 
   const handleOk = async (values: {
@@ -446,8 +456,14 @@ const AfterSalesPage: React.FC = () => {
   // 组件挂载时加载数据
   useEffect(() => {
     const initData = async () => {
-      await handleSearch();
+      // 设置默认查询条件：是否安装=是，是否补单=是，是否完工=否
+      searchForm.setFieldsValue({
+        isInstallation: true,
+        isReorder: true,
+        isCompleted: false,
+      });
       await loadUserData();
+      await handleSearch();
     };
     initData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -487,11 +503,25 @@ const AfterSalesPage: React.FC = () => {
       title: "是否补单",
       dataIndex: "is_reorder",
       key: "is_reorder",
-      width: 90,
-      render: (isReorder: boolean) => (
-        <Tag color={isReorder ? "blue" : "default"}>
-          {isReorder ? "是" : "否"}
-        </Tag>
+      width: 120,
+      render: (isReorder: boolean, record: AfterSalesOrder) => (
+        <div>
+          <Tag color={isReorder ? "blue" : "default"}>
+            {isReorder ? "是" : "否"}
+          </Tag>
+          {isReorder && (
+            <div style={{ textAlign: "right", marginTop: "4px" }}>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => showReorderDetailModal(record)}
+                style={{ padding: "0 4px", fontSize: "12px", marginLeft: 4 }}
+              >
+                详情
+              </Button>
+            </div>
+          )}
+        </div>
       ),
     },
 
@@ -502,11 +532,8 @@ const AfterSalesPage: React.FC = () => {
       width: "auto",
       minWidth: 120,
       render: (_: unknown, record: AfterSalesOrder) => {
-        // 模拟数据 - 实际应该从API获取
-        const mockLogs = [
-          { date: "2024-01-15", content: "客户反馈安装完成，整体满意" },
-          { date: "2024-01-20", content: "回访客户，无问题" },
-        ];
+        // 从mock存储获取日志数据
+        const mockLogs = mockLogsStorage[record.order_number] || [];
 
         if (!mockLogs || mockLogs.length === 0) return "-";
 
@@ -515,16 +542,21 @@ const AfterSalesPage: React.FC = () => {
 
         return (
           <div>
-            {displayItems.map((item, itemIndex) => (
-              <div key={itemIndex} style={{ marginBottom: 4 }}>
-                <span>
-                  {item.date}：
-                  {item.content.length > 20
-                    ? `${item.content.substring(0, 20)}...`
-                    : item.content}
-                </span>
-              </div>
-            ))}
+            {displayItems.map(
+              (
+                item: { log_date: string; content: string },
+                itemIndex: number
+              ) => (
+                <div key={itemIndex} style={{ marginBottom: 4 }}>
+                  <span>
+                    {item.log_date}：
+                    {item.content.length > 20
+                      ? `${item.content.substring(0, 20)}...`
+                      : item.content}
+                  </span>
+                </div>
+              )
+            )}
             {mockLogs.length > 0 && (
               <div style={{ textAlign: "right", marginTop: "4px" }}>
                 <Button
@@ -647,6 +679,7 @@ const AfterSalesPage: React.FC = () => {
               type="link"
               size="small"
               onClick={() => showEditModal(record)}
+              disabled={record.is_completed}
             >
               编辑
             </Button>
@@ -654,29 +687,37 @@ const AfterSalesPage: React.FC = () => {
               type="link"
               size="small"
               onClick={() => showLogModal(record)}
+              disabled={record.is_completed}
             >
               售后日志
             </Button>
-            <Button
-              type="link"
-              size="small"
-              onClick={() => handleCompleteAfterSales(record)}
-              disabled={record.is_completed}
-            >
-              售后完成
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              onClick={() => handleRevokeAfterSales(record)}
-              disabled={!record.is_completed}
-            >
-              撤销
-            </Button>
+            {!record.is_completed && (
+              <Button
+                type="link"
+                size="small"
+                onClick={() => handleCompleteAfterSales(record)}
+                disabled={record.is_completed}
+              >
+                售后完成
+              </Button>
+            )}
+            {record.is_completed && (
+              <Button
+                type="link"
+                size="small"
+                danger
+                onClick={() => handleRevokeAfterSales(record)}
+                disabled={!record.is_completed}
+              >
+                撤销
+              </Button>
+            )}
+
             <Button
               type="link"
               size="small"
               onClick={() => showFollowUpModal(record)}
+
             >
               回访情况
             </Button>
@@ -952,6 +993,17 @@ const AfterSalesPage: React.FC = () => {
           visible={isFollowUpDetailModalVisible}
           onCancel={() => {
             setIsFollowUpDetailModalVisible(false);
+            setSelectedOrderForDetail(null);
+          }}
+          orderNumber={selectedOrderForDetail?.order_number || ""}
+          customerName={selectedOrderForDetail?.customer_name}
+        />
+
+        {/* 补单详情Modal */}
+        <ReorderDetailModal
+          visible={isReorderDetailModalVisible}
+          onCancel={() => {
+            setIsReorderDetailModalVisible(false);
             setSelectedOrderForDetail(null);
           }}
           orderNumber={selectedOrderForDetail?.order_number || ""}
