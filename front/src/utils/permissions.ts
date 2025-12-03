@@ -32,6 +32,7 @@ export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
     UserRole.MANAGER,
     UserRole.SALESPERSON,
     UserRole.FINANCE,
+    UserRole.SHIPPER,
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN
   ],
@@ -44,6 +45,7 @@ export const MODULE_PERMISSIONS: Record<PageModule, UserRole[]> = {
     UserRole.AUDITOR,
     UserRole.PROCUREMENT,
     UserRole.WORKSHOP,
+    UserRole.SHIPPER,
     UserRole.ADMIN,
     UserRole.SUPER_ADMIN
   ],

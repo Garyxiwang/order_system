@@ -405,7 +405,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                         style={{ marginBottom: 16 }}
                       >
                         <Card title={category.name} size="small" type="inner">
-                          <Form.Item
+                          {/* <Form.Item
                             label="计划日期"
                             name={[
                               "internalItems",
@@ -418,7 +418,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                               placeholder="请选择日期"
                               style={{ width: "100%" }}
                             />
-                          </Form.Item>
+                          </Form.Item> */}
                           <Form.Item
                             label="下单日期"
                             name={["internalItems", category.name, "splitDate"]}
@@ -463,7 +463,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                         style={{ marginBottom: 16 }}
                       >
                         <Card title={category.name} size="small" type="inner">
-                          <Form.Item
+                          {/* <Form.Item
                             label="计划下单日期"
                             name={[
                               "externalItems",
@@ -476,7 +476,7 @@ const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                               placeholder="请选择日期"
                               style={{ width: "100%" }}
                             />
-                          </Form.Item>
+                          </Form.Item> */}
                           <Form.Item
                             label="实际下单日期"
                             name={[

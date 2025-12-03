@@ -1357,7 +1357,7 @@ const DesignPage: React.FC = () => {
                   allowClear
                 >
                   <Option value="设计单">设计单</Option>
-                  <Option value="生成单">生成单</Option>
+                  <Option value="生产单">生产单</Option>
                   <Option value="成品单">成品单</Option>
                 </Select>
               </Form.Item>
