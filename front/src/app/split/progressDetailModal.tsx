@@ -73,14 +73,14 @@ const ProgressDetailModal: React.FC<ProgressDetailModal> = ({
         <span>{type === "internal" ? "厂内生产项" : "外购项"}</span>
       ),
     },
-    {
-      title: itemType === "internal" ? "计划拆单日期" : "计划下单日期",
-      dataIndex: "planned_date",
-      key: "planned_date",
-      render: (date: string) => (
-        <span style={{ color: "#666" }}>{date || "-"}</span>
-      ),
-    },
+    // {
+    //   title: itemType === "internal" ? "计划拆单日期" : "计划下单日期",
+    //   dataIndex: "planned_date",
+    //   key: "planned_date",
+    //   render: (date: string) => (
+    //     <span style={{ color: "#666" }}>{date || "-"}</span>
+    //   ),
+    // },
     {
       title: itemType === "internal" ? "实际拆单日期" : "实际下单日期",
       dataIndex: itemType === "internal" ? "split_date" : "purchase_date",
