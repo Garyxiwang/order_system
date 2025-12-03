@@ -22,10 +22,8 @@ import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import CreateAfterSalesModal from "./createAfterSalesModal";
 import AfterSalesLogModal from "./afterSalesLogModal";
-import RemainingIssuesModal from "./remainingIssuesModal";
 import FollowUpModal from "./followUpModal";
 import AfterSalesLogDetailModal from "./afterSalesLogDetailModal";
-import RemainingIssuesDetailModal from "./remainingIssuesDetailModal";
 import FollowUpDetailModal from "./followUpDetailModal";
 import {
   getAfterSalesOrders,
@@ -54,18 +52,15 @@ const AfterSalesPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
 
   const [designers, setDesigners] = useState<UserData[]>([]);
-  const [splitters, setSplitters] = useState<UserData[]>([]);
+  const [relatedPersons, setRelatedPersons] = useState<UserData[]>([]);
 
-  // 三个独立modal的状态
+  // 两个独立modal的状态
   const [isLogModalVisible, setIsLogModalVisible] = useState(false);
-  const [isIssuesModalVisible, setIsIssuesModalVisible] = useState(false);
   const [isFollowUpModalVisible, setIsFollowUpModalVisible] = useState(false);
   const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
 
-  // 三个详情modal的状态
+  // 两个详情modal的状态
   const [isLogDetailModalVisible, setIsLogDetailModalVisible] = useState(false);
-  const [isIssuesDetailModalVisible, setIsIssuesDetailModalVisible] =
-    useState(false);
   const [isFollowUpDetailModalVisible, setIsFollowUpDetailModalVisible] =
     useState(false);
   const [selectedOrderForDetail, setSelectedOrderForDetail] =
@@ -87,12 +82,6 @@ const AfterSalesPage: React.FC = () => {
     setIsLogModalVisible(true);
   };
 
-  // 显示遗留问题modal
-  const showIssuesModal = (record: AfterSalesOrder) => {
-    setSelectedOrderNumber(record.order_number);
-    setIsIssuesModalVisible(true);
-  };
-
   // 显示回访情况modal
   const showFollowUpModal = (record: AfterSalesOrder) => {
     setSelectedOrderNumber(record.order_number);
@@ -103,12 +92,6 @@ const AfterSalesPage: React.FC = () => {
   const showLogDetailModal = (record: AfterSalesOrder) => {
     setSelectedOrderForDetail(record);
     setIsLogDetailModalVisible(true);
-  };
-
-  // 显示遗留问题详情modal
-  const showIssuesDetailModal = (record: AfterSalesOrder) => {
-    setSelectedOrderForDetail(record);
-    setIsIssuesDetailModalVisible(true);
   };
 
   // 显示回访情况详情modal
@@ -124,12 +107,11 @@ const AfterSalesPage: React.FC = () => {
     customer_phone: string;
     delivery_date?: string;
     installation_date?: string;
-    first_completion_date?: string;
     is_completed: boolean;
+    is_reorder?: boolean;
     external_purchase_details?: string;
-    costs?: string;
     designer: string;
-    splitter?: string;
+    related_person?: string;
   }): Promise<boolean> => {
     try {
       setLoading(true);
@@ -139,7 +121,7 @@ const AfterSalesPage: React.FC = () => {
         // 由于数据来自生产管理，可能还没有对应的安装订单记录
         // 使用"创建或更新"的逻辑：如果记录不存在则创建，存在则更新
         let response;
-        
+
         try {
           // 尝试更新（如果 id 存在且有效）
           if (editingRecord.id) {
@@ -152,12 +134,11 @@ const AfterSalesPage: React.FC = () => {
                   customer_phone: values.customer_phone,
                   delivery_date: values.delivery_date,
                   installation_date: values.installation_date,
-                  first_completion_date: values.first_completion_date,
                   is_completed: values.is_completed,
+                  is_reorder: values.is_reorder,
                   external_purchase_details: values.external_purchase_details,
-                  costs: values.costs,
                   designer: values.designer,
-                  splitter: values.splitter,
+                  related_person: values.related_person,
                 }
               );
             } catch (updateError) {
@@ -170,12 +151,11 @@ const AfterSalesPage: React.FC = () => {
                 customer_phone: values.customer_phone,
                 delivery_date: values.delivery_date,
                 installation_date: values.installation_date,
-                first_completion_date: values.first_completion_date,
                 is_completed: values.is_completed,
+                is_reorder: values.is_reorder,
                 external_purchase_details: values.external_purchase_details,
-                costs: values.costs,
                 designer: values.designer,
-                splitter: values.splitter,
+                related_person: values.related_person,
               });
             }
           } else {
@@ -187,12 +167,11 @@ const AfterSalesPage: React.FC = () => {
               customer_phone: values.customer_phone,
               delivery_date: values.delivery_date,
               installation_date: values.installation_date,
-              first_completion_date: values.first_completion_date,
               is_completed: values.is_completed,
+              is_reorder: values.is_reorder,
               external_purchase_details: values.external_purchase_details,
-              costs: values.costs,
               designer: values.designer,
-              splitter: values.splitter,
+              related_person: values.related_person,
             });
           }
         } catch (error) {
@@ -216,12 +195,11 @@ const AfterSalesPage: React.FC = () => {
           customer_phone: values.customer_phone,
           delivery_date: values.delivery_date,
           installation_date: values.installation_date,
-          first_completion_date: values.first_completion_date,
           is_completed: values.is_completed,
+          is_reorder: values.is_reorder,
           external_purchase_details: values.external_purchase_details,
-          costs: values.costs,
           designer: values.designer,
-          splitter: values.splitter,
+          related_person: values.related_person,
         });
 
         if (response.code === 200) {
@@ -253,6 +231,70 @@ const AfterSalesPage: React.FC = () => {
   const handleCancel = () => {
     setIsModalVisible(false);
     setEditingRecord(null);
+  };
+
+  // 售后完成操作
+  const handleCompleteAfterSales = async (record: AfterSalesOrder) => {
+    if (!record.id) {
+      message.error("订单ID不存在，无法完成售后");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await updateAfterSalesOrder(record.id.toString(), {
+        is_completed: true,
+      });
+
+      if (response.code === 200) {
+        message.success("售后完成操作成功");
+        // 重新加载数据
+        const formValues = searchForm.getFieldsValue();
+        const filteredParams = buildSearchParams(formValues, {
+          pagination: true,
+        });
+        await loadAfterSalesData(filteredParams, currentPage, pageSize);
+      } else {
+        message.error(response.message || "操作失败");
+      }
+    } catch (error) {
+      console.error("售后完成操作失败:", error);
+      message.error("操作失败，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 撤销操作
+  const handleRevokeAfterSales = async (record: AfterSalesOrder) => {
+    if (!record.id) {
+      message.error("订单ID不存在，无法撤销操作");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await updateAfterSalesOrder(record.id.toString(), {
+        is_completed: false,
+      });
+
+      if (response.code === 200) {
+        message.success("撤销操作成功");
+        // 重新加载数据
+        const formValues = searchForm.getFieldsValue();
+        const filteredParams = buildSearchParams(formValues, {
+          pagination: true,
+        });
+        await loadAfterSalesData(filteredParams, currentPage, pageSize);
+      } else {
+        message.error(response.message || "操作失败");
+      }
+    } catch (error) {
+      console.error("撤销操作失败:", error);
+      message.error("操作失败，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 加载售后订单数据
@@ -287,9 +329,12 @@ const AfterSalesPage: React.FC = () => {
       orderNumber?: string;
       customerName?: string;
       designer?: string;
-      splitter?: string;
+      relatedPerson?: string;
       installationDateRange?: dayjs.Dayjs[];
       isCompleted?: boolean;
+      isInstallation?: boolean;
+      isReorder?: boolean;
+      afterSalesDateRange?: dayjs.Dayjs[];
     },
     options: { pagination?: boolean } = {}
   ): AfterSalesListParams => {
@@ -297,7 +342,7 @@ const AfterSalesPage: React.FC = () => {
       orderNumber: formValues.orderNumber,
       customerName: formValues.customerName,
       designer: formValues.designer,
-      splitter: formValues.splitter,
+      relatedPerson: formValues.relatedPerson,
       installationDateStart:
         formValues.installationDateRange?.[0]?.format("YYYY-MM-DD"),
       installationDateEnd:
@@ -306,6 +351,16 @@ const AfterSalesPage: React.FC = () => {
         formValues.isCompleted !== undefined
           ? formValues.isCompleted
           : undefined,
+      isInstallation:
+        formValues.isInstallation !== undefined
+          ? formValues.isInstallation
+          : undefined,
+      isReorder:
+        formValues.isReorder !== undefined ? formValues.isReorder : undefined,
+      afterSalesDateStart:
+        formValues.afterSalesDateRange?.[0]?.format("YYYY-MM-DD"),
+      afterSalesDateEnd:
+        formValues.afterSalesDateRange?.[1]?.format("YYYY-MM-DD"),
     };
 
     // 如果需要分页，添加分页参数
@@ -375,11 +430,13 @@ const AfterSalesPage: React.FC = () => {
       const designerList = allUsers.filter(
         (user) => user.role === UserRole.DESIGNER
       );
-      const splitterList = allUsers.filter(
-        (user) => user.role === UserRole.SPLITTING
+      // 相关人员包括拆单员和其他相关角色
+      const relatedPersonList = allUsers.filter(
+        (user) =>
+          user.role === UserRole.SPLITTING || user.role === UserRole.DESIGNER
       );
       setDesigners(designerList);
-      setSplitters(splitterList);
+      setRelatedPersons(relatedPersonList);
     } catch (error) {
       console.error("加载用户数据失败:", error);
       message.error("加载用户数据失败");
@@ -425,55 +482,19 @@ const AfterSalesPage: React.FC = () => {
       width: 120,
       render: (text: string) => text || "-",
     },
+
     {
-      title: "送货日期",
-      dataIndex: "delivery_date",
-      key: "delivery_date",
-      width: 120,
-      render: (date: string) => (date ? formatDateTime(date) : "-"),
-    },
-    {
-      title: "安装日期",
-      dataIndex: "installation_date",
-      key: "installation_date",
-      width: 120,
-      render: (date: string) => (date ? formatDateTime(date) : "-"),
-    },
-    {
-      title: "首次完工日期",
-      dataIndex: "first_completion_date",
-      key: "first_completion_date",
-      width: 130,
-      render: (date: string) => (date ? formatDateTime(date) : "-"),
-    },
-    {
-      title: "是否完工",
-      dataIndex: "is_completed",
-      key: "is_completed",
+      title: "是否补单",
+      dataIndex: "is_reorder",
+      key: "is_reorder",
       width: 90,
-      render: (isCompleted: boolean) => (
-        <Tag color={isCompleted ? "green" : "orange"}>
-          {isCompleted ? "是" : "否"}
+      render: (isReorder: boolean) => (
+        <Tag color={isReorder ? "blue" : "default"}>
+          {isReorder ? "是" : "否"}
         </Tag>
       ),
     },
-    {
-      title: "外购产品明细",
-      dataIndex: "external_purchase_details",
-      key: "external_purchase_details",
-      width: 120,
-      render: (text: string) => (
-        <div
-          style={{
-            maxWidth: "150px",
-            wordWrap: "break-word",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {text || "-"}
-        </div>
-      ),
-    },
+
     {
       title: "售后日志",
       dataIndex: "after_sales_log",
@@ -522,75 +543,59 @@ const AfterSalesPage: React.FC = () => {
     },
 
     {
-      title: "遗留问题",
-      dataIndex: "remaining_issues",
-      key: "remaining_issues",
-      width: "auto",
-      minWidth: 120,
-      render: (_: unknown, record: AfterSalesOrder) => {
-        // 模拟数据 - 实际应该从API获取
-        const mockIssues = [
-          { date: "2024-01-15", content: "需要更换部分配件", status: "待处理" },
-        ];
-
-        if (!mockIssues || mockIssues.length === 0) return "-";
-
-        // 默认显示最近的3条记录
-        const displayItems = mockIssues.slice(0, 3);
-
-        return (
-          <div>
-            {displayItems.map((item, itemIndex) => (
-              <div key={itemIndex} style={{ marginBottom: 4 }}>
-                <span>
-                  {item.date}：
-                  {item.content.length > 20
-                    ? `${item.content.substring(0, 20)}...`
-                    : item.content}
-                </span>
-              </div>
-            ))}
-            {mockIssues.length > 0 && (
-              <div style={{ textAlign: "right", marginTop: "4px" }}>
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => showIssuesDetailModal(record)}
-                  style={{ padding: "0 4px", fontSize: "12px" }}
-                >
-                  详情{` (${mockIssues.length})`}
-                </Button>
-              </div>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      title: "产生费用",
-      dataIndex: "costs",
-      key: "costs",
+      title: "相关人员",
+      dataIndex: "related_person",
+      key: "related_person",
       width: 120,
-      render: (text: string) =>
-        text
-          ? `¥${Number(text).toLocaleString("zh-CN", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`
-          : "-",
+      render: (text: string) => text || "-",
     },
     {
-      title: "拆单员",
-      dataIndex: "splitter",
-      key: "splitter",
-      render: (text: string) => text || "-",
+      title: "外购产品明细",
+      dataIndex: "external_purchase_details",
+      key: "external_purchase_details",
+      width: 120,
+      render: (text: string) => (
+        <div
+          style={{
+            maxWidth: "150px",
+            wordWrap: "break-word",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {text || "-"}
+        </div>
+      ),
+    },
+    {
+      title: "送货日期",
+      dataIndex: "delivery_date",
+      key: "delivery_date",
+      width: 120,
+      render: (date: string) => (date ? formatDateTime(date) : "-"),
+    },
+    {
+      title: "安装日期",
+      dataIndex: "installation_date",
+      key: "installation_date",
+      width: 120,
+      render: (date: string) => (date ? formatDateTime(date) : "-"),
+    },
+    {
+      title: "是否完工",
+      dataIndex: "is_completed",
+      key: "is_completed",
+      width: 90,
+      render: (isCompleted: boolean) => (
+        <Tag color={isCompleted ? "green" : "orange"}>
+          {isCompleted ? "是" : "否"}
+        </Tag>
+      ),
     },
     {
       title: "回访情况",
       dataIndex: "follow_up_issues",
       key: "follow_up_issues",
-      width: "auto",
-      minWidth: 120,
+      width: 250,
       render: (_: unknown, record: AfterSalesOrder) => {
         // 模拟数据 - 实际应该从API获取
         const mockFollowUps = [
@@ -634,9 +639,9 @@ const AfterSalesPage: React.FC = () => {
       title: "操作",
       key: "action",
       fixed: "right",
-      width: 80,
+      width: 120,
       render: (_: unknown, record: AfterSalesOrder) => (
-        <div style={{ width: "50px" }}>
+        <div style={{ width: "100px" }}>
           <Row gutter={[4, 4]}>
             <Button
               type="link"
@@ -648,9 +653,25 @@ const AfterSalesPage: React.FC = () => {
             <Button
               type="link"
               size="small"
-              onClick={() => showIssuesModal(record)}
+              onClick={() => showLogModal(record)}
             >
-              遗留问题
+              售后日志
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => handleCompleteAfterSales(record)}
+              disabled={record.is_completed}
+            >
+              售后完成
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => handleRevokeAfterSales(record)}
+              disabled={!record.is_completed}
+            >
+              撤销
             </Button>
             <Button
               type="link"
@@ -658,13 +679,6 @@ const AfterSalesPage: React.FC = () => {
               onClick={() => showFollowUpModal(record)}
             >
               回访情况
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              onClick={() => showLogModal(record)}
-            >
-              售后日志
             </Button>
           </Row>
         </div>
@@ -743,9 +757,9 @@ const AfterSalesPage: React.FC = () => {
                       );
                     }}
                   >
-                    {splitters.map((splitter) => (
-                      <Option key={splitter.username} value={splitter.username}>
-                        {splitter.username}
+                    {relatedPersons.map((person) => (
+                      <Option key={person.username} value={person.username}>
+                        {person.username}
                       </Option>
                     ))}
                   </Select>
@@ -753,16 +767,32 @@ const AfterSalesPage: React.FC = () => {
               </Col>
               <Col span={6} className="py-2">
                 <Form.Item
-                  name="installationDateRange"
-                  label="安装日期"
+                  name="isInstallation"
+                  label="是否安装"
                   className="mb-0"
                 >
-                  <RangePicker
-                    placeholder={["开始日期", "结束日期"]}
-                    className="rounded-md w-full"
+                  <Select
+                    placeholder="请选择"
+                    className="rounded-md"
                     size="middle"
                     allowClear
-                  />
+                  >
+                    <Option value={true}>是</Option>
+                    <Option value={false}>否</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={6} className="py-2">
+                <Form.Item name="isReorder" label="是否补单" className="mb-0">
+                  <Select
+                    placeholder="请选择"
+                    className="rounded-md"
+                    size="middle"
+                    allowClear
+                  >
+                    <Option value={true}>是</Option>
+                    <Option value={false}>否</Option>
+                  </Select>
                 </Form.Item>
               </Col>
               <Col span={6} className="py-2">
@@ -776,6 +806,20 @@ const AfterSalesPage: React.FC = () => {
                     <Option value={true}>是</Option>
                     <Option value={false}>否</Option>
                   </Select>
+                </Form.Item>
+              </Col>
+              <Col span={6} className="py-2">
+                <Form.Item
+                  name="afterSalesDateRange"
+                  label="售后时间"
+                  className="mb-0"
+                >
+                  <RangePicker
+                    placeholder={["开始日期", "结束日期"]}
+                    className="rounded-md w-full"
+                    size="middle"
+                    allowClear
+                  />
                 </Form.Item>
               </Col>
             </Row>
@@ -855,13 +899,12 @@ const AfterSalesPage: React.FC = () => {
                   customer_phone: editingRecord.customer_phone,
                   delivery_date: editingRecord.delivery_date,
                   installation_date: editingRecord.installation_date,
-                  first_completion_date: editingRecord.first_completion_date,
                   is_completed: editingRecord.is_completed,
+                  is_reorder: editingRecord.is_reorder,
                   external_purchase_details:
                     editingRecord.external_purchase_details,
-                  costs: editingRecord.costs,
                   designer: editingRecord.designer,
-                  splitter: editingRecord.splitter,
+                  related_person: editingRecord.related_person,
                 }
               : undefined
           }
@@ -872,19 +915,6 @@ const AfterSalesPage: React.FC = () => {
           visible={isLogModalVisible}
           onCancel={() => {
             setIsLogModalVisible(false);
-            setSelectedOrderNumber("");
-          }}
-          orderNumber={selectedOrderNumber}
-          onSuccess={() => {
-            handleSearch();
-          }}
-        />
-
-        {/* 遗留问题Modal */}
-        <RemainingIssuesModal
-          visible={isIssuesModalVisible}
-          onCancel={() => {
-            setIsIssuesModalVisible(false);
             setSelectedOrderNumber("");
           }}
           orderNumber={selectedOrderNumber}
@@ -911,17 +941,6 @@ const AfterSalesPage: React.FC = () => {
           visible={isLogDetailModalVisible}
           onCancel={() => {
             setIsLogDetailModalVisible(false);
-            setSelectedOrderForDetail(null);
-          }}
-          orderNumber={selectedOrderForDetail?.order_number || ""}
-          customerName={selectedOrderForDetail?.customer_name}
-        />
-
-        {/* 遗留问题详情Modal */}
-        <RemainingIssuesDetailModal
-          visible={isIssuesDetailModalVisible}
-          onCancel={() => {
-            setIsIssuesDetailModalVisible(false);
             setSelectedOrderForDetail(null);
           }}
           orderNumber={selectedOrderForDetail?.order_number || ""}

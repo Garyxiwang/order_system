@@ -11,13 +11,18 @@ import {
   message,
   Card,
   Select,
-  Checkbox,
+  Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import type { UploadFile } from "antd/es/upload/interface";
 import dayjs from "dayjs";
 import styles from "./afterSalesModal.module.css";
-import { getAfterSalesOrders, createAfterSalesOrder } from "../../services/afterSalesApi";
+import {
+  getAfterSalesOrders,
+  createAfterSalesOrder,
+} from "../../services/afterSalesApi";
 import AddAfterSalesLogModal from "./addAfterSalesLogModal";
+import CreateReorderModal from "./createReorderModal";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -28,15 +33,9 @@ interface AfterSalesLogItem {
   content: string;
   feedback_person?: string; // 反馈人
   is_processed?: boolean; // 是否处理
-  has_beauty?: boolean; // 是否有美容
-  beauty_processed?: boolean; // 美容是否处理
-  after_sales_type?: string; // 售后类型：问题单、裁撤单
-  modification_details?: string; // 裁改明细
-  modification_reason?: string; // 裁改原因
   responsible_person?: string; // 责任人
   created_at?: string;
 }
-
 
 interface AfterSalesLogModalProps {
   visible: boolean;
@@ -58,12 +57,8 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
   const [tempDate, setTempDate] = useState<dayjs.Dayjs | null>(null);
   const [tempFeedbackPerson, setTempFeedbackPerson] = useState<string>("");
   const [tempIsProcessed, setTempIsProcessed] = useState<boolean>(false);
-  const [tempHasBeauty, setTempHasBeauty] = useState<boolean>(false);
-  const [tempBeautyProcessed, setTempBeautyProcessed] = useState<boolean>(false);
-  const [tempAfterSalesType, setTempAfterSalesType] = useState<string>("");
-  const [tempModificationDetails, setTempModificationDetails] = useState<string>("");
-  const [tempModificationReason, setTempModificationReason] = useState<string>("");
-  const [tempResponsiblePerson, setTempResponsiblePerson] = useState<string>("");
+  const [tempResponsiblePerson, setTempResponsiblePerson] =
+    useState<string>("");
   const [afterSalesOrder, setAfterSalesOrder] = useState<{
     order_number: string;
     customer_name: string;
@@ -71,6 +66,8 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
     designer?: string;
   } | null>(null);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isCreateReorderModalVisible, setIsCreateReorderModalVisible] = useState(false);
+  const [selectedLogForReorder, setSelectedLogForReorder] = useState<AfterSalesLogItem | null>(null);
 
   // 获取售后订单信息
   const fetchAfterSalesOrder = async () => {
@@ -107,9 +104,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
           content: "客户反馈安装完成，整体满意",
           feedback_person: "客户A",
           is_processed: true,
-          has_beauty: false,
-          beauty_processed: false,
-          after_sales_type: "问题单",
+          responsible_person: "设计师1",
           created_at: "2024-01-15 10:00:00",
         },
         {
@@ -117,12 +112,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
           log_date: "2024-01-20",
           content: "回访客户，无问题",
           feedback_person: "客户A",
-          is_processed: true,
-          has_beauty: true,
-          beauty_processed: true,
-          after_sales_type: "裁撤单",
-          modification_details: "需要更换部分配件",
-          modification_reason: "质量问题",
+          is_processed: false,
           responsible_person: "设计师1",
           created_at: "2024-01-20 14:30:00",
         },
@@ -153,11 +143,6 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
     setTempContent(record.content);
     setTempFeedbackPerson(record.feedback_person || "");
     setTempIsProcessed(record.is_processed || false);
-    setTempHasBeauty(record.has_beauty || false);
-    setTempBeautyProcessed(record.beauty_processed || false);
-    setTempAfterSalesType(record.after_sales_type || "");
-    setTempModificationDetails(record.modification_details || "");
-    setTempModificationReason(record.modification_reason || "");
     setTempResponsiblePerson(record.responsible_person || "");
     if (record.log_date) {
       const date = dayjs(record.log_date);
@@ -183,11 +168,6 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
         content: tempContent,
         feedback_person: tempFeedbackPerson,
         is_processed: tempIsProcessed,
-        has_beauty: tempHasBeauty,
-        beauty_processed: tempBeautyProcessed,
-        after_sales_type: tempAfterSalesType,
-        modification_details: tempModificationDetails,
-        modification_reason: tempModificationReason,
         responsible_person: tempResponsiblePerson,
       };
 
@@ -205,11 +185,6 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
       setTempDate(null);
       setTempFeedbackPerson("");
       setTempIsProcessed(false);
-      setTempHasBeauty(false);
-      setTempBeautyProcessed(false);
-      setTempAfterSalesType("");
-      setTempModificationDetails("");
-      setTempModificationReason("");
       setTempResponsiblePerson("");
     } catch (error) {
       console.error("保存售后日志失败:", error);
@@ -219,56 +194,71 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
     }
   };
 
-  // 创建订单
-  const handleCreateOrder = async (record: AfterSalesLogItem) => {
+  // 打开创建补单modal
+  const handleCreateOrder = (record: AfterSalesLogItem) => {
     if (!afterSalesOrder) {
       message.error("无法获取售后订单信息");
       return;
     }
+    setSelectedLogForReorder(record);
+    setIsCreateReorderModalVisible(true);
+  };
 
-    Modal.confirm({
-      title: "确认创建安装补单",
-      content: `确定要为此售后日志创建安装补单吗？`,
-      okText: "确认",
-      cancelText: "取消",
-      onOk: async () => {
-        setLoading(true);
-        try {
-          // 生成新的订单编号（基于原订单编号+后缀）
-          const newOrderNumber = `${afterSalesOrder.order_number}-补${Date.now().toString().slice(-6)}`;
-          
-          // 创建安装补单（安装订单）
-          const response = await createAfterSalesOrder({
-            order_number: newOrderNumber,
-            customer_name: afterSalesOrder.customer_name,
-            shipping_address: afterSalesOrder.shipping_address,
-            customer_phone: "",
-            delivery_date: undefined,
-            installation_date: undefined,
-            first_completion_date: undefined,
-            is_completed: false,
-            external_purchase_details: undefined,
-            costs: undefined,
-            designer: afterSalesOrder.designer || "",
-            splitter: undefined,
-          });
+  // 处理创建补单成功
+  const handleCreateReorderSuccess = async (data: {
+    reorderDetails: string;
+    files: UploadFile[];
+    expectedDeliveryDate?: string;
+    expectedMaterialDate?: string;
+    actualDeliveryDate?: string;
+  }) => {
+    if (!afterSalesOrder || !selectedLogForReorder) {
+      message.error("无法获取售后订单信息");
+      return;
+    }
 
-          if (response.code === 200) {
-            message.success(`安装补单创建成功，订单编号：${newOrderNumber}`);
-            if (onSuccess) {
-              onSuccess();
-            }
-          } else {
-            message.error(response.message || "创建安装补单失败");
-          }
-        } catch (error) {
-          console.error("创建安装补单失败:", error);
-          message.error("创建安装补单失败，请稍后重试");
-        } finally {
-          setLoading(false);
+    setLoading(true);
+    try {
+      // 生成新的订单编号（基于原订单编号+后缀）
+      const newOrderNumber = `${afterSalesOrder.order_number}-补${Date.now()
+        .toString()
+        .slice(-6)}`;
+
+      // 处理文件列表（这里可以根据实际需求上传文件到服务器）
+      const fileNames = data.files.map((file) => file.name).join(", ");
+      const reorderInfo = `补单明细：${data.reorderDetails}\n预计发货时间：${data.expectedDeliveryDate || "未设置"}\n预计齐料时间：${data.expectedMaterialDate || "未设置"}\n实际出货时间：${data.actualDeliveryDate || "未设置"}\n附件：${fileNames || "无"}`;
+
+      // 创建安装补单（安装订单）
+      const response = await createAfterSalesOrder({
+        order_number: newOrderNumber,
+        customer_name: afterSalesOrder.customer_name,
+        shipping_address: afterSalesOrder.shipping_address,
+        customer_phone: "",
+        delivery_date: data.expectedDeliveryDate,
+        installation_date: data.actualDeliveryDate,
+        is_completed: false,
+        is_reorder: true,
+        external_purchase_details: reorderInfo,
+        designer: afterSalesOrder.designer || "",
+        related_person: undefined,
+      });
+
+      if (response.code === 200) {
+        message.success(`补单创建成功，订单编号：${newOrderNumber}`);
+        setIsCreateReorderModalVisible(false);
+        setSelectedLogForReorder(null);
+        if (onSuccess) {
+          onSuccess();
         }
-      },
-    });
+      } else {
+        message.error(response.message || "创建补单失败");
+      }
+    } catch (error) {
+      console.error("创建补单失败:", error);
+      message.error("创建补单失败，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 删除日志
@@ -304,11 +294,6 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
     setTempDate(null);
     setTempFeedbackPerson("");
     setTempIsProcessed(false);
-    setTempHasBeauty(false);
-    setTempBeautyProcessed(false);
-    setTempAfterSalesType("");
-    setTempModificationDetails("");
-    setTempModificationReason("");
     setTempResponsiblePerson("");
   };
 
@@ -356,29 +341,6 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
       },
     },
     {
-      title: "售后类型",
-      dataIndex: "after_sales_type",
-      key: "after_sales_type",
-      width: 100,
-      render: (text: string, record: AfterSalesLogItem) => {
-        if (editingId === record.id) {
-          return (
-            <Select
-              value={tempAfterSalesType}
-              onChange={setTempAfterSalesType}
-              size="small"
-              placeholder="选择类型"
-              className={styles.fullWidth}
-            >
-              <Option value="问题单">问题单</Option>
-              <Option value="裁撤单">裁撤单</Option>
-            </Select>
-          );
-        }
-        return text || "-";
-      },
-    },
-    {
       title: "问题描述",
       dataIndex: "content",
       key: "content",
@@ -417,127 +379,22 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
       render: (isProcessed: boolean, record: AfterSalesLogItem) => {
         if (editingId === record.id) {
           return (
-            <Checkbox
-              checked={tempIsProcessed}
-              onChange={(e) => setTempIsProcessed(e.target.checked)}
-            >
-              是
-            </Checkbox>
-          );
-        }
-        return isProcessed ? "是" : "否";
-      },
-    },
-    {
-      title: "是否有美容",
-      dataIndex: "has_beauty",
-      key: "has_beauty",
-      width: 100,
-      render: (hasBeauty: boolean, record: AfterSalesLogItem) => {
-        if (editingId === record.id) {
-          return (
-            <Checkbox
-              checked={tempHasBeauty}
-              onChange={(e) => setTempHasBeauty(e.target.checked)}
-            >
-              是
-            </Checkbox>
-          );
-        }
-        return hasBeauty ? "是" : "否";
-      },
-    },
-    {
-      title: "美容是否处理",
-      dataIndex: "beauty_processed",
-      key: "beauty_processed",
-      width: 120,
-      render: (beautyProcessed: boolean, record: AfterSalesLogItem) => {
-        if (editingId === record.id) {
-          return (
-            <Checkbox
-              checked={tempBeautyProcessed}
-              onChange={(e) => {
-                setTempBeautyProcessed(e.target.checked);
-                if (!e.target.checked && !tempHasBeauty) {
-                  setTempBeautyProcessed(false);
-                }
-              }}
-              disabled={!tempHasBeauty}
-            >
-              是
-            </Checkbox>
-          );
-        }
-        return beautyProcessed ? "是" : "否";
-      },
-    },
-    {
-      title: "裁改明细",
-      dataIndex: "modification_details",
-      key: "modification_details",
-      width: 150,
-      render: (text: string, record: AfterSalesLogItem) => {
-        if (editingId === record.id && tempAfterSalesType === "裁撤单") {
-          return (
-            <TextArea
-              value={tempModificationDetails}
-              onChange={(e) => setTempModificationDetails(e.target.value)}
+            <Select
+              value={tempIsProcessed ? "已处理" : "未处理"}
+              onChange={(value) => setTempIsProcessed(value === "已处理")}
               size="small"
-              placeholder="裁改明细"
               className={styles.fullWidth}
-              rows={2}
-            />
-          );
-        }
-        if (record.after_sales_type === "裁撤单") {
-          return (
-            <div
-              style={{
-                maxWidth: "150px",
-                wordWrap: "break-word",
-                whiteSpace: "pre-wrap",
-              }}
             >
-              {text || "-"}
-            </div>
+              <Option value="已处理">已处理</Option>
+              <Option value="未处理">未处理</Option>
+            </Select>
           );
         }
-        return "-";
-      },
-    },
-    {
-      title: "裁改原因",
-      dataIndex: "modification_reason",
-      key: "modification_reason",
-      width: 150,
-      render: (text: string, record: AfterSalesLogItem) => {
-        if (editingId === record.id && tempAfterSalesType === "裁撤单") {
-          return (
-            <TextArea
-              value={tempModificationReason}
-              onChange={(e) => setTempModificationReason(e.target.value)}
-              size="small"
-              placeholder="裁改原因"
-              className={styles.fullWidth}
-              rows={2}
-            />
-          );
-        }
-        if (record.after_sales_type === "裁撤单") {
-          return (
-            <div
-              style={{
-                maxWidth: "150px",
-                wordWrap: "break-word",
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {text || "-"}
-            </div>
-          );
-        }
-        return "-";
+        return (
+          <Tag color={isProcessed ? "green" : "orange"}>
+            {isProcessed ? "已处理" : "未处理"}
+          </Tag>
+        );
       },
     },
     {
@@ -546,7 +403,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
       key: "responsible_person",
       width: 100,
       render: (text: string, record: AfterSalesLogItem) => {
-        if (editingId === record.id && tempAfterSalesType === "裁撤单") {
+        if (editingId === record.id) {
           return (
             <Input
               value={tempResponsiblePerson}
@@ -557,10 +414,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
             />
           );
         }
-        if (record.after_sales_type === "裁撤单") {
-          return text || "-";
-        }
-        return "-";
+        return text || "-";
       },
     },
     {
@@ -603,7 +457,7 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
               size="small"
               onClick={() => handleCreateOrder(record)}
             >
-              创建安装补单
+              创建补单
             </Button>
           </Space>
         );
@@ -627,11 +481,6 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
     setTempDate(null);
     setTempFeedbackPerson("");
     setTempIsProcessed(false);
-    setTempHasBeauty(false);
-    setTempBeautyProcessed(false);
-    setTempAfterSalesType("");
-    setTempModificationDetails("");
-    setTempModificationReason("");
     setTempResponsiblePerson("");
     onCancel();
   };
@@ -645,11 +494,8 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
       footer={null}
     >
       <div className={styles.bottomMargin}>
-        <div style={{ marginBottom: 16, textAlign: "right" }}>
-          <Button
-            type="primary"
-            onClick={() => setIsAddModalVisible(true)}
-          >
+        <div style={{ marginBottom: 16, textAlign: "left" }}>
+          <Button type="primary" onClick={() => setIsAddModalVisible(true)}>
             添加日志
           </Button>
         </div>
@@ -672,6 +518,17 @@ const AfterSalesLogModal: React.FC<AfterSalesLogModalProps> = ({
         onCancel={() => setIsAddModalVisible(false)}
         onSuccess={handleAddLogSuccess}
         orderNumber={orderNumber}
+      />
+
+      {/* 创建补单Modal */}
+      <CreateReorderModal
+        visible={isCreateReorderModalVisible}
+        onCancel={() => {
+          setIsCreateReorderModalVisible(false);
+          setSelectedLogForReorder(null);
+        }}
+        onSuccess={handleCreateReorderSuccess}
+        afterSalesDate={selectedLogForReorder?.log_date}
       />
     </Modal>
   );

@@ -10,15 +10,15 @@ export interface AfterSalesOrder {
   customer_phone: string; // 客户电话
   delivery_date?: string; // 送货日期
   installation_date?: string; // 安装日期
-  first_completion_date?: string; // 首次完工日期
   is_completed: boolean; // 是否完工
+  is_reorder?: boolean; // 是否补单
   after_sales_log?: string; // 售后日志
   external_purchase_details?: string; // 外购产品明细
-  remaining_issues?: string; // 遗留问题
-  costs?: string; // 产生费用
   designer: string; // 设计师
-  splitter?: string; // 拆单员
+  related_person?: string; // 相关人员（原拆单员）
   follow_up_issues?: string; // 回访问题
+  is_installation?: boolean; // 是否安装
+  after_sales_date?: string; // 售后时间
   created_at?: string;
   updated_at?: string;
 }
@@ -38,10 +38,14 @@ export interface AfterSalesListParams {
   orderNumber?: string;
   customerName?: string;
   designer?: string;
-  splitter?: string;
+  relatedPerson?: string; // 相关人员（原splitter）
   installationDateStart?: string; // 安装日期开始
   installationDateEnd?: string; // 安装日期结束
   isCompleted?: boolean; // 是否完工
+  isInstallation?: boolean; // 是否安装
+  isReorder?: boolean; // 是否补单
+  afterSalesDateStart?: string; // 售后时间开始
+  afterSalesDateEnd?: string; // 售后时间结束
 }
 
 // 售后订单列表响应

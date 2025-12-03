@@ -26,14 +26,12 @@ interface AfterSalesFormValues {
   customer_phone: string;
   delivery_date?: string;
   installation_date?: string;
-  first_completion_date?: string;
   is_completed: boolean;
+  is_reorder?: boolean;
   after_sales_log?: string;
   external_purchase_details?: string;
-  remaining_issues?: string;
-  costs?: string;
   designer: string;
-  splitter?: string;
+  related_person?: string;
   follow_up_issues?: string;
 }
 
@@ -85,7 +83,7 @@ const CreateAfterSalesModal: React.FC<CreateAfterSalesModalProps> = ({
         form.setFieldsValue({
           customer_name: matchedOrder.customer_name || "",
           shipping_address: matchedOrder.address || "",
-          splitter: matchedOrder.splitter || "",
+          related_person: matchedOrder.splitter || "",
         });
         message.success("已从生产管理自动填充订单信息");
       } else {
@@ -117,11 +115,6 @@ const CreateAfterSalesModal: React.FC<CreateAfterSalesModalProps> = ({
               ? dayjs(initialValues.installation_date)
               : undefined
             : undefined,
-          first_completion_date: initialValues.first_completion_date
-            ? dayjs(initialValues.first_completion_date).isValid()
-              ? dayjs(initialValues.first_completion_date)
-              : undefined
-            : undefined,
         };
         form.setFieldsValue(formValues);
       } else {
@@ -143,10 +136,6 @@ const CreateAfterSalesModal: React.FC<CreateAfterSalesModalProps> = ({
         installation_date: values.installation_date
           ? dayjs(values.installation_date).format("YYYY-MM-DD")
           : undefined,
-        first_completion_date: values.first_completion_date
-          ? dayjs(values.first_completion_date).format("YYYY-MM-DD")
-          : undefined,
-        costs: values.costs ? String(values.costs) : undefined,
       };
       const success = await onOk(processedValues);
       if (success) {
@@ -248,17 +237,16 @@ const CreateAfterSalesModal: React.FC<CreateAfterSalesModalProps> = ({
 
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="首次完工日期" name="first_completion_date">
-              <DatePicker
-                placeholder="请选择首次完工日期"
-                style={{ width: "100%" }}
-                format="YYYY-MM-DD"
-              />
+            <Form.Item label="是否完工" name="is_completed">
+              <Select placeholder="请选择是否完工">
+                <Option value={true}>是</Option>
+                <Option value={false}>否</Option>
+              </Select>
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="是否完工" name="is_completed">
-              <Select placeholder="请选择是否完工">
+            <Form.Item label="是否补单" name="is_reorder">
+              <Select placeholder="请选择是否补单">
                 <Option value={true}>是</Option>
                 <Option value={false}>否</Option>
               </Select>
@@ -273,31 +261,20 @@ const CreateAfterSalesModal: React.FC<CreateAfterSalesModalProps> = ({
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="拆单员" name="splitter">
+            <Form.Item label="相关人员" name="related_person">
               <Input placeholder="自动填充或手动输入" />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={16}>
-          <Col span={12}>
+          <Col span={24}>
             <Form.Item label="外购产品明细" name="external_purchase_details">
               <TextArea
                 placeholder="请输入外购产品明细"
                 rows={3}
                 showCount
                 maxLength={500}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="产生费用" name="costs">
-              <InputNumber
-                placeholder="请输入产生费用"
-                style={{ width: "100%" }}
-                min={0}
-                precision={2}
-                addonAfter="元"
               />
             </Form.Item>
           </Col>
