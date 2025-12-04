@@ -126,8 +126,15 @@ export const getDesignOrderById = async (orderId: string): Promise<ApiResponse<D
   return await api.get(`/v1/orders/${orderId}`);
 };
 
+// 编辑订单更新类型，允许数值字段为null以支持清空操作
+export type DesignOrderUpdate = Omit<Partial<DesignOrder>, 'order_amount' | 'cabinet_area' | 'wall_panel_area'> & {
+  order_amount?: string | null;
+  cabinet_area?: string | null;
+  wall_panel_area?: string | null;
+};
+
 // 4. 编辑订单 - PUT /api/v1/orders/{order_id}
-export const updateDesignOrder = async (orderId: string, updates: Partial<DesignOrder>): Promise<ApiResponse<DesignOrder>> => {
+export const updateDesignOrder = async (orderId: string, updates: DesignOrderUpdate): Promise<ApiResponse<DesignOrder>> => {
   return await api.put(`/v1/orders/${orderId}`, updates);
 };
 

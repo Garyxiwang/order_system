@@ -273,7 +273,8 @@ const ProductionPage: React.FC = () => {
       const filteredParams = customParams || getSearchParams();
 
       // 如果是用户主动查询（没有传入customParams和page），重置到第一页
-      const targetPage = page !== undefined ? page : (!customParams ? 1 : currentPage);
+      const targetPage =
+        page !== undefined ? page : !customParams ? 1 : currentPage;
       const targetPageSize = size || pageSize;
 
       const params = {
@@ -640,6 +641,14 @@ const ProductionPage: React.FC = () => {
       title: "拆单员",
       dataIndex: "splitter",
       key: "splitter",
+      width: 100,
+      render: (text: string) => text || "-",
+    },
+    {
+      title: "设计师",
+      dataIndex: "designer",
+      key: "designer",
+      width: 100,
       render: (text: string) => text || "-",
     },
     {
@@ -787,6 +796,7 @@ const ProductionPage: React.FC = () => {
       title: "成品入库数量",
       dataIndex: "finished_goods_quantity",
       key: "finished_goods_quantity",
+      width: 150,
       render: (text: string, record: ProductionOrder) => {
         if (!text) return "-";
 
@@ -852,6 +862,13 @@ const ProductionPage: React.FC = () => {
           </div>
         );
       },
+    },
+    {
+      title: "特殊情况",
+      dataIndex: "special_notes",
+      key: "special_notes",
+      width: 150,
+      render: (text: string) => text || "-",
     },
     {
       title: "备注",
@@ -1012,7 +1029,11 @@ const ProductionPage: React.FC = () => {
               </Form.Item>
             </Col>
             <Col span={6} className="py-2">
-              <Form.Item name="completionStatus" label="类目是否完成" className="mb-0">
+              <Form.Item
+                name="completionStatus"
+                label="类目是否完成"
+                className="mb-0"
+              >
                 <Select
                   placeholder="全部"
                   className="rounded-md"

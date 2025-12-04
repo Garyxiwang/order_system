@@ -927,7 +927,8 @@ async def place_split_order(
                 actual_delivery_date=None,
                 cutting_date=None,
                 expected_shipping_date=None,
-                remarks=getattr(split, 'remarks', '')
+                remarks=getattr(split, 'remarks', ''),
+                designer=split.designer  # 同步设计师字段
             )
             db.add(production)
             db.flush()  # 获取生产记录ID

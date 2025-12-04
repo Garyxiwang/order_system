@@ -235,6 +235,42 @@ class DatabaseMigrator:
         
         self.record_migration(version, description)
     
+    def run_migration_v1_0_6(self):
+        """迁移 v1.0.6: 添加productions表的special_notes和designer字段"""
+        version = "v1.0.6"
+        description = "添加productions表的special_notes和designer字段"
+        
+        if self.is_migration_applied(version):
+            logger.info(f"⏭️  迁移 {version} 已应用")
+            return
+        
+        logger.info(f"🔄 应用迁移 {version}: {description}")
+        
+        if self.table_exists('productions'):
+            try:
+                # 检查数据库类型（SQLite不支持COMMENT）
+                db_url = str(engine.url)
+                is_sqlite = 'sqlite' in db_url
+                
+                if is_sqlite:
+                    # SQLite语法
+                    self.add_column_if_not_exists('productions', 'special_notes TEXT')
+                    self.add_column_if_not_exists('productions', 'designer VARCHAR(50)')
+                else:
+                    # MySQL/PostgreSQL语法（支持COMMENT）
+                    self.add_column_if_not_exists('productions', 'special_notes TEXT NULL COMMENT "特殊情况"')
+                    self.add_column_if_not_exists('productions', 'designer VARCHAR(50) NULL COMMENT "设计师"')
+                
+                self.db.commit()
+                logger.info("✅ 成功添加 special_notes 和 designer 字段")
+                
+            except Exception as e:
+                logger.error(f"❌ 添加字段失败: {e}")
+                self.db.rollback()
+                raise
+        
+        self.record_migration(version, description)
+    
     def run_all_migrations(self):
         """运行所有迁移"""
         logger.info("🚀 开始数据库迁移...")
@@ -249,6 +285,7 @@ class DatabaseMigrator:
             self.run_migration_v1_0_3,
             self.run_migration_v1_0_4,
             self.run_migration_v1_0_5,
+            self.run_migration_v1_0_6,
             # 在这里添加新的迁移方法
         ]
         

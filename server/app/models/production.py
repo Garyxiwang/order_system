@@ -32,6 +32,8 @@ class Production(Base):
     cutting_date = Column(String(50), nullable=True, comment="下料日期")
     expected_shipping_date = Column(String(50), nullable=True, comment="预计出货日期")
     remarks = Column(Text, nullable=True, comment="备注")
+    special_notes = Column(Text, nullable=True, comment="特殊情况")
+    designer = Column(String(50), nullable=True, comment="设计师")
     
     created_at = Column(DateTime, default=datetime.utcnow, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间")

@@ -61,6 +61,10 @@ class ProductionListItem(BaseModel):
     # 成品入库数量
     finished_goods_quantity: Optional[str] = Field(default=None, description="成品入库数量")
     
+    # 新增字段
+    special_notes: Optional[str] = Field(default=None, description="特殊情况")
+    designer: Optional[str] = Field(default=None, description="设计师")
+    
     created_at: datetime
     updated_at: datetime
 
@@ -98,6 +102,7 @@ class ProductionEdit(BaseModel):
     cutting_date: Optional[str] = Field(default=None, description="下料日期")
     expected_shipping_date: Optional[str] = Field(default=None, description="预计出货日期")
     remarks: Optional[str] = Field(default=None, description="备注")
+    special_notes: Optional[str] = Field(default=None, description="特殊情况")
 
 
 class ProductionProgressBase(BaseModel):
@@ -162,6 +167,8 @@ class ProductionResponse(BaseModel):
     cutting_date: Optional[str]
     expected_shipping_date: Optional[str]
     remarks: Optional[str]
+    special_notes: Optional[str]
+    designer: Optional[str]
     created_at: datetime
     updated_at: datetime
     progress_items: List[ProductionProgressResponse] = []

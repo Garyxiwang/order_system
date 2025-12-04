@@ -46,6 +46,7 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
         board18: orderData.board_18,
         board09: orderData.board_09,
         remarks: orderData.remarks,
+        specialNotes: orderData.special_notes,
         actualShipmentDate: orderData.actual_delivery_date
           ? dayjs(orderData.actual_delivery_date)
           : null,
@@ -67,6 +68,7 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
         board_18: values.board18,
         board_09: values.board09,
         remarks: values.remarks,
+        special_notes: values.specialNotes,
         actual_delivery_date: values.actualShipmentDate
           ? values.actualShipmentDate.format("YYYY-MM-DD")
           : null,
@@ -155,7 +157,14 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
             {
               key: "orderDays",
               label: "下单天数",
-              children: orderData.order_days ? `${orderData.order_days}天` : "-",
+              children: orderData.order_days
+                ? `${orderData.order_days}天`
+                : "-",
+            },
+            {
+              key: "designer",
+              label: "设计师",
+              children: orderData.designer || "-",
             },
             {
               key: "internalProduction",
@@ -205,8 +214,19 @@ const EditProductionModal: React.FC<EditProductionModalProps> = ({
               <DatePicker placeholder="请选择日期" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
+        </Row>{" "}
+        <Row gutter={24}>
+          <Col span={24}>
+            <Form.Item
+              label="特殊情况"
+              name="specialNotes"
+              labelCol={{ span: 3 }}
+              wrapperCol={{ span: 21 }}
+            >
+              <TextArea rows={3} placeholder="请输入特殊情况信息" />
+            </Form.Item>
+          </Col>
         </Row>
-
         <Row gutter={24}>
           <Col span={24}>
             <Form.Item

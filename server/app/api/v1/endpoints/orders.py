@@ -386,7 +386,27 @@ async def update_order(
             return error_response(message="订单不存在")
 
         # 获取更新数据，只包含实际传递的字段
-        update_data = order_data.dict(exclude_unset=True)
+        # 使用 model_dump 获取所有字段（包括None值），然后过滤
+        raw_update_data = order_data.model_dump(exclude_unset=True)
+        
+        # 特殊处理：对于这三个数值字段，需要允许清空（设置为None）
+        # 检查这些字段是否在原始请求中（通过检查所有字段，包括None）
+        # 如果前端发送了null，Pydantic会解析为None，exclude_unset=True应该会包含它
+        # 但为了确保能正确处理，我们检查所有字段
+        all_fields = order_data.model_dump(exclude_unset=False)
+        numeric_fields = ['order_amount', 'cabinet_area', 'wall_panel_area']
+        
+        update_data = raw_update_data.copy()
+        for field in numeric_fields:
+            # 如果字段在all_fields中（包括值为None的情况），说明前端传递了这个字段
+            # 无论值是什么（包括None），都要包含在更新中，以支持清空操作
+            if field in all_fields:
+                update_data[field] = all_fields[field]
+            # 如果字段在update_data中，确保正确处理空值
+            elif field in update_data:
+                # 如果值是空字符串，转换为None
+                if update_data[field] == '':
+                    update_data[field] = None
 
         # 不允许修改订单编号
         if 'order_number' in update_data:
@@ -417,6 +437,22 @@ async def update_order(
         if split_updates:
             db.query(Split).filter(Split.order_number ==
                                    order.order_number).update(split_updates)
+
+        # 同步更新生产管理表中的数据
+        # 定义需要同步到生产表的字段映射
+        production_update_fields = {
+            'customer_name': 'customer_name',
+            'address': 'address',
+            'designer': 'designer',
+            'is_installation': 'is_installation',
+            'remarks': 'remarks'
+        }
+
+        # 检查是否有需要同步到生产表的字段更新
+        production_updates = {}
+        for order_field, production_field in production_update_fields.items():
+            if order_field in update_data:
+                production_updates[production_field] = update_data[order_field]
 
         # 如果更新了category_name，需要同步更新split_progress表
         if 'category_name' in update_data:
@@ -470,6 +506,18 @@ async def update_order(
         # 更新订单表字段
         for field, value in update_data.items():
             setattr(order, field, value)
+
+        # 如果有字段需要同步更新，更新生产表（在更新订单表之后）
+        if production_updates:
+            # 查找是否存在生产管理记录
+            production = db.query(Production).filter(
+                Production.order_number == order.order_number
+            ).first()
+            
+            if production:
+                # 更新生产管理表中的字段
+                for field, value in production_updates.items():
+                    setattr(production, field, value)
 
         db.commit()
         db.refresh(order)

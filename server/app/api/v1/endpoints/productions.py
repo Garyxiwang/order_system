@@ -316,6 +316,8 @@ async def get_productions(
                 "order_status": production.order_status,
                 "purchase_status": purchase_status,
                 "finished_goods_quantity": finished_goods_quantity,
+                "special_notes": production.special_notes,
+                "designer": production.designer,
                 "created_at": production.created_at,
                 "updated_at": production.updated_at
             }
@@ -396,6 +398,8 @@ async def update_production(
             "cutting_date": production.cutting_date,
             "expected_shipping_date": production.expected_shipping_date,
             "remarks": production.remarks,
+            "special_notes": production.special_notes,
+            "designer": production.designer,
             "created_at": production.created_at,
             "updated_at": production.updated_at,
             "progress_items": []

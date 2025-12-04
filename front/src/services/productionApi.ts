@@ -20,6 +20,8 @@ export interface ProductionOrder {
   internal_production_items?: string; // 厂内生产项
   external_purchase_items?: string; // 外购项
   remarks?: string; // 备注
+  special_notes?: string; // 特殊情况
+  designer?: string; // 设计师
   order_status: string; // 订单状态
   purchase_status?: string; // 采购状态
   finished_goods_quantity?: string; // 成品入库数量

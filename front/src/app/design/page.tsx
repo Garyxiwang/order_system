@@ -38,6 +38,7 @@ import {
   updateOrderStatus,
   deleteDesignOrder,
   type DesignOrder,
+  type DesignOrderUpdate,
   type OrderListParams,
 } from "../../services/designApi";
 import { formatDateTime } from "../../utils/dateUtils";
@@ -306,7 +307,7 @@ const DesignPage: React.FC = () => {
 
       if (editingRecord) {
         // 编辑模式 - 不传递order_number字段，因为后端不允许修改订单编号
-        const response = await updateDesignOrder(editingRecord.id!.toString(), {
+        const updateData: DesignOrderUpdate = {
           customer_name: values.customer_name,
           address: values.address,
           designer: values.designer,
@@ -318,10 +319,12 @@ const DesignPage: React.FC = () => {
           order_type: values.order_type,
           remarks: values.remarks || "",
           is_installation: values.is_installation,
-          order_amount: values.order_amount || undefined,
-          cabinet_area: values.cabinet_area || undefined,
-          wall_panel_area: values.wall_panel_area || undefined,
-        });
+          // 对于数值字段，空值发送null而不是undefined，以便后端能正确处理清空操作
+          order_amount: values.order_amount && values.order_amount !== "" ? values.order_amount : null,
+          cabinet_area: values.cabinet_area && values.cabinet_area !== "" ? values.cabinet_area : null,
+          wall_panel_area: values.wall_panel_area && values.wall_panel_area !== "" ? values.wall_panel_area : null,
+        };
+        const response = await updateDesignOrder(editingRecord.id!.toString(), updateData);
 
         if (response.code === 200) {
           message.success("更新成功");
